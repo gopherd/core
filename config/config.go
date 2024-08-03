@@ -35,6 +35,12 @@ type GenericConfig struct {
 	core   CoreConfig
 }
 
+func NewGenericConfig(core CoreConfig) *GenericConfig {
+	return &GenericConfig{
+		core: core,
+	}
+}
+
 // CoreConfig implements Configurator CoreConfig method
 func (c *GenericConfig) CoreConfig() *CoreConfig {
 	return &c.core
