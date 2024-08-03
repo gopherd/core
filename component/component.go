@@ -155,9 +155,7 @@ func (m *Manager) GetComponent(uuid string) Component {
 func (m *Manager) Init(ctx context.Context) error {
 	for i := range m.components {
 		com := m.components[i]
-		slog.LogAttrs(
-			ctx,
-			slog.LevelInfo-1,
+		slog.Info(
 			"initializing component",
 			slog.String("uuid", com.UUID()),
 			slog.String("name", com.Name()),
@@ -171,9 +169,7 @@ func (m *Manager) Init(ctx context.Context) error {
 			)
 			return err
 		}
-		slog.LogAttrs(
-			ctx,
-			slog.LevelInfo-1,
+		slog.Info(
 			"component initialized",
 			slog.String("uuid", com.UUID()),
 			slog.String("name", com.Name()),
@@ -186,9 +182,7 @@ func (m *Manager) Init(ctx context.Context) error {
 func (m *Manager) Uninit(ctx context.Context) error {
 	for i := m.initialized - 1; i >= 0; i-- {
 		com := m.components[i]
-		slog.LogAttrs(
-			ctx,
-			slog.LevelInfo-1,
+		slog.Info(
 			"uninitializing component",
 			slog.String("uuid", com.UUID()),
 			slog.String("name", com.Name()),
@@ -202,9 +196,7 @@ func (m *Manager) Uninit(ctx context.Context) error {
 			)
 			return err
 		}
-		slog.LogAttrs(
-			ctx,
-			slog.LevelInfo-1,
+		slog.Info(
 			"component uninitialized",
 			slog.String("uuid", com.UUID()),
 			slog.String("name", com.Name()),
@@ -217,9 +209,7 @@ func (m *Manager) Uninit(ctx context.Context) error {
 func (m *Manager) Start(ctx context.Context) error {
 	for i := range m.components {
 		com := m.components[i]
-		slog.Log(
-			ctx,
-			slog.LevelInfo-1,
+		slog.Info(
 			"starting component",
 			slog.String("uuid", com.UUID()),
 			slog.String("name", com.Name()),
@@ -233,9 +223,7 @@ func (m *Manager) Start(ctx context.Context) error {
 			)
 			return err
 		}
-		slog.LogAttrs(
-			ctx,
-			slog.LevelInfo-1,
+		slog.Info(
 			"component started",
 			slog.String("uuid", com.UUID()),
 			slog.String("name", com.Name()),
@@ -249,9 +237,7 @@ func (m *Manager) Start(ctx context.Context) error {
 func (m *Manager) Shutdown(ctx context.Context) error {
 	for i := m.started - 1; i >= 0; i-- {
 		com := m.components[i]
-		slog.LogAttrs(
-			ctx,
-			slog.LevelInfo-1,
+		slog.Info(
 			"shutting down component",
 			slog.String("uuid", com.UUID()),
 			slog.String("name", com.Name()),
@@ -264,9 +250,7 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 				slog.Any("error", err),
 			)
 		} else {
-			slog.LogAttrs(
-				ctx,
-				slog.LevelInfo-1,
+			slog.Info(
 				"component shutdown",
 				slog.String("uuid", com.UUID()),
 				slog.String("name", com.Name()),
