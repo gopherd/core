@@ -6,7 +6,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"io"
-	"io/ioutil"
 	"os"
 )
 
@@ -57,7 +56,7 @@ func GenerateRSAPublicPem(pubKey *rsa.PublicKey, w io.Writer) error {
 }
 
 func LoadRSAPrivateKeyFile(priFilename string) (*rsa.PrivateKey, error) {
-	data, err := ioutil.ReadFile(priFilename)
+	data, err := os.ReadFile(priFilename)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +65,7 @@ func LoadRSAPrivateKeyFile(priFilename string) (*rsa.PrivateKey, error) {
 }
 
 func LoadRSAPublicKeyFile(priFilename string) (*rsa.PublicKey, error) {
-	data, err := ioutil.ReadFile(priFilename)
+	data, err := os.ReadFile(priFilename)
 	if err != nil {
 		return nil, err
 	}

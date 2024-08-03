@@ -26,7 +26,7 @@ func Register(sig os.Signal, handler SignalHandler) {
 
 func Listen() {
 	signals := make([]os.Signal, 0, len(handlers))
-	for sig, _ := range handlers {
+	for sig := range handlers {
 		signals = append(signals, sig)
 	}
 	signal.Notify(sigChan, signals...)

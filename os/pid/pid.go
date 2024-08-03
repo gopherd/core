@@ -2,7 +2,6 @@ package pid
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -20,7 +19,7 @@ func New(filename string) error {
 			return fmt.Errorf("PidFile: %v", err)
 		}
 	}
-	if content, err := ioutil.ReadFile(filename); err == nil {
+	if content, err := os.ReadFile(filename); err == nil {
 		pidStr := strings.TrimSpace(string(content))
 		if pidStr == "" {
 			return nil
@@ -33,7 +32,7 @@ func New(filename string) error {
 			return fmt.Errorf("pid file found, ensoure %s is not running", os.Args[0])
 		}
 	}
-	if err := ioutil.WriteFile(filename, []byte(fmt.Sprintf("%d", os.Getpid())), 0644); err != nil {
+	if err := os.WriteFile(filename, []byte(fmt.Sprintf("%d", os.Getpid())), 0644); err != nil {
 		return err
 	}
 	return nil

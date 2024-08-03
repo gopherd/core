@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sort"
@@ -103,7 +102,7 @@ type Result struct {
 	Error      error
 }
 
-func (result Result) Ok() bool { return result.StatusCode == http.StatusOK }
+func (result Result) OK() bool { return result.StatusCode == http.StatusOK }
 func (result Result) Status() string {
 	if result.Response == nil {
 		if result.Error != nil {
@@ -134,7 +133,7 @@ func readResultFromResponse(resp *http.Response, err error) Result {
 	}
 	result.StatusCode = resp.StatusCode
 	defer resp.Body.Close()
-	result.Data, result.Error = ioutil.ReadAll(resp.Body)
+	result.Data, result.Error = io.ReadAll(resp.Body)
 	return result
 }
 

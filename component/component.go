@@ -3,9 +3,8 @@ package component
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"sync"
-
-	"github.com/gopherd/core/logger"
 )
 
 // Options represents component options
@@ -13,7 +12,7 @@ type Options = json.RawMessage
 
 // Config represents component configuration to create a component
 type Config struct {
-	UUID    string  `json:"uuid"`
+	UUID    string  `json:"uuid,omitempty"`
 	Name    string  `json:"name"`
 	Options Options `json:"options"`
 }
@@ -29,7 +28,6 @@ func CreateOptions(v any) Options {
 
 // Entity represents a generic entity with components
 type Entity interface {
-	Logger() logger.Logger
 	GetComponent(uuid string) Component
 }
 
@@ -38,7 +36,7 @@ type ComponentCreator func() Component
 
 // Metadata represents metadata of a component
 type Metadata interface {
-	// UUID returns the unique id of the component
+	// UUID returns the unique id of the component, may be empty
 	UUID() string
 	// Name returns the name of the component
 	Name() string
@@ -113,69 +111,125 @@ func (com *BaseComponent[T]) Shutdown(_ context.Context) error {
 
 // Manager used to manages a group of components
 type Manager struct {
-	components        map[string]Component
-	orderedComponents []Component
+	components     []Component
+	uuid2component map[string]Component
 }
 
 // NewManager creates a Manager
 func NewManager() *Manager {
 	return &Manager{
-		components: make(map[string]Component),
+		uuid2component: make(map[string]Component),
 	}
 }
 
 // Add adds a component to the manager, returns nil if the uuid is duplicated
 func (m *Manager) AddComponent(com Component) Component {
 	uuid := com.UUID()
-	if _, dup := m.components[uuid]; dup {
-		return nil
+	if uuid != "" {
+		if _, dup := m.uuid2component[uuid]; dup {
+			return nil
+		}
+		m.uuid2component[uuid] = com
 	}
-	m.components[uuid] = com
-	m.orderedComponents = append(m.orderedComponents, com)
+	m.components = append(m.components, com)
 	return com
 }
 
 func (m *Manager) GetComponent(uuid string) Component {
-	return m.components[uuid]
+	if uuid == "" {
+		return nil
+	}
+	return m.uuid2component[uuid]
 }
 
 // Init initializes all components
 func (m *Manager) Init(ctx context.Context) error {
-	for i := range m.orderedComponents {
-		com := m.orderedComponents[i]
-		com.Entity().Logger().Infof("initializing component %s (name=%s)", com.UUID(), com.Name())
+	for i := range m.components {
+		com := m.components[i]
+		slog.LogAttrs(
+			ctx,
+			slog.LevelInfo-1,
+			"initializing component",
+			slog.String("uuid", com.UUID()),
+			slog.String("name", com.Name()),
+		)
 		if err := com.Init(ctx); err != nil {
-			com.Entity().Logger().Errorf("failed to initialize component %s (name=%s): %v", com.UUID(), com.Name(), err)
+			slog.Error(
+				"failed to initialize component",
+				slog.String("uuid", com.UUID()),
+				slog.String("name", com.Name()),
+				slog.Any("error", err),
+			)
 			return err
 		}
-		com.Entity().Logger().Infof("component %s (name=%s) initialized", com.UUID(), com.Name())
+		slog.LogAttrs(
+			ctx,
+			slog.LevelInfo-1,
+			"component initialized",
+			slog.String("uuid", com.UUID()),
+			slog.String("name", com.Name()),
+		)
 	}
 	return nil
 }
 
 // Start starts all components
 func (m *Manager) Start(ctx context.Context) error {
-	for i := range m.orderedComponents {
-		com := m.orderedComponents[i]
-		com.Entity().Logger().Infof("starting component %s (name=%s)", com.UUID(), com.Name())
+	for i := range m.components {
+		com := m.components[i]
+		slog.Log(
+			ctx,
+			slog.LevelInfo-1,
+			"starting component",
+			slog.String("uuid", com.UUID()),
+			slog.String("name", com.Name()),
+		)
 		if err := com.Start(ctx); err != nil {
-			com.Entity().Logger().Errorf("failed to start component %s (name=%s): %v", com.UUID(), com.Name(), err)
+			slog.Error(
+				"failed to start component",
+				slog.String("uuid", com.UUID()),
+				slog.String("name", com.Name()),
+				slog.Any("error", err),
+			)
 			return err
 		}
-		com.Entity().Logger().Infof("component %s (name=%s) started", com.UUID(), com.Name())
+		slog.LogAttrs(
+			ctx,
+			slog.LevelInfo-1,
+			"component started",
+			slog.String("uuid", com.UUID()),
+			slog.String("name", com.Name()),
+		)
 	}
 	return nil
 }
 
 // Shutdown shutdowns all components in reverse order
 func (m *Manager) Shutdown(ctx context.Context) error {
-	for i := len(m.orderedComponents) - 1; i >= 0; i-- {
-		com := m.orderedComponents[i]
-		com.Entity().Logger().Infof("shutting down component %s (name=%s)", com.UUID(), com.Name())
+	for i := len(m.components) - 1; i >= 0; i-- {
+		com := m.components[i]
+		slog.LogAttrs(
+			ctx,
+			slog.LevelInfo-1,
+			"shutting down component",
+			slog.String("uuid", com.UUID()),
+			slog.String("name", com.Name()),
+		)
 		if err := com.Shutdown(ctx); err != nil {
-			com.Entity().Logger().Errorf("failed to shutdown component %s (name=%s): %v", com.UUID(), com.Name(), err)
+			slog.Error(
+				"failed to shutdown component",
+				slog.String("uuid", com.UUID()),
+				slog.String("name", com.Name()),
+				slog.Any("error", err),
+			)
 		} else {
-			com.Entity().Logger().Infof("component %s (name=%s) shutdown", com.UUID(), com.Name())
+			slog.LogAttrs(
+				ctx,
+				slog.LevelInfo-1,
+				"component shutdown",
+				slog.String("uuid", com.UUID()),
+				slog.String("name", com.Name()),
+			)
 		}
 	}
 	return nil
