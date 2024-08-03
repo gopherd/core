@@ -4,10 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"sync"
+
+	"github.com/gopherd/core/logger"
 )
 
 // Options represents component options
 type Options = json.RawMessage
+
+// Config represents component configuration to create a component
+type Config struct {
+	UUID    string  `json:"uuid"`
+	Name    string  `json:"name"`
+	Options Options `json:"options"`
+}
 
 // CreateOptions creates options from any value, panic if failed
 func CreateOptions(v any) Options {
@@ -20,6 +29,7 @@ func CreateOptions(v any) Options {
 
 // Entity represents a generic entity with components
 type Entity interface {
+	Logger() logger.Logger
 	GetComponent(uuid string) Component
 }
 
@@ -30,6 +40,8 @@ type ComponentCreator func() Component
 type Metadata interface {
 	// UUID returns the unique id of the component
 	UUID() string
+	// Name returns the name of the component
+	Name() string
 	// Entity returns the entity of the component
 	Entity() Entity
 }
@@ -38,9 +50,9 @@ type Metadata interface {
 type Component interface {
 	Metadata
 	// OnCreated is called when the component is created
-	OnCreated(entity Entity, uuid string, options Options) error
+	OnCreated(Entity, Config) error
 	// Init initializes the component
-	Init(context.Context, Entity) error
+	Init(context.Context) error
 	// Start starts the component
 	Start(context.Context) error
 	// Shutdown gracefully shuts down the component
@@ -51,9 +63,9 @@ var _ Component = (*BaseComponent[any])(nil)
 
 // BaseComponent implements the Component interface
 type BaseComponent[T any] struct {
-	uuid    string
-	entity  Entity
-	options T
+	uuid, name string
+	entity     Entity
+	options    T
 }
 
 // Options returns the options of the component
@@ -66,20 +78,26 @@ func (com *BaseComponent[T]) UUID() string {
 	return com.uuid
 }
 
+// Name implements Metadata Name method
+func (com *BaseComponent[T]) Name() string {
+	return com.name
+}
+
 // Entity implements Metadata Entity method
 func (com *BaseComponent[T]) Entity() Entity {
 	return com.entity
 }
 
 // OnCreated implements Component OnCreated method
-func (com *BaseComponent[T]) OnCreated(entity Entity, uuid string, options Options) error {
-	com.uuid = uuid
+func (com *BaseComponent[T]) OnCreated(entity Entity, config Config) error {
+	com.uuid = config.UUID
+	com.name = config.Name
 	com.entity = entity
-	return json.Unmarshal(options, &com.options)
+	return json.Unmarshal(config.Options, &com.options)
 }
 
 // Init implements Component Init method
-func (com *BaseComponent[T]) Init(_ context.Context, _ Entity) error {
+func (com *BaseComponent[T]) Init(_ context.Context) error {
 	return nil
 }
 
@@ -122,12 +140,15 @@ func (m *Manager) GetComponent(uuid string) Component {
 }
 
 // Init initializes all components
-func (m *Manager) Init(ctx context.Context, entity Entity) error {
+func (m *Manager) Init(ctx context.Context) error {
 	for i := range m.orderedComponents {
 		com := m.orderedComponents[i]
-		if err := com.Init(ctx, entity); err != nil {
+		com.Entity().Logger().Infof("initializing component %s (name=%s)", com.UUID(), com.Name())
+		if err := com.Init(ctx); err != nil {
+			com.Entity().Logger().Errorf("failed to initialize component %s (name=%s): %v", com.UUID(), com.Name(), err)
 			return err
 		}
+		com.Entity().Logger().Infof("component %s (name=%s) initialized", com.UUID(), com.Name())
 	}
 	return nil
 }
@@ -136,9 +157,12 @@ func (m *Manager) Init(ctx context.Context, entity Entity) error {
 func (m *Manager) Start(ctx context.Context) error {
 	for i := range m.orderedComponents {
 		com := m.orderedComponents[i]
+		com.Entity().Logger().Infof("starting component %s (name=%s)", com.UUID(), com.Name())
 		if err := com.Start(ctx); err != nil {
+			com.Entity().Logger().Errorf("failed to start component %s (name=%s): %v", com.UUID(), com.Name(), err)
 			return err
 		}
+		com.Entity().Logger().Infof("component %s (name=%s) started", com.UUID(), com.Name())
 	}
 	return nil
 }
@@ -147,7 +171,12 @@ func (m *Manager) Start(ctx context.Context) error {
 func (m *Manager) Shutdown(ctx context.Context) error {
 	for i := len(m.orderedComponents) - 1; i >= 0; i-- {
 		com := m.orderedComponents[i]
-		com.Shutdown(ctx)
+		com.Entity().Logger().Infof("shutting down component %s (name=%s)", com.UUID(), com.Name())
+		if err := com.Shutdown(ctx); err != nil {
+			com.Entity().Logger().Errorf("failed to shutdown component %s (name=%s): %v", com.UUID(), com.Name(), err)
+		} else {
+			com.Entity().Logger().Infof("component %s (name=%s) shutdown", com.UUID(), com.Name())
+		}
 	}
 	return nil
 }
