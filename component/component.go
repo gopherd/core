@@ -51,6 +51,8 @@ type Component interface {
 	OnCreated(Entity, Config) error
 	// Init initializes the component
 	Init(context.Context) error
+	// Uninit uninitializes the component
+	Uninit(context.Context) error
 	// Start starts the component
 	Start(context.Context) error
 	// Shutdown gracefully shuts down the component
@@ -99,6 +101,11 @@ func (com *BaseComponent[T]) Init(_ context.Context) error {
 	return nil
 }
 
+// Uninit implements Component Uninit method
+func (com *BaseComponent[T]) Uninit(_ context.Context) error {
+	return nil
+}
+
 // Start implements Component Start method
 func (com *BaseComponent[T]) Start(_ context.Context) error {
 	return nil
@@ -113,6 +120,8 @@ func (com *BaseComponent[T]) Shutdown(_ context.Context) error {
 type Manager struct {
 	components     []Component
 	uuid2component map[string]Component
+	initialized    int
+	started        int
 }
 
 // NewManager creates a Manager
@@ -169,6 +178,37 @@ func (m *Manager) Init(ctx context.Context) error {
 			slog.String("uuid", com.UUID()),
 			slog.String("name", com.Name()),
 		)
+		m.initialized++
+	}
+	return nil
+}
+
+func (m *Manager) Uninit(ctx context.Context) error {
+	for i := m.initialized - 1; i >= 0; i-- {
+		com := m.components[i]
+		slog.LogAttrs(
+			ctx,
+			slog.LevelInfo-1,
+			"uninitializing component",
+			slog.String("uuid", com.UUID()),
+			slog.String("name", com.Name()),
+		)
+		if err := com.Uninit(ctx); err != nil {
+			slog.Error(
+				"failed to uninitialize component",
+				slog.String("uuid", com.UUID()),
+				slog.String("name", com.Name()),
+				slog.Any("error", err),
+			)
+			return err
+		}
+		slog.LogAttrs(
+			ctx,
+			slog.LevelInfo-1,
+			"component uninitialized",
+			slog.String("uuid", com.UUID()),
+			slog.String("name", com.Name()),
+		)
 	}
 	return nil
 }
@@ -200,13 +240,14 @@ func (m *Manager) Start(ctx context.Context) error {
 			slog.String("uuid", com.UUID()),
 			slog.String("name", com.Name()),
 		)
+		m.started++
 	}
 	return nil
 }
 
 // Shutdown shutdowns all components in reverse order
 func (m *Manager) Shutdown(ctx context.Context) error {
-	for i := len(m.components) - 1; i >= 0; i-- {
+	for i := m.started - 1; i >= 0; i-- {
 		com := m.components[i]
 		slog.LogAttrs(
 			ctx,
