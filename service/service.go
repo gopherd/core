@@ -55,6 +55,8 @@ type Service interface {
 	SetState(state State) error
 	// Init initializes the service
 	Init(context.Context) error
+	// Uninit uninitializes the service
+	Uninit(context.Context) error
 	// Start starts the service
 	Start(context.Context) error
 	// Shutdown shutdowns the service
@@ -62,42 +64,6 @@ type Service interface {
 
 	// GetComponent returns a component by id
 	GetComponent(id string) component.Component
-}
-
-// Run runs the service
-func Run(s Service) {
-	slog.Info("initializing service")
-	if err := s.Init(context.Background()); err != nil {
-		slog.Error("failed to initialize service", slog.Any("error", err))
-		os.Exit(1)
-	}
-
-	slog.Info("starting service")
-	s.SetState(Running)
-	if err := s.Start(context.Background()); err != nil {
-		slog.Error("failed to start service", slog.Any("error", err))
-		s.SetState(Closed)
-		s.Shutdown(context.Background())
-		os.Exit(1)
-	}
-
-	slog.Info("stopping service")
-	s.SetState(Stopping)
-
-	if s.Busy() {
-		slog.Info("waiting for service to stop")
-		ticker := time.NewTicker(time.Millisecond * 100)
-		defer ticker.Stop()
-		for range ticker.C {
-			if !s.Busy() {
-				break
-			}
-		}
-	}
-
-	slog.Info("shutting down service")
-	s.SetState(Closed)
-	s.Shutdown(context.Background())
 }
 
 // BaseService implements Service
@@ -204,6 +170,11 @@ func (s *BaseService[Self, Config]) Init(ctx context.Context) error {
 	return s.components.Init(ctx)
 }
 
+// Uninit implements Service Uninit method
+func (s *BaseService[Self, Config]) Uninit(ctx context.Context) error {
+	return s.components.Uninit(ctx)
+}
+
 // Start implements Service Start method
 func (s *BaseService[Self, Config]) Start(ctx context.Context) error {
 	return s.components.Start(ctx)
@@ -211,6 +182,42 @@ func (s *BaseService[Self, Config]) Start(ctx context.Context) error {
 
 // Shutdown implements Service Shutdown method
 func (s *BaseService[Self, Config]) Shutdown(ctx context.Context) error {
-	s.components.Shutdown(ctx)
-	return nil
+	return s.components.Shutdown(ctx)
+}
+
+// Run runs the service
+func Run(s Service) {
+	slog.Info("initializing service")
+	if err := s.Init(context.Background()); err != nil {
+		slog.Error("failed to initialize service", slog.Any("error", err))
+		os.Exit(1)
+	}
+
+	slog.Info("starting service")
+	s.SetState(Running)
+	if err := s.Start(context.Background()); err != nil {
+		slog.Error("failed to start service", slog.Any("error", err))
+	}
+
+	slog.Info("stopping service")
+	s.SetState(Stopping)
+
+	if s.Busy() {
+		slog.Info("waiting for service to stop")
+		ticker := time.NewTicker(time.Millisecond * 100)
+		defer ticker.Stop()
+		for range ticker.C {
+			if !s.Busy() {
+				break
+			}
+		}
+	}
+
+	slog.Info("shutting down service")
+	s.SetState(Closed)
+	s.Shutdown(context.Background())
+
+	slog.Info("unistializing service")
+	s.Uninit(context.Background())
+	slog.Info("service stopped")
 }
