@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"sync"
 )
@@ -296,4 +298,30 @@ func Lookup(name string) ComponentCreator {
 	creatorsMu.RLock()
 	defer creatorsMu.RUnlock()
 	return creators[name]
+}
+
+// Resolve resolves the component in entity by uuid.
+func Resolve[T any](entity Entity, uuid string) (T, error) {
+	var zero T
+	if entity == nil {
+		return zero, errors.New("entity is nil")
+	}
+	com := entity.GetComponent(uuid)
+	if com == nil {
+		return zero, errors.New("component not found")
+	}
+	if c, ok := com.(T); ok {
+		return c, nil
+	}
+	return zero, fmt.Errorf("component %T type mismatch", com)
+}
+
+// MustResolve resolves the component in entity by uuid.
+// It panics if the component is not found.
+func MustResolve[T any](entity Entity, uuid string) T {
+	c, err := Resolve[T](entity, uuid)
+	if err != nil {
+		panic(fmt.Errorf("resolve component %q error: %w", uuid, err))
+	}
+	return c
 }
