@@ -256,3 +256,21 @@ func Sub[T constraints.Number](x, y T) T { return x - y }
 func Mul[T constraints.Number](x, y T) T { return x * y }
 func Div[T constraints.Number](x, y T) T { return x / y }
 func Pow[T constraints.Real](x, y T) T   { return T(math.Pow(float64(x), float64(y))) }
+
+// UpperPow2 returns the smallest power of 2 greater than or equal to n
+func UpperPow2(n int) int {
+	if n <= 1 {
+		return 1
+	}
+
+	n--
+	n |= n >> 1
+	n |= n >> 2
+	n |= n >> 4
+	n |= n >> 8
+	n |= n >> 16
+	// For 64-bit integers, add:
+	// n |= n >> 32
+
+	return n + 1
+}

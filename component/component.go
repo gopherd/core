@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/gopherd/core/event"
+	"github.com/gopherd/core/lifecycle"
 )
 
 // Options represents component-specific configuration options.
@@ -58,20 +59,14 @@ type Metadata interface {
 // Component defines the interface for a generic logic component.
 type Component interface {
 	Metadata
+	lifecycle.Lifecycle
 	// OnCreated is called when the component is created.
 	OnCreated(Entity, Config) error
-	// Init initializes the component.
-	Init(context.Context) error
-	// Uninit uninitializes the component.
-	Uninit(context.Context) error
-	// Start starts the component.
-	Start(context.Context) error
-	// Shutdown gracefully shuts down the component.
-	Shutdown(context.Context) error
 }
 
 // BaseComponent provides a basic implementation of the Component interface.
 type BaseComponent[T any] struct {
+	lifecycle.BaseLifecycle
 	uuid, name string
 	entity     Entity
 	options    T
@@ -105,26 +100,6 @@ func (com *BaseComponent[T]) OnCreated(entity Entity, config Config) error {
 	if len(config.Options) > 0 {
 		return json.Unmarshal(config.Options, &com.options)
 	}
-	return nil
-}
-
-// Init implements the Component Init method.
-func (com *BaseComponent[T]) Init(_ context.Context) error {
-	return nil
-}
-
-// Uninit implements the Component Uninit method.
-func (com *BaseComponent[T]) Uninit(_ context.Context) error {
-	return nil
-}
-
-// Start implements the Component Start method.
-func (com *BaseComponent[T]) Start(_ context.Context) error {
-	return nil
-}
-
-// Shutdown implements the Component Shutdown method.
-func (com *BaseComponent[T]) Shutdown(_ context.Context) error {
 	return nil
 }
 

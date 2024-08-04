@@ -15,6 +15,7 @@ import (
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/config"
 	"github.com/gopherd/core/event"
+	"github.com/gopherd/core/lifecycle"
 )
 
 // State represents service state
@@ -55,20 +56,13 @@ type Metadata interface {
 type Service interface {
 	Metadata
 	event.Dispatcher[reflect.Type]
+	lifecycle.Lifecycle
 
 	// SetState sets state of service
 	SetState(state State) error
 
 	// SetFlags sets command-line flags
 	SetFlags(flagSet *flag.FlagSet)
-	// Init initializes the service
-	Init(context.Context) error
-	// Uninit uninitializes the service
-	Uninit(context.Context) error
-	// Start starts the service
-	Start(context.Context) error
-	// Shutdown shutdowns the service
-	Shutdown(context.Context) error
 
 	// GetComponent returns a component by id
 	GetComponent(id string) component.Component

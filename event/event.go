@@ -61,12 +61,16 @@ type dispatcher[T comparable] struct {
 	mapping   map[ID]pair.Pair[T, int]
 }
 
-func NewDispatcher[T comparable](ordered bool) *dispatcher[T] {
+func newDispatcher[T comparable](ordered bool) *dispatcher[T] {
 	return &dispatcher[T]{
 		ordered:   ordered,
 		listeners: make(map[T][]pair.Pair[ID, Listener[T]]),
 		mapping:   make(map[ID]pair.Pair[T, int]),
 	}
+}
+
+func NewDispatcher[T comparable](ordered bool) Dispatcher[T] {
+	return newDispatcher[T](ordered)
 }
 
 // AddListener registers a Listener
