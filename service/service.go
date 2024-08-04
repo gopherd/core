@@ -217,10 +217,6 @@ func (e *ExitError) Error() string {
 // Run runs the service
 func Run(s Service) {
 	if err := run(s); err != nil {
-		if e, ok := err.(*ExitError); ok {
-			os.Exit(e.Code)
-		}
-		slog.Error("service run error", slog.Any("error", err))
 		os.Exit(1)
 	}
 }
@@ -238,10 +234,15 @@ func run(s Service) error {
 	// initialize service and defer uninitialize
 	defer func() {
 		slog.Info("uninitializing service")
-		s.Uninit(context.Background())
+		if err := s.Uninit(context.Background()); err != nil {
+			slog.Error("failed to uninitialize service", slog.Any("error", err))
+		}
 		slog.Info("service exited")
 	}()
 	if err := s.Init(context.Background()); err != nil {
+		if e, ok := err.(*ExitError); ok {
+			os.Exit(e.Code)
+		}
 		slog.Error("failed to initialize service", slog.Any("error", err))
 		return err
 	}
@@ -251,10 +252,13 @@ func run(s Service) error {
 	defer func() {
 		slog.Info("shutting down service")
 		s.SetState(Closed)
-		s.Shutdown(context.Background())
+		if err := s.Shutdown(context.Background()); err != nil {
+			slog.Error("failed to shutdown service", slog.Any("error", err))
+		}
 	}()
 	s.SetState(Running)
-	if err := s.Start(context.Background()); err != nil {
+	err := s.Start(context.Background())
+	if err != nil {
 		slog.Error("failed to start service", slog.Any("error", err))
 	}
 
@@ -272,5 +276,5 @@ func run(s Service) error {
 		}
 	}
 
-	return nil
+	return err
 }
