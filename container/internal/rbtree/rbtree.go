@@ -1,3 +1,4 @@
+// Package rbtree implements a Red-Black Tree data structure.
 package rbtree
 
 import (
@@ -5,22 +6,22 @@ import (
 	"github.com/gopherd/core/operator"
 )
 
-// LessFunc represents a comparation function which reports whether x "less" than y
+// LessFunc represents a comparison function which reports whether x is "less" than y.
 type LessFunc[T any] func(x, y T) bool
 
-// RBTree represents an red-black tree
+// RBTree represents a Red-Black Tree.
 type RBTree[K comparable, V any] struct {
 	size int
 	root *Node[K, V]
 	less LessFunc[K]
 }
 
-// New creates an RBTree for ordered K
+// New creates an RBTree for ordered K.
 func New[K constraints.Ordered, V any]() *RBTree[K, V] {
 	return NewFunc[K, V](operator.Less[K])
 }
 
-// NewFunc creates an RBTree with custom less function
+// NewFunc creates an RBTree with a custom less function.
 func NewFunc[K comparable, V any](less LessFunc[K]) *RBTree[K, V] {
 	if less == nil {
 		panic("rbtree: less function is nil")
@@ -30,30 +31,30 @@ func NewFunc[K comparable, V any](less LessFunc[K]) *RBTree[K, V] {
 	}
 }
 
-// Root returns root node
+// Root returns the root node of the tree.
 func (tree RBTree[K, V]) Root() *Node[K, V] {
 	return tree.root
 }
 
-// Len returns the number of elements
+// Len returns the number of elements in the tree.
 func (tree RBTree[K, V]) Len() int {
 	return tree.size
 }
 
-// Clear clears the map
+// Clear removes all elements from the tree.
 func (tree *RBTree[K, V]) Clear() {
 	tree.root = nil
 	tree.size = 0
 }
 
-// Keys collects all keys of the tree as a slice
+// Keys returns a slice containing all keys in the tree.
 func (tree *RBTree[K, V]) Keys() []K {
-	var size = tree.Len()
+	size := tree.Len()
 	if size == 0 {
 		return nil
 	}
-	var keys = make([]K, 0, size)
-	var iter = tree.First()
+	keys := make([]K, 0, size)
+	iter := tree.First()
 	for iter != nil {
 		keys = append(keys, iter.key)
 		iter = iter.Next()
@@ -61,14 +62,14 @@ func (tree *RBTree[K, V]) Keys() []K {
 	return keys
 }
 
-// Values collects all values of the tree as a slice
+// Values returns a slice containing all values in the tree.
 func (tree *RBTree[K, V]) Values() []V {
-	var size = tree.Len()
+	size := tree.Len()
 	if size == 0 {
 		return nil
 	}
-	var values = make([]V, 0, size)
-	var iter = tree.First()
+	values := make([]V, 0, size)
+	iter := tree.First()
 	for iter != nil {
 		values = append(values, iter.value)
 		iter = iter.Next()
@@ -76,19 +77,20 @@ func (tree *RBTree[K, V]) Values() []V {
 	return values
 }
 
-// Find finds node by key, nil returned if the key not found.
+// Find returns the node with the given key, or nil if not found.
 func (tree RBTree[K, V]) Find(key K) *Node[K, V] {
 	return tree.find(key)
 }
 
-// Contains reports whether the map contains the key
+// Contains reports whether the tree contains the given key.
 func (tree RBTree[K, V]) Contains(key K) bool {
 	return tree.find(key) != nil
 }
 
-// Get retrives value by key
+// Get retrieves the value associated with the given key.
+// If the key is not found, it returns the zero value for V.
 func (tree RBTree[K, V]) Get(key K) V {
-	var node = tree.find(key)
+	node := tree.find(key)
 	if node != nil {
 		return node.value
 	}
@@ -96,8 +98,9 @@ func (tree RBTree[K, V]) Get(key K) V {
 	return zero
 }
 
-// Insert inserts a key-value pair, inserted node and true returned
-// if the key not found, otherwise, existed node and false returned.
+// Insert inserts a key-value pair into the tree.
+// It returns the inserted node and true if the key was not found,
+// otherwise it returns the existing node and false.
 func (tree *RBTree[K, V]) Insert(key K, value V) (*Node[K, V], bool) {
 	node, ok := tree.insert(key, value)
 	if ok {
@@ -106,7 +109,8 @@ func (tree *RBTree[K, V]) Insert(key K, value V) (*Node[K, V], bool) {
 	return node, ok
 }
 
-// Remove removes an element by key, false returned if the key not found.
+// Remove removes the node with the given key from the tree.
+// It returns false if the key was not found.
 func (tree *RBTree[K, V]) Remove(key K) bool {
 	node := tree.find(key)
 	if node == nil || node.null() {
@@ -117,12 +121,10 @@ func (tree *RBTree[K, V]) Remove(key K) bool {
 	return true
 }
 
-// Erase deletes the node, false returned if the node not found.
+// Erase removes the given node from the tree.
+// It returns false if the node was not found in the tree.
 func (tree *RBTree[K, V]) Erase(node *Node[K, V]) bool {
-	if node == nil {
-		return false
-	}
-	if node.null() {
+	if node == nil || node.null() {
 		return false
 	}
 	ok := tree.remove(node, false)
@@ -132,7 +134,7 @@ func (tree *RBTree[K, V]) Erase(node *Node[K, V]) bool {
 	return ok
 }
 
-// First returns the first node.
+// First returns the node with the smallest key in the tree.
 func (tree RBTree[K, V]) First() *Node[K, V] {
 	if tree.root == nil {
 		return nil
@@ -140,7 +142,7 @@ func (tree RBTree[K, V]) First() *Node[K, V] {
 	return tree.root.smallest()
 }
 
-// Last returns the first node.
+// Last returns the node with the largest key in the tree.
 func (tree RBTree[K, V]) Last() *Node[K, V] {
 	if tree.root == nil {
 		return nil
@@ -155,15 +157,13 @@ func (tree *RBTree[K, V]) insert(key K, value V) (*Node[K, V], bool) {
 			key:   key,
 			value: value,
 		}
-		tree.root.left = makenull(tree.root)
-		tree.root.right = makenull(tree.root)
+		tree.root.left = makeNull(tree.root)
+		tree.root.right = makeNull(tree.root)
 		return tree.root, true
 	}
 
-	var (
-		next     = tree.root
-		inserted *Node[K, V]
-	)
+	next := tree.root
+	var inserted *Node[K, V]
 	for {
 		if key == next.key {
 			next.value = value
@@ -177,8 +177,8 @@ func (tree *RBTree[K, V]) insert(key K, value V) (*Node[K, V], bool) {
 					key:    key,
 					value:  value,
 				}
-				inserted.left = makenull(inserted)
-				inserted.right = makenull(inserted)
+				inserted.left = makeNull(inserted)
+				inserted.right = makeNull(inserted)
 				next.left = inserted
 				break
 			} else {
@@ -192,8 +192,8 @@ func (tree *RBTree[K, V]) insert(key K, value V) (*Node[K, V], bool) {
 					key:    key,
 					value:  value,
 				}
-				inserted.left = makenull(inserted)
-				inserted.right = makenull(inserted)
+				inserted.left = makeNull(inserted)
+				inserted.right = makeNull(inserted)
 				next.right = inserted
 				break
 			} else {
@@ -213,7 +213,7 @@ func (tree *RBTree[K, V]) insert(key K, value V) (*Node[K, V], bool) {
 }
 
 func (tree RBTree[K, V]) find(key K) *Node[K, V] {
-	var next = tree.root
+	next := tree.root
 	for next != nil && !next.null() {
 		if next.key == key {
 			return next
@@ -239,7 +239,7 @@ func (tree *RBTree[K, V]) remove(n *Node[K, V], must bool) bool {
 		n.key, smallest.key = smallest.key, n.key
 		n = smallest
 	}
-	var child = n.left
+	child := n.left
 	if child.null() {
 		child = n.right
 	}
@@ -377,11 +377,9 @@ const (
 )
 
 func (tree *RBTree[K, V]) rotate(p *Node[K, V], dir int) *Node[K, V] {
-	var (
-		g = p.parent
-		s = p.child(1 - dir)
-		c = s.child(dir)
-	)
+	g := p.parent
+	s := p.child(1 - dir)
+	c := s.child(dir)
 	p.setChild(1-dir, c)
 	if !c.null() {
 		c.parent = p
@@ -416,7 +414,7 @@ const (
 	black
 )
 
-// Node represents the Node of RBTree
+// Node represents a node in the Red-Black Tree.
 type Node[K comparable, V any] struct {
 	parent      *Node[K, V]
 	left, right *Node[K, V]
@@ -425,23 +423,23 @@ type Node[K comparable, V any] struct {
 	value       V
 }
 
-func makenull[K comparable, V any](parent *Node[K, V]) *Node[K, V] {
+func makeNull[K comparable, V any](parent *Node[K, V]) *Node[K, V] {
 	return &Node[K, V]{
 		parent: parent,
 		color:  black,
 	}
 }
 
-// Key returns node's key
+// Key returns the key of the node.
 func (node *Node[K, V]) Key() K { return node.key }
 
-// Value returns node's value
+// Value returns the value of the node.
 func (node *Node[K, V]) Value() V { return node.value }
 
-// SetValue sets node's value
+// SetValue sets the value of the node.
 func (node *Node[K, V]) SetValue(value V) { node.value = value }
 
-// Parent implements container.Node Parent method
+// Parent returns the parent node.
 func (node *Node[K, V]) Parent() *Node[K, V] {
 	if node == nil {
 		return nil
@@ -449,7 +447,7 @@ func (node *Node[K, V]) Parent() *Node[K, V] {
 	return node.parent
 }
 
-// NumChild implements container.Node NumChild method
+// NumChild returns the number of non-null children of the node.
 func (node *Node[K, V]) NumChild() int {
 	if node == nil {
 		return 0
@@ -458,7 +456,8 @@ func (node *Node[K, V]) NumChild() int {
 		operator.Bool[int](node.right != nil && !node.right.null())
 }
 
-// GetChildByIndex implements container.Node GetChildByIndex method
+// GetChildByIndex returns the i-th child of the node.
+// It panics if i is not 0 or 1.
 func (node *Node[K, V]) GetChildByIndex(i int) *Node[K, V] {
 	switch i {
 	case 0:
@@ -466,10 +465,11 @@ func (node *Node[K, V]) GetChildByIndex(i int) *Node[K, V] {
 	case 1:
 		return node.right
 	default:
-		panic("unreachable")
+		panic("rbtree: invalid child index")
 	}
 }
 
+// Prev returns the predecessor of the node, or nil if there is none.
 func (node *Node[K, V]) Prev() *Node[K, V] {
 	if node == nil || node.null() {
 		return nil
@@ -478,16 +478,14 @@ func (node *Node[K, V]) Prev() *Node[K, V] {
 		return node.left.biggest()
 	}
 	parent := node.parent
-	for node != parent.right {
+	for parent != nil && node == parent.left {
 		node = parent
 		parent = node.parent
-		if parent == nil {
-			return nil
-		}
 	}
 	return parent
 }
 
+// Next returns the successor of the node, or nil if there is none.
 func (node *Node[K, V]) Next() *Node[K, V] {
 	if node == nil || node.null() {
 		return nil
@@ -496,7 +494,7 @@ func (node *Node[K, V]) Next() *Node[K, V] {
 		return node.right.smallest()
 	}
 	parent := node.parent
-	for parent != nil && node != parent.left {
+	for parent != nil && node == parent.right {
 		node = parent
 		parent = node.parent
 	}
@@ -555,7 +553,7 @@ func (node *Node[K, V]) uncle() *Node[K, V] {
 }
 
 func (node *Node[K, V]) smallest() *Node[K, V] {
-	var next = node
+	next := node
 	for !next.left.null() {
 		next = next.left
 	}
@@ -563,8 +561,8 @@ func (node *Node[K, V]) smallest() *Node[K, V] {
 }
 
 func (node *Node[K, V]) biggest() *Node[K, V] {
-	var next = node
-	for next.right.null() {
+	next := node
+	for !next.right.null() {
 		next = next.right
 	}
 	return next
