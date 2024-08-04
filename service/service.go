@@ -226,17 +226,20 @@ func Run(s Service) {
 }
 
 func run(s Service) error {
-	defer slog.Info("service exited")
+	// discard log output below warn level before service initialized
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelWarn,
+	})))
 
 	// parse command-line flags
 	s.SetFlags(flag.CommandLine)
 	flag.CommandLine.Parse(os.Args[1:])
 
 	// initialize service and defer uninitialize
-	slog.Info("initializing service")
 	defer func() {
 		slog.Info("uninitializing service")
 		s.Uninit(context.Background())
+		slog.Info("service exited")
 	}()
 	if err := s.Init(context.Background()); err != nil {
 		slog.Error("failed to initialize service", slog.Any("error", err))
