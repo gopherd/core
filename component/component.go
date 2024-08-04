@@ -2,6 +2,7 @@
 package component
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"log/slog"
@@ -20,11 +21,14 @@ type Config struct {
 
 // CreateOptions marshals any value into Options. It panics if marshaling fails.
 func CreateOptions(v any) Options {
-	data, err := json.Marshal(v)
-	if err != nil {
+	var out bytes.Buffer
+	encoder := json.NewEncoder(&out)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "    ")
+	if err := encoder.Encode(v); err != nil {
 		panic(err)
 	}
-	return Options(data)
+	return Options(out.Bytes())
 }
 
 // Entity represents a generic entity that can hold components.
