@@ -38,8 +38,8 @@ func CreateOptions(v any) Options {
 
 // Entity represents a generic entity that can hold components.
 type Entity interface {
+	event.Dispatcher[reflect.Type]
 	GetComponent(uuid string) Component
-	EventDispatcher() event.Dispatcher[reflect.Type]
 }
 
 // ComponentCreator is a function type that creates a new Component instance.

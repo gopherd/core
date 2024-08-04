@@ -54,6 +54,8 @@ type Metadata interface {
 // Service represents a process
 type Service interface {
 	Metadata
+	event.Dispatcher[reflect.Type]
+
 	// SetState sets state of service
 	SetState(state State) error
 
@@ -70,12 +72,11 @@ type Service interface {
 
 	// GetComponent returns a component by id
 	GetComponent(id string) component.Component
-	// EventDispatcher returns the event dispatcher
-	EventDispatcher() event.Dispatcher[reflect.Type]
 }
 
 // BaseService implements Service
 type BaseService[Self Service, Config config.Config] struct {
+	event.Dispatcher[reflect.Type]
 	self  Self
 	name  string
 	id    int
@@ -85,17 +86,16 @@ type BaseService[Self Service, Config config.Config] struct {
 		version bool
 	}
 
-	config          atomic.Value
-	components      *component.Manager
-	eventDispatcher event.Dispatcher[reflect.Type]
+	config     atomic.Value
+	components *component.Manager
 }
 
 // NewBaseService creates a BaseService
 func NewBaseService[Self Service, Config config.Config](self Self, cfg Config) *BaseService[Self, Config] {
 	s := &BaseService[Self, Config]{
-		self:            self,
-		components:      component.NewManager(),
-		eventDispatcher: event.NewDispatcher[reflect.Type](true),
+		Dispatcher: event.NewDispatcher[reflect.Type](true),
+		self:       self,
+		components: component.NewManager(),
 	}
 	s.config.Store(cfg)
 	return s
@@ -114,11 +114,6 @@ func New[Config config.Config](cfg Config) Service {
 // GetComponent returns a component by uuid
 func (s *BaseService[Self, Config]) GetComponent(uuid string) component.Component {
 	return s.components.GetComponent(uuid)
-}
-
-// EventDispatcher returns the event dispatcher
-func (s *BaseService[Self, Config]) EventDispatcher() event.Dispatcher[reflect.Type] {
-	return s.eventDispatcher
 }
 
 // Name implements Service Name method

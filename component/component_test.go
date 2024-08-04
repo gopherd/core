@@ -25,18 +25,14 @@ func TestMain(m *testing.M) {
 
 type mockEntity struct {
 	*component.Manager
-	dispatcher event.Dispatcher[reflect.Type]
+	event.Dispatcher[reflect.Type]
 }
 
 func newMockEntity() *mockEntity {
 	return &mockEntity{
 		Manager:    component.NewManager(),
-		dispatcher: event.NewDispatcher[reflect.Type](true),
+		Dispatcher: event.NewDispatcher[reflect.Type](true),
 	}
-}
-
-func (m *mockEntity) EventDispatcher() event.Dispatcher[reflect.Type] {
-	return m.dispatcher
 }
 
 // mockComponent is a test implementation of the Component interface
