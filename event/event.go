@@ -6,6 +6,8 @@ import (
 	"github.com/gopherd/core/container/pair"
 )
 
+type ID = int
+
 // Event is the interface that wraps the basic Type method.
 type Event[T comparable] interface {
 	Typeof() T // Type gets type of event
@@ -13,16 +15,18 @@ type Event[T comparable] interface {
 
 // A Listener handles fired event
 type Listener[T comparable] interface {
-	EventType() T            // EventType gets type of listening event
-	Handle(Event[T], ...any) // Handle handles fired event
+	// Typeof gets type of listening event
+	EventType() T
+	// HandleEvent handles fired event
+	HandleEvent(Event[T])
 }
 
 // Listen creates a Listener by eventType and handler function
-func Listen[T comparable, E Event[T], H ~func(E, ...any)](eventType T, handler H) Listener[T] {
+func Listen[T comparable, E Event[T], H ~func(E)](eventType T, handler H) Listener[T] {
 	return listenerFunc[T, E, H]{eventType, handler}
 }
 
-type listenerFunc[T comparable, E Event[T], H ~func(E, ...any)] struct {
+type listenerFunc[T comparable, E Event[T], H ~func(E)] struct {
 	eventType T
 	handler   H
 }
@@ -32,39 +36,40 @@ func (h listenerFunc[T, E, H]) EventType() T {
 	return h.eventType
 }
 
-// Handle implements Listener Handle method
-func (h listenerFunc[T, E, H]) Handle(event Event[T], arguments ...any) {
+// HandleEvent implements Listener HandleEvent method
+func (h listenerFunc[T, E, H]) HandleEvent(event Event[T]) {
 	if e, ok := event.(E); ok {
-		h.handler(e, arguments...)
+		h.handler(e)
 	} else {
 		panic(fmt.Sprintf("unexpected event %T for type %v", event, event.Typeof()))
 	}
 }
 
-// Dispatcher manages event listeners
-type Dispatcher[T comparable] struct {
-	nextid    int
+type Dispatcher[T comparable] interface {
+	AddListener(listener Listener[T]) ID
+	RemoveListener(id ID) bool
+	HasListener(id ID) bool
+	FireEvent(event Event[T]) bool
+}
+
+// dispatcher manages event listeners
+type dispatcher[T comparable] struct {
+	nextid    ID
 	ordered   bool
-	listeners map[T][]pair.Pair[int, Listener[T]]
-	mapping   map[int]pair.Pair[T, int]
+	listeners map[T][]pair.Pair[ID, Listener[T]]
+	mapping   map[ID]pair.Pair[T, int]
 }
 
-// Ordered reports whether the listeners fired by added order
-func (dispatcher *Dispatcher[T]) Ordered() bool {
-	return dispatcher.ordered
-}
-
-// SetOrdered sets whether the listeners fired by added order
-func (dispatcher *Dispatcher[T]) SetOrdered(ordered bool) {
-	dispatcher.ordered = ordered
+func NewDispatcher[T comparable](ordered bool) *dispatcher[T] {
+	return &dispatcher[T]{
+		ordered:   ordered,
+		listeners: make(map[T][]pair.Pair[ID, Listener[T]]),
+		mapping:   make(map[ID]pair.Pair[T, int]),
+	}
 }
 
 // AddListener registers a Listener
-func (dispatcher *Dispatcher[T]) AddListener(listener Listener[T]) int {
-	if dispatcher.listeners == nil {
-		dispatcher.listeners = make(map[T][]pair.Pair[int, Listener[T]])
-		dispatcher.mapping = make(map[int]pair.Pair[T, int])
-	}
+func (dispatcher *dispatcher[T]) AddListener(listener Listener[T]) ID {
 	dispatcher.nextid++
 	var id = dispatcher.nextid
 	var eventType = listener.EventType()
@@ -76,7 +81,7 @@ func (dispatcher *Dispatcher[T]) AddListener(listener Listener[T]) int {
 }
 
 // RemoveListener removes specified listener
-func (dispatcher *Dispatcher[T]) RemoveListener(id int) bool {
+func (dispatcher *dispatcher[T]) RemoveListener(id ID) bool {
 	if dispatcher.listeners == nil {
 		return false
 	}
@@ -105,7 +110,7 @@ func (dispatcher *Dispatcher[T]) RemoveListener(id int) bool {
 }
 
 // HasListener reports whether dispatcher has specified listener
-func (dispatcher *Dispatcher[T]) HasListener(id int) bool {
+func (dispatcher *dispatcher[T]) HasListener(id ID) bool {
 	if dispatcher.mapping == nil {
 		return false
 	}
@@ -113,8 +118,8 @@ func (dispatcher *Dispatcher[T]) HasListener(id int) bool {
 	return ok
 }
 
-// Fire fires event
-func (dispatcher *Dispatcher[T]) Fire(event Event[T], arguments ...any) bool {
+// FireEvent fires event
+func (dispatcher *dispatcher[T]) FireEvent(event Event[T]) bool {
 	if dispatcher.listeners == nil {
 		return false
 	}
@@ -123,7 +128,7 @@ func (dispatcher *Dispatcher[T]) Fire(event Event[T], arguments ...any) bool {
 		return false
 	}
 	for i := range listeners {
-		listeners[i].Second.Handle(event, arguments...)
+		listeners[i].Second.HandleEvent(event)
 	}
 	return true
 }

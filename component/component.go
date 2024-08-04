@@ -8,7 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"sync"
+
+	"github.com/gopherd/core/event"
 )
 
 // Options represents component-specific configuration options.
@@ -36,6 +39,7 @@ func CreateOptions(v any) Options {
 // Entity represents a generic entity that can hold components.
 type Entity interface {
 	GetComponent(uuid string) Component
+	EventDispatcher() event.Dispatcher[reflect.Type]
 }
 
 // ComponentCreator is a function type that creates a new Component instance.
@@ -128,8 +132,8 @@ func (com *BaseComponent[T]) Shutdown(_ context.Context) error {
 type Manager struct {
 	components     []Component
 	uuid2component map[string]Component
-	initialized    int
-	started        int
+	numInitialized int
+	numStarted     int
 }
 
 // NewManager creates a new Manager instance.
@@ -184,14 +188,14 @@ func (m *Manager) Init(ctx context.Context) error {
 			slog.String("uuid", com.UUID()),
 			slog.String("name", com.Name()),
 		)
-		m.initialized++
+		m.numInitialized++
 	}
 	return nil
 }
 
 // Uninit uninitializes all components in reverse order.
 func (m *Manager) Uninit(ctx context.Context) error {
-	for i := m.initialized - 1; i >= 0; i-- {
+	for i := m.numInitialized - 1; i >= 0; i-- {
 		com := m.components[i]
 		slog.Info(
 			"uninitializing component",
@@ -239,14 +243,14 @@ func (m *Manager) Start(ctx context.Context) error {
 			slog.String("uuid", com.UUID()),
 			slog.String("name", com.Name()),
 		)
-		m.started++
+		m.numStarted++
 	}
 	return nil
 }
 
 // Shutdown shuts down all components in reverse order.
 func (m *Manager) Shutdown(ctx context.Context) error {
-	for i := m.started - 1; i >= 0; i-- {
+	for i := m.numStarted - 1; i >= 0; i-- {
 		com := m.components[i]
 		slog.Info(
 			"shutting down component",
@@ -317,7 +321,7 @@ func Resolve[T any](entity Entity, uuid string) (T, error) {
 }
 
 // MustResolve resolves the component in entity by uuid.
-// It panics if the component is not found.
+// It panics if the component is not found or type mismatched.
 func MustResolve[T any](entity Entity, uuid string) T {
 	c, err := Resolve[T](entity, uuid)
 	if err != nil {

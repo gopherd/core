@@ -16,11 +16,11 @@ func (e testStringEvent) Typeof() string {
 
 func TestDispatchEvent(t *testing.T) {
 	var fired bool
-	var dispatcher event.Dispatcher[string]
-	dispatcher.AddListener(event.Listen("test", func(e testStringEvent, params ...any) {
+	var dispatcher = event.NewDispatcher[string](true)
+	dispatcher.AddListener(event.Listen("test", func(e testStringEvent) {
 		fired = true
 	}))
-	dispatcher.Fire(testStringEvent{})
+	dispatcher.FireEvent(testStringEvent{})
 	if !fired {
 		t.Fatal("event not fired")
 	}
@@ -28,11 +28,11 @@ func TestDispatchEvent(t *testing.T) {
 
 func TestDispatchEventPointer(t *testing.T) {
 	var fired bool
-	var dispatcher event.Dispatcher[string]
-	dispatcher.AddListener(event.Listen("test", func(e *testStringEvent, params ...any) {
+	var dispatcher = event.NewDispatcher[string](true)
+	dispatcher.AddListener(event.Listen("test", func(e *testStringEvent) {
 		fired = true
 	}))
-	dispatcher.Fire(&testStringEvent{})
+	dispatcher.FireEvent(&testStringEvent{})
 	if !fired {
 		t.Fatal("event not fired")
 	}
@@ -47,11 +47,11 @@ func (e testIntEvent) Typeof() int {
 
 func TestDispatchIntEvent(t *testing.T) {
 	var fired bool
-	var dispatcher event.Dispatcher[int]
-	dispatcher.AddListener(event.Listen(1, func(e testIntEvent, params ...any) {
+	var dispatcher = event.NewDispatcher[int](true)
+	dispatcher.AddListener(event.Listen(1, func(e testIntEvent) {
 		fired = true
 	}))
-	dispatcher.Fire(testIntEvent{})
+	dispatcher.FireEvent(testIntEvent{})
 	if !fired {
 		t.Fatal("event not fired")
 	}
@@ -68,11 +68,11 @@ func (e *testTypeEvent) Typeof() reflect.Type {
 
 func TestDispatchTypeEvent(t *testing.T) {
 	var fired bool
-	var dispatcher event.Dispatcher[reflect.Type]
-	dispatcher.AddListener(event.Listen(eventType, func(e *testTypeEvent, params ...any) {
+	var dispatcher = event.NewDispatcher[reflect.Type](true)
+	dispatcher.AddListener(event.Listen(eventType, func(e *testTypeEvent) {
 		fired = true
 	}))
-	dispatcher.Fire(&testTypeEvent{})
+	dispatcher.FireEvent(&testTypeEvent{})
 	if !fired {
 		t.Fatal("event not fired")
 	}

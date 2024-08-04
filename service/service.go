@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"reflect"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/gopherd/core/buildinfo"
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/config"
+	"github.com/gopherd/core/event"
 )
 
 // State represents service state
@@ -68,6 +70,8 @@ type Service interface {
 
 	// GetComponent returns a component by id
 	GetComponent(id string) component.Component
+	// EventDispatcher returns the event dispatcher
+	EventDispatcher() event.Dispatcher[reflect.Type]
 }
 
 // BaseService implements Service
@@ -81,15 +85,17 @@ type BaseService[Self Service, Config config.Config] struct {
 		version bool
 	}
 
-	config     atomic.Value
-	components *component.Manager
+	config          atomic.Value
+	components      *component.Manager
+	eventDispatcher event.Dispatcher[reflect.Type]
 }
 
 // NewBaseService creates a BaseService
 func NewBaseService[Self Service, Config config.Config](self Self, cfg Config) *BaseService[Self, Config] {
 	s := &BaseService[Self, Config]{
-		self:       self,
-		components: component.NewManager(),
+		self:            self,
+		components:      component.NewManager(),
+		eventDispatcher: event.NewDispatcher[reflect.Type](true),
 	}
 	s.config.Store(cfg)
 	return s
@@ -105,14 +111,14 @@ func New[Config config.Config](cfg Config) Service {
 	return s
 }
 
-// AddComponent returns a component
-func (s *BaseService[Self, Config]) AddComponent(com component.Component) component.Component {
-	return s.components.AddComponent(com)
-}
-
 // GetComponent returns a component by uuid
 func (s *BaseService[Self, Config]) GetComponent(uuid string) component.Component {
 	return s.components.GetComponent(uuid)
+}
+
+// EventDispatcher returns the event dispatcher
+func (s *BaseService[Self, Config]) EventDispatcher() event.Dispatcher[reflect.Type] {
+	return s.eventDispatcher
 }
 
 // Name implements Service Name method
@@ -183,7 +189,7 @@ func (s *BaseService[Self, Config]) Init(ctx context.Context) error {
 		if err := com.OnCreated(s.self, c); err != nil {
 			return fmt.Errorf("create component %q error: %w", c.UUID, err)
 		}
-		if s.AddComponent(com) == nil {
+		if s.components.AddComponent(com) == nil {
 			return fmt.Errorf("duplicate component id: %q", c.UUID)
 		}
 	}

@@ -8,9 +8,11 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/gopherd/core/component"
+	"github.com/gopherd/core/event"
 )
 
 func TestMain(m *testing.M) {
@@ -19,6 +21,22 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	slog.SetDefault(originalLogger)
 	os.Exit(code)
+}
+
+type mockEntity struct {
+	*component.Manager
+	dispatcher event.Dispatcher[reflect.Type]
+}
+
+func newMockEntity() *mockEntity {
+	return &mockEntity{
+		Manager:    component.NewManager(),
+		dispatcher: event.NewDispatcher[reflect.Type](true),
+	}
+}
+
+func (m *mockEntity) EventDispatcher() event.Dispatcher[reflect.Type] {
+	return m.dispatcher
 }
 
 // mockComponent is a test implementation of the Component interface
@@ -65,13 +83,13 @@ func (m *mockComponent) Uninit(ctx context.Context) error {
 
 func TestBaseComponent(t *testing.T) {
 	t.Run("BasicFunctionality", func(t *testing.T) {
-		manager := component.NewManager()
+		entity := newMockEntity()
 		bc := &mockComponent{}
 		config := component.Config{
 			UUID: "test-uuid",
 			Name: "test-component",
 		}
-		err := bc.OnCreated(manager, config)
+		err := bc.OnCreated(entity, config)
 		if err != nil {
 			t.Fatalf("OnCreated failed: %v", err)
 		}
@@ -84,13 +102,13 @@ func TestBaseComponent(t *testing.T) {
 			t.Errorf("Expected Name 'test-component', got '%s'", bc.Name())
 		}
 
-		if bc.Entity() != manager {
+		if bc.Entity() != entity {
 			t.Error("Entity not set correctly")
 		}
 	})
 
 	t.Run("OnCreated", func(t *testing.T) {
-		manager := component.NewManager()
+		entity := newMockEntity()
 		bc := &component.BaseComponent[struct{ TestField string }]{}
 		config := component.Config{
 			UUID:    "new-uuid",
@@ -98,7 +116,7 @@ func TestBaseComponent(t *testing.T) {
 			Options: json.RawMessage(`{"TestField":"test-value"}`),
 		}
 
-		err := bc.OnCreated(manager, config)
+		err := bc.OnCreated(entity, config)
 		if err != nil {
 			t.Fatalf("OnCreated failed: %v", err)
 		}
@@ -111,7 +129,7 @@ func TestBaseComponent(t *testing.T) {
 			t.Errorf("Expected Name 'new-name', got '%s'", bc.Name())
 		}
 
-		if bc.Entity() != manager {
+		if bc.Entity() != entity {
 			t.Error("Entity not set correctly")
 		}
 
@@ -123,31 +141,31 @@ func TestBaseComponent(t *testing.T) {
 
 func TestManager(t *testing.T) {
 	t.Run("AddComponent", func(t *testing.T) {
-		manager := component.NewManager()
+		entity := newMockEntity()
 		comp1 := &mockComponent{}
 		comp2 := &mockComponent{}
 
 		// Add first component
-		added := manager.AddComponent(comp1)
+		added := entity.AddComponent(comp1)
 		if added != comp1 {
 			t.Error("AddComponent should return the added component")
 		}
 
 		// Add second component
-		added = manager.AddComponent(comp2)
+		added = entity.AddComponent(comp2)
 		if added != comp2 {
 			t.Error("AddComponent should return the added component")
 		}
 
 		// Try to add component with duplicate UUID
 		config := component.Config{UUID: "duplicate"}
-		comp1.OnCreated(manager, config)
-		if added := manager.AddComponent(comp1); added == nil {
+		comp1.OnCreated(entity, config)
+		if added := entity.AddComponent(comp1); added == nil {
 			t.Error("AddComponent should return the added component")
 		} else {
 			comp3 := &mockComponent{}
-			comp3.OnCreated(manager, config)
-			added = manager.AddComponent(comp3)
+			comp3.OnCreated(entity, config)
+			added = entity.AddComponent(comp3)
 			if added != nil {
 				t.Error("AddComponent should return nil for duplicate UUID")
 			}
@@ -155,18 +173,18 @@ func TestManager(t *testing.T) {
 	})
 
 	t.Run("GetComponent", func(t *testing.T) {
-		manager := component.NewManager()
+		entity := newMockEntity()
 		comp := &mockComponent{}
 		config := component.Config{UUID: "test-uuid"}
-		comp.OnCreated(manager, config)
-		manager.AddComponent(comp)
+		comp.OnCreated(entity, config)
+		entity.AddComponent(comp)
 
-		retrieved := manager.GetComponent("test-uuid")
+		retrieved := entity.GetComponent("test-uuid")
 		if retrieved != comp {
 			t.Error("GetComponent failed to retrieve the correct component")
 		}
 
-		notFound := manager.GetComponent("non-existent")
+		notFound := entity.GetComponent("non-existent")
 		if notFound != nil {
 			t.Error("GetComponent should return nil for non-existent UUID")
 		}
@@ -279,37 +297,37 @@ func TestManager(t *testing.T) {
 }
 
 func TestSequentialComponentOperations(t *testing.T) {
-	manager := component.NewManager()
+	entity := newMockEntity()
 	componentCount := 100
 
 	// Sequentially add components
 	for i := 0; i < componentCount; i++ {
 		comp := &mockComponent{}
 		config := component.Config{UUID: fmt.Sprintf("comp-%d", i)}
-		comp.OnCreated(manager, config)
-		added := manager.AddComponent(comp)
+		comp.OnCreated(entity, config)
+		added := entity.AddComponent(comp)
 		if added == nil {
 			t.Errorf("Failed to add component: %s", comp.UUID())
 		}
 	}
 
 	ctx := context.Background()
-	err := manager.Init(ctx)
+	err := entity.Init(ctx)
 	if err != nil {
 		t.Fatalf("Init failed: %v", err)
 	}
 
-	err = manager.Start(ctx)
+	err = entity.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start failed: %v", err)
 	}
 
-	err = manager.Shutdown(ctx)
+	err = entity.Shutdown(ctx)
 	if err != nil {
 		t.Fatalf("Shutdown failed: %v", err)
 	}
 
-	err = manager.Uninit(ctx)
+	err = entity.Uninit(ctx)
 	if err != nil {
 		t.Fatalf("Uninit failed: %v", err)
 	}
@@ -317,7 +335,7 @@ func TestSequentialComponentOperations(t *testing.T) {
 	// Check if all components went through all lifecycle stages
 	for i := 0; i < componentCount; i++ {
 		uuid := fmt.Sprintf("comp-%d", i)
-		comp := manager.GetComponent(uuid)
+		comp := entity.GetComponent(uuid)
 		if comp == nil {
 			t.Errorf("Component %s not found", uuid)
 			continue
@@ -407,13 +425,13 @@ func TestCreateOptions(t *testing.T) {
 
 func TestResolve(t *testing.T) {
 	t.Run("ExistingComponent", func(t *testing.T) {
-		manager := component.NewManager()
+		entity := newMockEntity()
 		comp := &mockComponent{}
 		config := component.Config{UUID: "test-uuid"}
-		comp.OnCreated(manager, config)
-		manager.AddComponent(comp)
+		comp.OnCreated(entity, config)
+		entity.AddComponent(comp)
 
-		resolved, err := component.Resolve[*mockComponent](manager, "test-uuid")
+		resolved, err := component.Resolve[*mockComponent](entity, "test-uuid")
 		if err != nil {
 			t.Fatalf("Resolve failed: %v", err)
 		}
@@ -424,23 +442,23 @@ func TestResolve(t *testing.T) {
 	})
 
 	t.Run("NonExistentComponent", func(t *testing.T) {
-		manager := component.NewManager()
+		entity := newMockEntity()
 
-		_, err := component.Resolve[*mockComponent](manager, "non-existent")
+		_, err := component.Resolve[*mockComponent](entity, "non-existent")
 		if err == nil {
 			t.Error("Resolve should return an error for a non-existent component")
 		}
 	})
 
 	t.Run("WrongComponentType", func(t *testing.T) {
-		manager := component.NewManager()
+		entity := newMockEntity()
 		comp := &mockComponent{}
 		config := component.Config{UUID: "test-uuid"}
-		comp.OnCreated(manager, config)
-		manager.AddComponent(comp)
+		comp.OnCreated(entity, config)
+		entity.AddComponent(comp)
 
 		type wrongComponent struct{}
-		_, err := component.Resolve[*wrongComponent](manager, "test-uuid")
+		_, err := component.Resolve[*wrongComponent](entity, "test-uuid")
 		if err == nil {
 			t.Error("Resolve should return an error for a component of the wrong type")
 		}
