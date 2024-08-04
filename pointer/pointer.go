@@ -1,7 +1,7 @@
 package pointer
 
-// Dereference a pointer value, if the pointer is nil, return the zero value of the type.
-func Deref[T any](v *T) T {
+// TryDeref a pointer value, if the pointer is nil, return the zero value of the type.
+func TryDeref[T any](v *T) T {
 	var zero T
 	if v == nil {
 		return zero
@@ -9,13 +9,12 @@ func Deref[T any](v *T) T {
 	return *v
 }
 
-// TryDeref a pointer value, if the pointer is nil, return the zero value of the type and false.
-func TryDeref[T any](v *T) (T, bool) {
-	var zero T
+// Deref a pointer value, if the pointer is nil, return the zero value of the type and false.
+func Deref[T any](v *T, defaultValue T) T {
 	if v == nil {
-		return zero, false
+		return defaultValue
 	}
-	return *v, true
+	return *v
 }
 
 // Of returns a pointer to the value.
