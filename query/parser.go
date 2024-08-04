@@ -5,12 +5,12 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/gopherd/core/erron"
+	"github.com/gopherd/core/errkit"
 )
 
 // Parser used to parse arguments like url
 type Parser struct {
-	errors erron.Errors
+	errors errkit.List
 	q      Query
 }
 
@@ -39,7 +39,7 @@ func (p *Parser) next() bool {
 
 // Err returns all errors while parsing arguments
 func (p *Parser) Err() error {
-	return p.errors.All()
+	return p.errors.Err()
 }
 
 // RequiredInt parses required argument

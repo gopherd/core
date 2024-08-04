@@ -2,15 +2,17 @@ package service
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
 	"sync/atomic"
 	"time"
 
+	"github.com/gopherd/core/buildinfo"
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/config"
-	"github.com/gopherd/core/erron"
 )
 
 // State represents service state
@@ -50,9 +52,11 @@ type Metadata interface {
 // Service represents a process
 type Service interface {
 	Metadata
-
 	// SetState sets state of service
 	SetState(state State) error
+
+	// SetFlags sets command-line flags
+	SetFlags(flagSet *flag.FlagSet)
 	// Init initializes the service
 	Init(context.Context) error
 	// Uninit uninitializes the service
@@ -67,18 +71,22 @@ type Service interface {
 }
 
 // BaseService implements Service
-type BaseService[Self Service, Config config.Configurator] struct {
+type BaseService[Self Service, Config config.Config] struct {
 	self  Self
 	name  string
 	id    int
 	state State
+
+	flags struct {
+		version bool
+	}
 
 	config     atomic.Value
 	components *component.Manager
 }
 
 // NewBaseService creates a BaseService
-func NewBaseService[Self Service, Config config.Configurator](self Self, cfg Config) *BaseService[Self, Config] {
+func NewBaseService[Self Service, Config config.Config](self Self, cfg Config) *BaseService[Self, Config] {
 	s := &BaseService[Self, Config]{
 		self:       self,
 		components: component.NewManager(),
@@ -88,7 +96,7 @@ func NewBaseService[Self Service, Config config.Configurator](self Self, cfg Con
 }
 
 // New creates a service with configurator
-func New[Config config.Configurator](cfg Config) Service {
+func New[Config config.Config](cfg Config) Service {
 	type server struct {
 		*BaseService[*server, Config]
 	}
@@ -138,12 +146,25 @@ func (s *BaseService[Self, Config]) Config() Config {
 	return s.config.Load().(Config)
 }
 
+// SetFlags implements Service SetFlags method
+func (s *BaseService[Self, Config]) SetFlags(flagSet *flag.FlagSet) {
+	s.Config().SetFlags(flagSet)
+	flagSet.BoolVar(&s.flags.version, "v", false, "Print version information")
+}
+
 // Init implements Service Init method
 func (s *BaseService[Self, Config]) Init(ctx context.Context) error {
+	if s.flags.version {
+		buildinfo.PrintVersion()
+		return &ExitError{Code: 0}
+	}
+
 	// load config
 	cfg := s.Config()
-	if err := cfg.ParseArgs(os.Args); err != nil {
+	if exit, err := cfg.Load(); err != nil {
 		return err
+	} else if exit {
+		return &ExitError{Code: 0}
 	}
 	core := cfg.CoreConfig()
 	s.id = core.ID
@@ -153,17 +174,17 @@ func (s *BaseService[Self, Config]) Init(ctx context.Context) error {
 	for _, c := range core.Components {
 		creator := component.Lookup(c.Name)
 		if creator == nil {
-			return erron.Throwf("unknown component name: %q", c.Name)
+			return fmt.Errorf("unknown component name: %q", c.Name)
 		}
 		com := creator()
 		if com == nil {
-			return erron.Throwf("create component %q error", c.UUID)
+			return fmt.Errorf("create component %q error", c.UUID)
 		}
 		if err := com.OnCreated(s.self, c); err != nil {
-			return erron.Throw(err)
+			return fmt.Errorf("create component %q error: %w", c.UUID, err)
 		}
 		if s.AddComponent(com) == nil {
-			return erron.Throwf("duplicate component id: %q", c.UUID)
+			return fmt.Errorf("duplicate component id: %q", c.UUID)
 		}
 	}
 
@@ -185,23 +206,57 @@ func (s *BaseService[Self, Config]) Shutdown(ctx context.Context) error {
 	return s.components.Shutdown(ctx)
 }
 
+type ExitError struct {
+	Code int
+}
+
+func (e *ExitError) Error() string {
+	return fmt.Sprintf("exit with code %d", e.Code)
+}
+
 // Run runs the service
 func Run(s Service) {
-	slog.Info("initializing service")
-	if err := s.Init(context.Background()); err != nil {
-		slog.Error("failed to initialize service", slog.Any("error", err))
+	if err := run(s); err != nil {
+		if e, ok := err.(*ExitError); ok {
+			os.Exit(e.Code)
+		}
+		slog.Error("service run error", slog.Any("error", err))
 		os.Exit(1)
 	}
+}
 
+func run(s Service) error {
+	defer slog.Info("service exited")
+
+	// set command-line flags
+	s.SetFlags(flag.CommandLine)
+
+	// initialize service and defer uninitialize
+	slog.Info("initializing service")
+	defer func() {
+		slog.Info("uninitializing service")
+		s.Uninit(context.Background())
+	}()
+	if err := s.Init(context.Background()); err != nil {
+		slog.Error("failed to initialize service", slog.Any("error", err))
+		return err
+	}
+
+	// start service and defer shutdown
 	slog.Info("starting service")
+	defer func() {
+		slog.Info("shutting down service")
+		s.SetState(Closed)
+		s.Shutdown(context.Background())
+	}()
 	s.SetState(Running)
 	if err := s.Start(context.Background()); err != nil {
 		slog.Error("failed to start service", slog.Any("error", err))
 	}
 
+	// wait for service to stop
 	slog.Info("stopping service")
 	s.SetState(Stopping)
-
 	if s.Busy() {
 		slog.Info("waiting for service to stop")
 		ticker := time.NewTicker(time.Millisecond * 100)
@@ -213,11 +268,5 @@ func Run(s Service) {
 		}
 	}
 
-	slog.Info("shutting down service")
-	s.SetState(Closed)
-	s.Shutdown(context.Background())
-
-	slog.Info("unistializing service")
-	s.Uninit(context.Background())
-	slog.Info("service stopped")
+	return nil
 }

@@ -1,0 +1,406 @@
+package component_test
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"os"
+	"testing"
+
+	"github.com/gopherd/core/component"
+)
+
+func TestMain(m *testing.M) {
+	originalLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	code := m.Run()
+	slog.SetDefault(originalLogger)
+	os.Exit(code)
+}
+
+// mockComponent is a test implementation of the Component interface
+type mockComponent struct {
+	component.BaseComponent[struct{}]
+	initCalled     bool
+	startCalled    bool
+	shutdownCalled bool
+	uninitCalled   bool
+	shouldFail     bool
+}
+
+func (m *mockComponent) Init(ctx context.Context) error {
+	m.initCalled = true
+	if m.shouldFail {
+		return errors.New("init failed")
+	}
+	return nil
+}
+
+func (m *mockComponent) Start(ctx context.Context) error {
+	m.startCalled = true
+	if m.shouldFail {
+		return errors.New("start failed")
+	}
+	return nil
+}
+
+func (m *mockComponent) Shutdown(ctx context.Context) error {
+	m.shutdownCalled = true
+	if m.shouldFail {
+		return errors.New("shutdown failed")
+	}
+	return nil
+}
+
+func (m *mockComponent) Uninit(ctx context.Context) error {
+	m.uninitCalled = true
+	if m.shouldFail {
+		return errors.New("uninit failed")
+	}
+	return nil
+}
+
+func TestBaseComponent(t *testing.T) {
+	t.Run("BasicFunctionality", func(t *testing.T) {
+		manager := component.NewManager()
+		bc := &mockComponent{}
+		config := component.Config{
+			UUID: "test-uuid",
+			Name: "test-component",
+		}
+		err := bc.OnCreated(manager, config)
+		if err != nil {
+			t.Fatalf("OnCreated failed: %v", err)
+		}
+
+		if bc.UUID() != "test-uuid" {
+			t.Errorf("Expected UUID 'test-uuid', got '%s'", bc.UUID())
+		}
+
+		if bc.Name() != "test-component" {
+			t.Errorf("Expected Name 'test-component', got '%s'", bc.Name())
+		}
+
+		if bc.Entity() != manager {
+			t.Error("Entity not set correctly")
+		}
+	})
+
+	t.Run("OnCreated", func(t *testing.T) {
+		manager := component.NewManager()
+		bc := &component.BaseComponent[struct{ TestField string }]{}
+		config := component.Config{
+			UUID:    "new-uuid",
+			Name:    "new-name",
+			Options: json.RawMessage(`{"TestField":"test-value"}`),
+		}
+
+		err := bc.OnCreated(manager, config)
+		if err != nil {
+			t.Fatalf("OnCreated failed: %v", err)
+		}
+
+		if bc.UUID() != "new-uuid" {
+			t.Errorf("Expected UUID 'new-uuid', got '%s'", bc.UUID())
+		}
+
+		if bc.Name() != "new-name" {
+			t.Errorf("Expected Name 'new-name', got '%s'", bc.Name())
+		}
+
+		if bc.Entity() != manager {
+			t.Error("Entity not set correctly")
+		}
+
+		if bc.Options().TestField != "test-value" {
+			t.Errorf("Options not unmarshaled correctly, got '%s'", bc.Options().TestField)
+		}
+	})
+}
+
+func TestManager(t *testing.T) {
+	t.Run("AddComponent", func(t *testing.T) {
+		manager := component.NewManager()
+		comp1 := &mockComponent{}
+		comp2 := &mockComponent{}
+
+		// Add first component
+		added := manager.AddComponent(comp1)
+		if added != comp1 {
+			t.Error("AddComponent should return the added component")
+		}
+
+		// Add second component
+		added = manager.AddComponent(comp2)
+		if added != comp2 {
+			t.Error("AddComponent should return the added component")
+		}
+
+		// Try to add component with duplicate UUID
+		config := component.Config{UUID: "duplicate"}
+		comp1.OnCreated(manager, config)
+		if added := manager.AddComponent(comp1); added == nil {
+			t.Error("AddComponent should return the added component")
+		} else {
+			comp3 := &mockComponent{}
+			comp3.OnCreated(manager, config)
+			added = manager.AddComponent(comp3)
+			if added != nil {
+				t.Error("AddComponent should return nil for duplicate UUID")
+			}
+		}
+	})
+
+	t.Run("GetComponent", func(t *testing.T) {
+		manager := component.NewManager()
+		comp := &mockComponent{}
+		config := component.Config{UUID: "test-uuid"}
+		comp.OnCreated(manager, config)
+		manager.AddComponent(comp)
+
+		retrieved := manager.GetComponent("test-uuid")
+		if retrieved != comp {
+			t.Error("GetComponent failed to retrieve the correct component")
+		}
+
+		notFound := manager.GetComponent("non-existent")
+		if notFound != nil {
+			t.Error("GetComponent should return nil for non-existent UUID")
+		}
+	})
+
+	t.Run("LifecycleOrder", func(t *testing.T) {
+		manager := component.NewManager()
+		comp1 := &mockComponent{}
+		comp2 := &mockComponent{}
+		comp3 := &mockComponent{}
+
+		manager.AddComponent(comp1)
+		manager.AddComponent(comp2)
+		manager.AddComponent(comp3)
+
+		ctx := context.Background()
+
+		// Test Init
+		err := manager.Init(ctx)
+		if err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+
+		if !comp1.initCalled || !comp2.initCalled || !comp3.initCalled {
+			t.Error("Not all components were initialized")
+		}
+
+		// Test Start
+		err = manager.Start(ctx)
+		if err != nil {
+			t.Fatalf("Start failed: %v", err)
+		}
+
+		if !comp1.startCalled || !comp2.startCalled || !comp3.startCalled {
+			t.Error("Not all components were started")
+		}
+
+		// Test Shutdown
+		err = manager.Shutdown(ctx)
+		if err != nil {
+			t.Fatalf("Shutdown failed: %v", err)
+		}
+
+		if !comp1.shutdownCalled || !comp2.shutdownCalled || !comp3.shutdownCalled {
+			t.Error("Not all components were shut down")
+		}
+
+		// Test Uninit
+		err = manager.Uninit(ctx)
+		if err != nil {
+			t.Fatalf("Uninit failed: %v", err)
+		}
+
+		if !comp1.uninitCalled || !comp2.uninitCalled || !comp3.uninitCalled {
+			t.Error("Not all components were uninitialized")
+		}
+	})
+
+	t.Run("FailureHandling", func(t *testing.T) {
+		manager := component.NewManager()
+		comp1 := &mockComponent{}
+		comp2 := &mockComponent{shouldFail: true}
+		comp3 := &mockComponent{}
+
+		manager.AddComponent(comp1)
+		manager.AddComponent(comp2)
+		manager.AddComponent(comp3)
+
+		ctx := context.Background()
+
+		// Test Init failure
+		err := manager.Init(ctx)
+		if err == nil {
+			t.Fatal("Init should have failed")
+		}
+
+		if !comp1.initCalled || !comp2.initCalled {
+			t.Error("Components before the failing component should have been initialized")
+		}
+
+		if comp3.initCalled {
+			t.Error("Components after the failing component should not have been initialized")
+		}
+
+		// Reset
+		comp1.initCalled = false
+		comp2.initCalled = false
+		comp2.shouldFail = false
+
+		// Test Start failure
+		err = manager.Init(ctx)
+		if err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+
+		comp2.shouldFail = true
+		err = manager.Start(ctx)
+		if err == nil {
+			t.Fatal("Start should have failed")
+		}
+
+		if !comp1.startCalled || !comp2.startCalled {
+			t.Error("Components before the failing component should have been started")
+		}
+
+		if comp3.startCalled {
+			t.Error("Components after the failing component should not have been started")
+		}
+	})
+}
+
+func TestSequentialComponentOperations(t *testing.T) {
+	manager := component.NewManager()
+	componentCount := 100
+
+	// Sequentially add components
+	for i := 0; i < componentCount; i++ {
+		comp := &mockComponent{}
+		config := component.Config{UUID: fmt.Sprintf("comp-%d", i)}
+		comp.OnCreated(manager, config)
+		added := manager.AddComponent(comp)
+		if added == nil {
+			t.Errorf("Failed to add component: %s", comp.UUID())
+		}
+	}
+
+	ctx := context.Background()
+	err := manager.Init(ctx)
+	if err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+
+	err = manager.Start(ctx)
+	if err != nil {
+		t.Fatalf("Start failed: %v", err)
+	}
+
+	err = manager.Shutdown(ctx)
+	if err != nil {
+		t.Fatalf("Shutdown failed: %v", err)
+	}
+
+	err = manager.Uninit(ctx)
+	if err != nil {
+		t.Fatalf("Uninit failed: %v", err)
+	}
+
+	// Check if all components went through all lifecycle stages
+	for i := 0; i < componentCount; i++ {
+		uuid := fmt.Sprintf("comp-%d", i)
+		comp := manager.GetComponent(uuid)
+		if comp == nil {
+			t.Errorf("Component %s not found", uuid)
+			continue
+		}
+		mockComp := comp.(*mockComponent)
+		if !mockComp.initCalled || !mockComp.startCalled || !mockComp.shutdownCalled || !mockComp.uninitCalled {
+			t.Errorf("Component %s did not complete all lifecycle stages", uuid)
+		}
+	}
+}
+
+func TestRegistry(t *testing.T) {
+	t.Run("RegisterAndLookup", func(t *testing.T) {
+		creator := func() component.Component { return &mockComponent{} }
+		component.Register("test-component", creator)
+
+		retrieved := component.Lookup("test-component")
+		if retrieved == nil {
+			t.Fatal("Failed to lookup registered component creator")
+		}
+
+		comp := retrieved()
+		if _, ok := comp.(*mockComponent); !ok {
+			t.Error("Retrieved creator did not create expected component type")
+		}
+	})
+
+	t.Run("RegisterDuplicate", func(t *testing.T) {
+		creator := func() component.Component { return &mockComponent{} }
+		component.Register("unique-component", creator)
+
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("Expected panic on duplicate registration, but it did not occur")
+			}
+		}()
+
+		component.Register("unique-component", creator)
+	})
+
+	t.Run("RegisterNil", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("Expected panic on nil creator registration, but it did not occur")
+			}
+		}()
+
+		component.Register("nil-component", nil)
+	})
+
+	t.Run("LookupNonExistent", func(t *testing.T) {
+		retrieved := component.Lookup("non-existent")
+		if retrieved != nil {
+			t.Error("Lookup of non-existent component should return nil")
+		}
+	})
+}
+
+func TestCreateOptions(t *testing.T) {
+	t.Run("ValidOptions", func(t *testing.T) {
+		type TestOptions struct {
+			Field1 string
+			Field2 int
+		}
+
+		opts := TestOptions{
+			Field1: "test",
+			Field2: 42,
+		}
+
+		createdOpts := component.CreateOptions(opts)
+		if string(createdOpts) != `{"Field1":"test","Field2":42}` {
+			t.Errorf("Unexpected created options: %s", string(createdOpts))
+		}
+	})
+
+	t.Run("InvalidOptions", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("Expected panic on invalid options, but it did not occur")
+			}
+		}()
+
+		component.CreateOptions(make(chan int)) // channels cannot be marshaled to JSON
+	})
+}

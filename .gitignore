@@ -10,3 +10,4 @@ testdata/
 
 # temp
 /io/memfs/
+coverage.out
