@@ -403,8 +403,12 @@ func TestCreateOptions(t *testing.T) {
 		}
 
 		createdOpts := component.CreateOptions(opts)
-		if string(createdOpts) != `{"Field1":"test","Field2":42}` {
-			t.Errorf("Unexpected created options: %s", string(createdOpts))
+		if string(createdOpts) != `{
+    "Field1": "test",
+    "Field2": 42
+}
+` {
+			t.Errorf("Unexpected created options: %q", string(createdOpts))
 		}
 	})
 
@@ -427,7 +431,8 @@ func TestResolve(t *testing.T) {
 		comp.OnCreated(entity, config)
 		entity.AddComponent(comp)
 
-		resolved, err := component.Resolve[*mockComponent](entity, "test-uuid")
+		var resolved *mockComponent
+		err := component.Resolve(&resolved, entity, "test-uuid")
 		if err != nil {
 			t.Fatalf("Resolve failed: %v", err)
 		}
@@ -440,7 +445,8 @@ func TestResolve(t *testing.T) {
 	t.Run("NonExistentComponent", func(t *testing.T) {
 		entity := newMockEntity()
 
-		_, err := component.Resolve[*mockComponent](entity, "non-existent")
+		var com *mockComponent
+		err := component.Resolve(&com, entity, "non-existent")
 		if err == nil {
 			t.Error("Resolve should return an error for a non-existent component")
 		}
@@ -454,7 +460,8 @@ func TestResolve(t *testing.T) {
 		entity.AddComponent(comp)
 
 		type wrongComponent struct{}
-		_, err := component.Resolve[*wrongComponent](entity, "test-uuid")
+		var com *wrongComponent
+		err := component.Resolve(&com, entity, "test-uuid")
 		if err == nil {
 			t.Error("Resolve should return an error for a component of the wrong type")
 		}

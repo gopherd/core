@@ -280,27 +280,26 @@ func Lookup(name string) ComponentCreator {
 }
 
 // Resolve resolves the component in entity by uuid.
-func Resolve[T any](entity Entity, uuid string) (T, error) {
-	var zero T
+func Resolve[T any](dst *T, entity Entity, uuid string) error {
 	if entity == nil {
-		return zero, errors.New("entity is nil")
+		return errors.New("entity is nil")
 	}
 	com := entity.GetComponent(uuid)
 	if com == nil {
-		return zero, errors.New("component not found")
+		return errors.New("component not found")
 	}
 	if c, ok := com.(T); ok {
-		return c, nil
+		*dst = c
+		return nil
 	}
-	return zero, fmt.Errorf("component %T type mismatch", com)
+	return fmt.Errorf("component %T type mismatch", com)
 }
 
 // MustResolve resolves the component in entity by uuid.
 // It panics if the component is not found or type mismatched.
-func MustResolve[T any](entity Entity, uuid string) T {
-	c, err := Resolve[T](entity, uuid)
+func MustResolve[T any](dst *T, entity Entity, uuid string) {
+	err := Resolve[T](dst, entity, uuid)
 	if err != nil {
 		panic(fmt.Errorf("resolve component %q error: %w", uuid, err))
 	}
-	return c
 }
