@@ -404,3 +404,45 @@ func TestCreateOptions(t *testing.T) {
 		component.CreateOptions(make(chan int)) // channels cannot be marshaled to JSON
 	})
 }
+
+func TestResolve(t *testing.T) {
+	t.Run("ExistingComponent", func(t *testing.T) {
+		manager := component.NewManager()
+		comp := &mockComponent{}
+		config := component.Config{UUID: "test-uuid"}
+		comp.OnCreated(manager, config)
+		manager.AddComponent(comp)
+
+		resolved, err := component.Resolve[*mockComponent](manager, "test-uuid")
+		if err != nil {
+			t.Fatalf("Resolve failed: %v", err)
+		}
+
+		if resolved != comp {
+			t.Error("Resolve did not return the correct component")
+		}
+	})
+
+	t.Run("NonExistentComponent", func(t *testing.T) {
+		manager := component.NewManager()
+
+		_, err := component.Resolve[*mockComponent](manager, "non-existent")
+		if err == nil {
+			t.Error("Resolve should return an error for a non-existent component")
+		}
+	})
+
+	t.Run("WrongComponentType", func(t *testing.T) {
+		manager := component.NewManager()
+		comp := &mockComponent{}
+		config := component.Config{UUID: "test-uuid"}
+		comp.OnCreated(manager, config)
+		manager.AddComponent(comp)
+
+		type wrongComponent struct{}
+		_, err := component.Resolve[*wrongComponent](manager, "test-uuid")
+		if err == nil {
+			t.Error("Resolve should return an error for a component of the wrong type")
+		}
+	})
+}
