@@ -228,8 +228,9 @@ func Run(s Service) {
 func run(s Service) error {
 	defer slog.Info("service exited")
 
-	// set command-line flags
+	// parse command-line flags
 	s.SetFlags(flag.CommandLine)
+	flag.CommandLine.Parse(os.Args[1:])
 
 	// initialize service and defer uninitialize
 	slog.Info("initializing service")
