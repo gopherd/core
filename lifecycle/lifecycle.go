@@ -1,6 +1,37 @@
 package lifecycle
 
-import "context"
+import (
+	"context"
+	"strconv"
+)
+
+// Status represents lifecycle state
+type Status int
+
+const (
+	Created Status = iota
+	Starting
+	Running
+	Stopping
+	Closed
+)
+
+func (state Status) String() string {
+	switch state {
+	case Created:
+		return "Created"
+	case Starting:
+		return "Starting"
+	case Running:
+		return "Running"
+	case Stopping:
+		return "Stopping"
+	case Closed:
+		return "Closed"
+	default:
+		return "Unknown(" + strconv.Itoa(int(state)) + ")"
+	}
+}
 
 type Lifecycle interface {
 	Init(context.Context) error

@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"reflect"
-	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -18,28 +17,6 @@ import (
 	"github.com/gopherd/core/lifecycle"
 )
 
-// State represents service state
-type State int
-
-const (
-	Closed   State = iota // Closed service
-	Running               // Running service
-	Stopping              // Stopping service
-)
-
-func (state State) String() string {
-	switch state {
-	case Closed:
-		return "Closed"
-	case Running:
-		return "Running"
-	case Stopping:
-		return "Stopping"
-	default:
-		return "Unknown(" + strconv.Itoa(int(state)) + ")"
-	}
-}
-
 // Metadata represents metadata of service
 type Metadata interface {
 	// ID returns id of service
@@ -48,8 +25,8 @@ type Metadata interface {
 	Name() string
 	// Busy reports whether the service is busy
 	Busy() bool
-	// State returns state of service
-	State() State
+	// Status returns status of service
+	Status() lifecycle.Status
 }
 
 // Service represents a process
@@ -58,8 +35,8 @@ type Service interface {
 	event.Dispatcher[reflect.Type]
 	lifecycle.Lifecycle
 
-	// SetState sets state of service
-	SetState(state State) error
+	// SetStatus sets status of service
+	SetStatus(lifecycle.Status) error
 
 	// SetFlags sets command-line flags
 	SetFlags(flagSet *flag.FlagSet)
@@ -71,10 +48,10 @@ type Service interface {
 // BaseService implements Service
 type BaseService[Self Service, Config config.Config] struct {
 	event.Dispatcher[reflect.Type]
-	self  Self
-	name  string
-	id    int
-	state State
+	self   Self
+	name   string
+	id     int
+	status lifecycle.Status
 
 	flags struct {
 		version bool
@@ -125,14 +102,14 @@ func (s *BaseService[Self, Config]) Busy() bool {
 	return false
 }
 
-// State returns state of service
-func (s *BaseService[Self, Config]) State() State {
-	return s.state
+// Status returns status of service
+func (s *BaseService[Self, Config]) Status() lifecycle.Status {
+	return s.status
 }
 
-// SetState implements Service SetState method
-func (s *BaseService[Self, Config]) SetState(state State) error {
-	s.state = state
+// SetStatus implements Service SetStatus method
+func (s *BaseService[Self, Config]) SetStatus(status lifecycle.Status) error {
+	s.status = status
 	return nil
 }
 
@@ -246,12 +223,12 @@ func run(s Service) error {
 	slog.Info("starting service")
 	defer func() {
 		slog.Info("shutting down service")
-		s.SetState(Closed)
+		s.SetStatus(lifecycle.Closed)
 		if err := s.Shutdown(context.Background()); err != nil {
 			slog.Error("failed to shutdown service", slog.Any("error", err))
 		}
 	}()
-	s.SetState(Running)
+	s.SetStatus(lifecycle.Running)
 	err := s.Start(context.Background())
 	if err != nil {
 		slog.Error("failed to start service", slog.Any("error", err))
@@ -259,7 +236,7 @@ func run(s Service) error {
 
 	// wait for service to stop
 	slog.Info("stopping service")
-	s.SetState(Stopping)
+	s.SetStatus(lifecycle.Stopping)
 	if s.Busy() {
 		slog.Info("waiting for service to stop")
 		ticker := time.NewTicker(time.Millisecond * 100)
