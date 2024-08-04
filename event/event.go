@@ -1,6 +1,7 @@
 package event
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gopherd/core/container/pair"
@@ -18,15 +19,15 @@ type Listener[T comparable] interface {
 	// Typeof gets type of listening event
 	EventType() T
 	// HandleEvent handles fired event
-	HandleEvent(Event[T])
+	HandleEvent(context.Context, Event[T])
 }
 
 // Listen creates a Listener by eventType and handler function
-func Listen[T comparable, E Event[T], H ~func(E)](eventType T, handler H) Listener[T] {
+func Listen[T comparable, E Event[T], H ~func(context.Context, E)](eventType T, handler H) Listener[T] {
 	return listenerFunc[T, E, H]{eventType, handler}
 }
 
-type listenerFunc[T comparable, E Event[T], H ~func(E)] struct {
+type listenerFunc[T comparable, E Event[T], H ~func(context.Context, E)] struct {
 	eventType T
 	handler   H
 }
@@ -37,19 +38,19 @@ func (h listenerFunc[T, E, H]) EventType() T {
 }
 
 // HandleEvent implements Listener HandleEvent method
-func (h listenerFunc[T, E, H]) HandleEvent(event Event[T]) {
+func (h listenerFunc[T, E, H]) HandleEvent(ctx context.Context, event Event[T]) {
 	if e, ok := event.(E); ok {
-		h.handler(e)
+		h.handler(ctx, e)
 	} else {
 		panic(fmt.Sprintf("unexpected event %T for type %v", event, event.Typeof()))
 	}
 }
 
 type Dispatcher[T comparable] interface {
-	AddListener(listener Listener[T]) ID
-	RemoveListener(id ID) bool
-	HasListener(id ID) bool
-	FireEvent(event Event[T]) bool
+	AddListener(Listener[T]) ID
+	RemoveListener(ID) bool
+	HasListener(ID) bool
+	DispatchEvent(context.Context, Event[T]) bool
 }
 
 // dispatcher manages event listeners
@@ -118,8 +119,8 @@ func (dispatcher *dispatcher[T]) HasListener(id ID) bool {
 	return ok
 }
 
-// FireEvent fires event
-func (dispatcher *dispatcher[T]) FireEvent(event Event[T]) bool {
+// DispatchEvent fires event
+func (dispatcher *dispatcher[T]) DispatchEvent(ctx context.Context, event Event[T]) bool {
 	if dispatcher.listeners == nil {
 		return false
 	}
@@ -128,7 +129,7 @@ func (dispatcher *dispatcher[T]) FireEvent(event Event[T]) bool {
 		return false
 	}
 	for i := range listeners {
-		listeners[i].Second.HandleEvent(event)
+		listeners[i].Second.HandleEvent(ctx, event)
 	}
 	return true
 }

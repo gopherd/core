@@ -1,6 +1,7 @@
 package event_test
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -17,10 +18,10 @@ func (e testStringEvent) Typeof() string {
 func TestDispatchEvent(t *testing.T) {
 	var fired bool
 	var dispatcher = event.NewDispatcher[string](true)
-	dispatcher.AddListener(event.Listen("test", func(e testStringEvent) {
+	dispatcher.AddListener(event.Listen("test", func(_ context.Context, e testStringEvent) {
 		fired = true
 	}))
-	dispatcher.FireEvent(testStringEvent{})
+	dispatcher.DispatchEvent(context.Background(), testStringEvent{})
 	if !fired {
 		t.Fatal("event not fired")
 	}
@@ -29,10 +30,10 @@ func TestDispatchEvent(t *testing.T) {
 func TestDispatchEventPointer(t *testing.T) {
 	var fired bool
 	var dispatcher = event.NewDispatcher[string](true)
-	dispatcher.AddListener(event.Listen("test", func(e *testStringEvent) {
+	dispatcher.AddListener(event.Listen("test", func(_ context.Context, e *testStringEvent) {
 		fired = true
 	}))
-	dispatcher.FireEvent(&testStringEvent{})
+	dispatcher.DispatchEvent(context.Background(), &testStringEvent{})
 	if !fired {
 		t.Fatal("event not fired")
 	}
@@ -48,10 +49,10 @@ func (e testIntEvent) Typeof() int {
 func TestDispatchIntEvent(t *testing.T) {
 	var fired bool
 	var dispatcher = event.NewDispatcher[int](true)
-	dispatcher.AddListener(event.Listen(1, func(e testIntEvent) {
+	dispatcher.AddListener(event.Listen(1, func(_ context.Context, e testIntEvent) {
 		fired = true
 	}))
-	dispatcher.FireEvent(testIntEvent{})
+	dispatcher.DispatchEvent(context.Background(), testIntEvent{})
 	if !fired {
 		t.Fatal("event not fired")
 	}
@@ -69,10 +70,10 @@ func (e *testTypeEvent) Typeof() reflect.Type {
 func TestDispatchTypeEvent(t *testing.T) {
 	var fired bool
 	var dispatcher = event.NewDispatcher[reflect.Type](true)
-	dispatcher.AddListener(event.Listen(eventType, func(e *testTypeEvent) {
+	dispatcher.AddListener(event.Listen(eventType, func(_ context.Context, e *testTypeEvent) {
 		fired = true
 	}))
-	dispatcher.FireEvent(&testTypeEvent{})
+	dispatcher.DispatchEvent(context.Background(), &testTypeEvent{})
 	if !fired {
 		t.Fatal("event not fired")
 	}
