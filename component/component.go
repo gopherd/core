@@ -162,51 +162,51 @@ func (com *BaseComponent[T]) OnCreated(entity Entity, config Config) (CreatedCal
 
 // ResolveDependencies iterates over the Deps field in options and calls the Resolve method on fields that implement DependencyResolver
 func (com *BaseComponent[T]) resolveDependencies() error {
-	optionsValue := reflect.ValueOf(&com.options).Elem()
-	optionsType := reflect.TypeOf(&com.options).Elem()
-
-	// Find the Deps field
-	depsField, found := optionsType.FieldByName("Deps")
-	if !found {
-		// If there is no Deps field, return directly
+	t := reflect.TypeOf(&com.options).Elem()
+	v := reflect.ValueOf(&com.options).Elem()
+	if v.Kind() != reflect.Struct {
 		return nil
 	}
+	return com.recursiveResolveDependencies(t, v)
+}
 
-	// Get the value of the Deps field
-	depsValue := optionsValue.FieldByName(depsField.Name)
-	if depsValue.Kind() != reflect.Struct {
-		return fmt.Errorf("field Deps should be a struct, but got %s", depsValue.Kind())
-	}
+func (com *BaseComponent[T]) recursiveResolveDependencies(t reflect.Type, v reflect.Value) error {
+	// Iterate over the fields of the v
+	for i := 0; i < v.NumField(); i++ {
+		ft := t.Field(i)
+		fv := v.Field(i)
 
-	// Iterate over the fields of the Deps struct
-	for i := 0; i < depsValue.NumField(); i++ {
-		field := depsValue.Field(i)
-		fieldType := depsValue.Type().Field(i)
-
-		// Check if the field implements DependencyResolver interface
-		if resolver := isDependencyResolver(field); resolver != nil {
-			if err := resolver.Resolve(com.entity); err != nil {
-				return fmt.Errorf("failed to resolve dependency %s: %w", fieldType.Name, err)
-			}
-		} else if field.CanAddr() {
-			// Check if the pointer field implements DependencyResolver interface
-			if resolver := isDependencyResolver(field.Addr()); resolver != nil {
-				if err := resolver.Resolve(com.entity); err != nil {
-					return fmt.Errorf("failed to resolve dependency %s: %w", fieldType.Name, err)
+		// Check if the field or its address implements DependencyResolver interface
+		resolver := reflectDependencyResolver(fv)
+		if resolver == nil && fv.CanAddr() {
+			resolver = reflectDependencyResolver(fv.Addr())
+		}
+		if resolver == nil {
+			if fv.Kind() == reflect.Struct {
+				if err := com.recursiveResolveDependencies(fv.Type(), fv); err != nil {
+					return err
 				}
-			} else {
-				return fmt.Errorf("dependency %s(%s) does not implement DependencyResolver", fieldType.Name, field.Addr().Type().Name())
 			}
+			continue
+		}
+
+		// Resolve the dependency
+		if err := resolver.Resolve(com.entity); err != nil {
+			return fmt.Errorf("failed to resolve dependency %s: %w", ft.Name, err)
 		} else {
-			return fmt.Errorf("dependency %s(%s) does not implement DependencyResolver", fieldType.Name, field.Type().Name())
+			slog.Debug(
+				"resolved dependency",
+				slog.String("component", com.UUID()),
+				slog.String("dependency", ft.Name),
+			)
 		}
 	}
 
 	return nil
 }
 
-// isDependencyResolver safely checks if the field implements DependencyResolver interface
-func isDependencyResolver(field reflect.Value) DependencyResolver {
+// reflectDependencyResolver safely checks if the field implements DependencyResolver interface
+func reflectDependencyResolver(field reflect.Value) DependencyResolver {
 	if !field.IsValid() || (field.Kind() == reflect.Ptr && field.IsNil()) {
 		return nil
 	}
@@ -215,24 +215,6 @@ func isDependencyResolver(field reflect.Value) DependencyResolver {
 	}
 	if resolver, ok := field.Interface().(DependencyResolver); ok {
 		return resolver
-	}
-	return nil
-}
-
-func tryGetResolver(val reflect.Value) DependencyResolver {
-	kind := val.Type().Kind()
-	if val.CanInterface() {
-		var addrVal = val
-		if kind != reflect.Ptr && val.CanAddr() {
-			addrVal = val.Addr()
-		}
-		if addrVal.CanInterface() {
-			if i := addrVal.Interface(); i != nil {
-				if decoder, ok := i.(DependencyResolver); ok {
-					return decoder
-				}
-			}
-		}
 	}
 	return nil
 }

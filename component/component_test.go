@@ -13,6 +13,7 @@ import (
 
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/event"
+	"github.com/gopherd/core/operator"
 )
 
 func TestMain(m *testing.M) {
@@ -471,5 +472,151 @@ func TestResolve(t *testing.T) {
 		if err == nil {
 			t.Error("Resolve should return an error for a component of the wrong type")
 		}
+	})
+}
+
+type DBComponent interface {
+	Query(query string) (string, error)
+}
+
+type dbComponent struct {
+	component.BaseComponent[struct {
+		Driver string
+		DSN    string
+	}]
+}
+
+func (com *dbComponent) Query(query string) (string, error) {
+	return "result", nil
+}
+
+type RedisComponent interface {
+	HGet(key, field string) (string, error)
+}
+
+type redisComponent struct {
+	component.BaseComponent[struct {
+		Source string
+	}]
+}
+
+func (com *redisComponent) HGet(key, field string) (string, error) {
+	return "value", nil
+}
+
+func TestOptionsDeps(t *testing.T) {
+	var entity = newMockEntity()
+
+	// create db component
+	var db dbComponent
+	db.Options().Driver = "test-driver"
+	db.Options().DSN = "test-dsn"
+	operator.First(db.OnCreated(entity, component.Config{
+		UUID: "@db",
+		Name: "db",
+	}))()
+	entity.AddComponent(&db)
+
+	// create redis component
+	var redis redisComponent
+	redis.Options().Source = "test-source"
+	operator.First(redis.OnCreated(entity, component.Config{
+		UUID: "@redis",
+		Name: "redis",
+	}))()
+	entity.AddComponent(&redis)
+
+	t.Run("ValidOptions", func(t *testing.T) {
+		type usersComponent struct {
+			component.BaseComponent[struct {
+				DB     component.Dependency[DBComponent]
+				Nested struct {
+					Redis component.Dependency[RedisComponent]
+					Hello string
+				}
+
+				Oops int
+			}]
+		}
+
+		// create users component
+		var users usersComponent
+		users.Options().DB.SetUUID("@db")
+		users.Options().Nested.Redis.SetUUID("@redis")
+		users.Options().Nested.Hello = "world"
+		users.Options().Oops = 42
+		if err := operator.First(users.OnCreated(entity, component.Config{
+			UUID: "@users1",
+			Name: "users",
+		}))(); err != nil {
+			t.Fatalf("OnCreated failed: %v", err)
+		}
+		entity.AddComponent(&users)
+
+		if users.Options().DB.Component() == nil {
+			t.Error("DB component not resolved")
+		}
+		if users.Options().Nested.Redis.Component() == nil {
+			t.Error("Redis component not resolved")
+		}
+	})
+
+	t.Run("InvalidRedis", func(t *testing.T) {
+		type usersComponent struct {
+			component.BaseComponent[struct {
+				InvalidRedis component.Dependency[DBComponent]
+			}]
+		}
+
+		// create users component
+		var users usersComponent
+		users.Options().InvalidRedis.SetUUID("@redis")
+		if err := operator.First(users.OnCreated(entity, component.Config{
+			UUID: "@users2",
+			Name: "users",
+		}))(); err == nil {
+			t.Errorf("OnCreated should have failed")
+		}
+		entity.AddComponent(&users)
+	})
+
+	t.Run("UUIDNotFound", func(t *testing.T) {
+		type usersComponent struct {
+			component.BaseComponent[struct {
+				UUIDNotFound component.Dependency[DBComponent]
+			}]
+		}
+
+		// create users component
+		var users usersComponent
+		users.Options().UUIDNotFound.SetUUID("@not-found")
+		if err := operator.First(users.OnCreated(entity, component.Config{
+			UUID: "@users3",
+			Name: "users",
+		}))(); err == nil {
+			t.Errorf("OnCreated should have failed")
+		}
+		entity.AddComponent(&users)
+	})
+
+	t.Run("TypeNotFound", func(t *testing.T) {
+		type usersComponent struct {
+			component.BaseComponent[struct {
+				TypeNotFound component.Dependency[struct {
+					component.BaseComponent[struct{}]
+				}]
+			}]
+		}
+
+		// create users component
+		var users usersComponent
+		users.Options().TypeNotFound.SetUUID("@db")
+		if err := operator.First(users.OnCreated(entity, component.Config{
+			UUID: "@users4",
+			Name: "users",
+		}))(); err == nil {
+			t.Errorf("OnCreated should have failed")
+		}
+		entity.AddComponent(&users)
 	})
 }
