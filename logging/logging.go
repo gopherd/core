@@ -1,4 +1,4 @@
-package log
+package logging
 
 import (
 	"encoding/json"
@@ -75,8 +75,8 @@ func (p *stdProvider) Close() error {
 
 // StdOptions represents standard logger options
 type StdOptions struct {
-	Level     slog.Level `json:"level"`
-	AddSource bool       `json:"add_source"`
+	Level     slog.Level
+	AddSource bool
 }
 
 func newStdProvider(writer io.Writer, formatter string, opts Options) (Provider, error) {

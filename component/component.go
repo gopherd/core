@@ -19,9 +19,9 @@ type Options = json.RawMessage
 
 // Config defines the configuration structure for creating a component.
 type Config struct {
-	UUID    string  `json:"uuid,omitempty"`
-	Name    string  `json:"name"`
-	Options Options `json:"options,omitempty"`
+	UUID    string `json:",omitempty"`
+	Name    string
+	Options Options `json:",omitempty"`
 }
 
 // CreateOptions marshals any value into Options. It panics if marshaling fails.

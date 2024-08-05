@@ -32,10 +32,10 @@ type Config interface {
 
 // CoreConfig represents the core configuration structure.
 type CoreConfig struct {
-	Project    string             `json:"project"`
-	Name       string             `json:"name"`
-	ID         int                `json:"id"`
-	Components []component.Config `json:"components"`
+	Project    string
+	Name       string
+	ID         int
+	Components []component.Config
 }
 
 // BaseConfig implements the Config interface and provides a generic
