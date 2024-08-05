@@ -55,11 +55,6 @@ type Metadata interface {
 	Entity() Entity
 }
 
-// BaseOptions represents the base options structure for creating a component.
-type BaseOptions[T any] struct {
-	Deps T `json:"deps"`
-}
-
 // DependencyResolver resolves a dependency for a component.
 type DependencyResolver interface {
 	Resolve(Entity) error
@@ -69,6 +64,16 @@ type DependencyResolver interface {
 type Dependency[T any] struct {
 	component T
 	uuid      string
+}
+
+// UUID returns the UUID of the dependency component.
+func (d *Dependency[T]) UUID() string {
+	return d.uuid
+}
+
+// SetUUID sets the UUID of the dependency component.
+func (d *Dependency[T]) SetUUID(uuid string) {
+	d.uuid = uuid
 }
 
 // MarshalJSON marshals the dependency component uuid to JSON.
