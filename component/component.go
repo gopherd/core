@@ -55,8 +55,13 @@ type Metadata interface {
 	Entity() Entity
 }
 
-// Resolver resolves a dependency for a component.
-type Resolver interface {
+// BaseOptions represents the base options structure for creating a component.
+type BaseOptions[T any] struct {
+	Deps T `json:"deps"`
+}
+
+// DependencyResolver resolves a dependency for a component.
+type DependencyResolver interface {
 	Resolve(Entity) error
 }
 
@@ -104,8 +109,6 @@ type Component interface {
 	lifecycle.Lifecycle
 	// OnCreated is called when the component is created.
 	OnCreated(Entity, Config) error
-	// Dependencies returns a list of dependency resolvers.
-	Dependencies() []Resolver
 }
 
 // BaseComponent provides a basic implementation of the Component interface.
@@ -144,12 +147,66 @@ func (com *BaseComponent[T]) OnCreated(entity Entity, config Config) error {
 	if len(config.Options) > 0 {
 		return json.Unmarshal(config.Options, &com.options)
 	}
+	return com.resolveDependencies()
+}
+
+// ResolveDependencies iterates over the Deps field in options and calls the Resolve method on fields that implement DependencyResolver
+func (com *BaseComponent[T]) resolveDependencies() error {
+	optionsValue := reflect.ValueOf(com.options)
+	optionsType := reflect.TypeOf(com.options)
+
+	// Find the Deps field
+	depsField, found := optionsType.FieldByName("Deps")
+	if !found {
+		// If there is no Deps field, return directly
+		return nil
+	}
+
+	// Get the value of the Deps field
+	depsValue := optionsValue.FieldByName(depsField.Name)
+	if depsValue.Kind() != reflect.Struct {
+		return fmt.Errorf("field Deps should be a struct, but got %s", depsValue.Kind())
+	}
+
+	// Iterate over the fields of the Deps struct
+	for i := 0; i < depsValue.NumField(); i++ {
+		field := depsValue.Field(i)
+		fieldType := depsValue.Type().Field(i)
+
+		// Check if the field implements DependencyResolver interface
+		if resolver, ok := isDependencyResolver(field); ok {
+			if err := resolver.Resolve(com.entity); err != nil {
+				return fmt.Errorf("failed to resolve dependency %s: %w", fieldType.Name, err)
+			}
+		} else if field.Kind() == reflect.Ptr && !field.IsNil() {
+			// Check if the pointer field implements DependencyResolver interface
+			if resolver, ok := isDependencyResolver(field.Elem()); ok {
+				if err := resolver.Resolve(com.entity); err != nil {
+					return fmt.Errorf("failed to resolve dependency %s: %w", fieldType.Name, err)
+				}
+			} else {
+				return fmt.Errorf("dependency %s does not implement DependencyResolver", fieldType.Name)
+			}
+		} else {
+			return fmt.Errorf("dependency %s does not implement DependencyResolver", fieldType.Name)
+		}
+	}
+
 	return nil
 }
 
-// Dependencies implements the Component Dependencies method.
-func (com *BaseComponent[T]) Dependencies() []Resolver {
-	return nil
+// isDependencyResolver safely checks if the field implements DependencyResolver interface
+func isDependencyResolver(field reflect.Value) (DependencyResolver, bool) {
+	if !field.IsValid() || (field.Kind() == reflect.Ptr && field.IsNil()) {
+		return nil, false
+	}
+	if !field.CanInterface() {
+		return nil, false
+	}
+	if resolver, ok := field.Interface().(DependencyResolver); ok {
+		return resolver, true
+	}
+	return nil, false
 }
 
 // Manager manages a group of components.
