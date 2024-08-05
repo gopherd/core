@@ -108,12 +108,15 @@ func Resolve[T any](target *T, entity Entity, uuid string) error {
 	return fmt.Errorf("component %q type mismatch", uuid)
 }
 
+type CreatedCallback func() error
+
 // Component defines the interface for a generic logic component.
 type Component interface {
 	Metadata
 	lifecycle.Lifecycle
 	// OnCreated is called when the component is created.
-	OnCreated(Entity, Config) error
+	// It returns a callback function that will be called when all components are created.
+	OnCreated(Entity, Config) (CreatedCallback, error)
 }
 
 // BaseComponent provides a basic implementation of the Component interface.
@@ -145,16 +148,16 @@ func (com *BaseComponent[T]) Entity() Entity {
 }
 
 // OnCreated implements the Component OnCreated method.
-func (com *BaseComponent[T]) OnCreated(entity Entity, config Config) error {
+func (com *BaseComponent[T]) OnCreated(entity Entity, config Config) (CreatedCallback, error) {
 	com.uuid = config.UUID
 	com.name = config.Name
 	com.entity = entity
 	if len(config.Options) > 0 {
 		if err := json.Unmarshal(config.Options, &com.options); err != nil {
-			return fmt.Errorf("failed to unmarshal options: %w", err)
+			return nil, fmt.Errorf("failed to unmarshal options: %w", err)
 		}
 	}
-	return com.resolveDependencies()
+	return com.resolveDependencies, nil
 }
 
 // ResolveDependencies iterates over the Deps field in options and calls the Resolve method on fields that implement DependencyResolver

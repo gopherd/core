@@ -144,7 +144,7 @@ func (s *BaseService[Self, Config]) Init(ctx context.Context) error {
 	s.name = core.Name
 
 	// create components
-	var components = make([]pair.Pair[component.Component, component.Config], 0, len(core.Components))
+	var callbacks = make([]pair.Pair[component.Component, component.CreatedCallback], 0, len(core.Components))
 	for _, c := range core.Components {
 		creator := component.Lookup(c.Name)
 		if creator == nil {
@@ -153,17 +153,20 @@ func (s *BaseService[Self, Config]) Init(ctx context.Context) error {
 		com := creator()
 		if com == nil {
 			return fmt.Errorf("create component %q error", c.UUID)
+
 		}
-		components = append(components, pair.New(com, c))
+		cb, err := com.OnCreated(s.self, c)
+		if err != nil {
+			return fmt.Errorf("create component %q error: %w", c.UUID, err)
+		}
+		callbacks = append(callbacks, pair.New(com, cb))
 		if s.components.AddComponent(com) == nil {
 			return fmt.Errorf("duplicate component id: %q", c.UUID)
 		}
 	}
-	for _, p := range components {
-		c := p.Second
-		com := p.First
-		if err := com.OnCreated(s.self, c); err != nil {
-			return fmt.Errorf("create component %q error: %w", c.UUID, err)
+	for _, p := range callbacks {
+		if err := p.Second(); err != nil {
+			return fmt.Errorf("create component %q callback error: %w", p.First.UUID(), err)
 		}
 	}
 

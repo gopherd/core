@@ -85,8 +85,11 @@ func TestBaseComponent(t *testing.T) {
 			UUID: "test-uuid",
 			Name: "test-component",
 		}
-		err := bc.OnCreated(entity, config)
+		cb, err := bc.OnCreated(entity, config)
 		if err != nil {
+			t.Fatalf("OnCreated failed: %v", err)
+		}
+		if err := cb(); err != nil {
 			t.Fatalf("OnCreated failed: %v", err)
 		}
 
@@ -112,8 +115,11 @@ func TestBaseComponent(t *testing.T) {
 			Options: json.RawMessage(`{"TestField":"test-value"}`),
 		}
 
-		err := bc.OnCreated(entity, config)
+		cb, err := bc.OnCreated(entity, config)
 		if err != nil {
+			t.Fatalf("OnCreated failed: %v", err)
+		}
+		if err := cb(); err != nil {
 			t.Fatalf("OnCreated failed: %v", err)
 		}
 
