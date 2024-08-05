@@ -185,17 +185,17 @@ func (com *BaseComponent[T]) resolveDependencies() error {
 			if err := resolver.Resolve(com.entity); err != nil {
 				return fmt.Errorf("failed to resolve dependency %s: %w", fieldType.Name, err)
 			}
-		} else if field.Kind() == reflect.Ptr && !field.IsNil() {
+		} else if field.CanAddr() {
 			// Check if the pointer field implements DependencyResolver interface
-			if resolver, ok := isDependencyResolver(field.Elem()); ok {
+			if resolver, ok := isDependencyResolver(field.Addr()); ok {
 				if err := resolver.Resolve(com.entity); err != nil {
 					return fmt.Errorf("failed to resolve dependency %s: %w", fieldType.Name, err)
 				}
 			} else {
-				return fmt.Errorf("dependency %s does not implement DependencyResolver", fieldType.Name)
+				return fmt.Errorf("dependency %s(%s) does not implement DependencyResolver", fieldType.Name, field.Addr().Type().Name())
 			}
 		} else {
-			return fmt.Errorf("dependency %s does not implement DependencyResolver", fieldType.Name)
+			return fmt.Errorf("dependency %s(%s) does not implement DependencyResolver", fieldType.Name)
 		}
 	}
 
