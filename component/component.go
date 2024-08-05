@@ -5,12 +5,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"reflect"
 	"sync"
 
+	"github.com/gopherd/core/errkit"
 	"github.com/gopherd/core/event"
 	"github.com/gopherd/core/lifecycle"
 )
@@ -279,27 +279,30 @@ func Lookup(name string) ComponentCreator {
 	return creators[name]
 }
 
-// Resolve resolves the component in entity by uuid.
-func Resolve[T any](dst *T, entity Entity, uuid string) error {
-	if entity == nil {
-		return errors.New("entity is nil")
-	}
-	com := entity.GetComponent(uuid)
-	if com == nil {
-		return errors.New("component not found")
-	}
-	if c, ok := com.(T); ok {
-		*dst = c
-		return nil
-	}
-	return fmt.Errorf("component %T type mismatch", com)
+type resolver[T any] struct {
+	target *T
+	entity Entity
+	uuid   string
 }
 
-// MustResolve resolves the component in entity by uuid.
-// It panics if the component is not found or type mismatched.
-func MustResolve[T any](dst *T, entity Entity, uuid string) {
-	err := Resolve[T](dst, entity, uuid)
-	if err != nil {
-		panic(fmt.Errorf("resolve component %q error: %w", uuid, err))
+// Exec implements the Executor interface.
+func (r *resolver[T]) Exec() error {
+	com := r.entity.GetComponent(r.uuid)
+	if com == nil {
+		return fmt.Errorf("component %q not found", r.uuid)
+	}
+	if c, ok := com.(T); ok {
+		*r.target = c
+		return nil
+	}
+	return fmt.Errorf("component %q type mismatch", r.uuid)
+}
+
+// Resolver creates a new resolver for the target component.
+func Resolver[T any](target *T, entity Entity, uuid string) errkit.Executor {
+	return &resolver[T]{
+		target: target,
+		entity: entity,
+		uuid:   uuid,
 	}
 }

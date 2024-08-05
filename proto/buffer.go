@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"strconv"
 	"sync"
-
-	"github.com/gopherd/core/text/resp"
 )
 
 var bufferp = sync.Pool{
@@ -81,7 +79,7 @@ func (b *Buffer) Encode(m Message, contentType ContentType) error {
 	var err error
 	switch contentType {
 	case ContentTypeText:
-		b.buf = append(b.buf, resp.StringType.Byte())
+		b.buf = append(b.buf, '+')
 		b.buf = strconv.AppendInt(b.buf, int64(m.Typeof()), 10)
 		b.buf = append(b.buf, ' ')
 		err = json.NewEncoder(b).Encode(m)
