@@ -154,7 +154,7 @@ func (com *BaseComponent[T]) OnCreated(entity Entity, config Config) error {
 			return fmt.Errorf("failed to unmarshal options: %w", err)
 		}
 	}
-	return nil
+	return com.resolveDependencies()
 }
 
 // ResolveDependencies iterates over the Deps field in options and calls the Resolve method on fields that implement DependencyResolver
@@ -181,13 +181,13 @@ func (com *BaseComponent[T]) resolveDependencies() error {
 		fieldType := depsValue.Type().Field(i)
 
 		// Check if the field implements DependencyResolver interface
-		if resolver, ok := isDependencyResolver(field); ok {
+		if resolver := isDependencyResolver(field); resolver != nil {
 			if err := resolver.Resolve(com.entity); err != nil {
 				return fmt.Errorf("failed to resolve dependency %s: %w", fieldType.Name, err)
 			}
 		} else if field.CanAddr() {
 			// Check if the pointer field implements DependencyResolver interface
-			if resolver, ok := isDependencyResolver(field.Addr()); ok {
+			if resolver := isDependencyResolver(field.Addr()); resolver != nil {
 				if err := resolver.Resolve(com.entity); err != nil {
 					return fmt.Errorf("failed to resolve dependency %s: %w", fieldType.Name, err)
 				}
@@ -203,17 +203,35 @@ func (com *BaseComponent[T]) resolveDependencies() error {
 }
 
 // isDependencyResolver safely checks if the field implements DependencyResolver interface
-func isDependencyResolver(field reflect.Value) (DependencyResolver, bool) {
+func isDependencyResolver(field reflect.Value) DependencyResolver {
 	if !field.IsValid() || (field.Kind() == reflect.Ptr && field.IsNil()) {
-		return nil, false
+		return nil
 	}
 	if !field.CanInterface() {
-		return nil, false
+		return nil
 	}
 	if resolver, ok := field.Interface().(DependencyResolver); ok {
-		return resolver, true
+		return resolver
 	}
-	return nil, false
+	return nil
+}
+
+func tryGetResolver(val reflect.Value) DependencyResolver {
+	kind := val.Type().Kind()
+	if val.CanInterface() {
+		var addrVal = val
+		if kind != reflect.Ptr && val.CanAddr() {
+			addrVal = val.Addr()
+		}
+		if addrVal.CanInterface() {
+			if i := addrVal.Interface(); i != nil {
+				if decoder, ok := i.(DependencyResolver); ok {
+					return decoder
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // Manager manages a group of components.
