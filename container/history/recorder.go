@@ -1,55 +1,79 @@
-// Package history provides a simple undo mechanism for recording and reverting changes.
 package history
 
-// Recorder defines the interface for adding records and performing undo operations.
+// Recorder defines the interface for adding undo actions and performing undo operations.
 type Recorder interface {
-	// AddRecord adds a new record to the recorder.
-	AddRecord(r Record)
+	// PushAction adds a new undo action to the recorder.
+	PushAction(a Action)
 
-	// Undo reverts all recorded changes in reverse order.
+	// UndoAll reverts all actions in reverse order and clears the recorder.
+	// It returns the number of actions undone.
+	UndoAll() (n int)
+
+	// Undo reverts the last action in the recorder.
+	// It returns true if an action was undone.
+	Undo() bool
+}
+
+// Action represents a single undoable action.
+type Action interface {
+	// Undo reverts the changes made by this action.
 	Undo()
 }
 
-// Record represents a single undoable action.
-type Record interface {
-	// Undo reverts the changes made by this record.
-	Undo()
+// BaseRecorder implements the Recorder interface using a slice of Actions.
+type BaseRecorder struct {
+	actions []Action
 }
 
-// DefaultRecorder implements the Recorder interface using a slice of Records.
-type DefaultRecorder struct {
-	records []Record
+// Len returns the number of actions in the recorder.
+func (r *BaseRecorder) Len() int {
+	return len(r.actions)
 }
 
-// AddRecord appends a new Record to the DefaultRecorder.
-func (recorder *DefaultRecorder) AddRecord(r Record) {
-	recorder.records = append(recorder.records, r)
+// PushAction appends a new Action to the BaseRecorder.
+func (r *BaseRecorder) PushAction(a Action) {
+	r.actions = append(r.actions, a)
 }
 
-// Undo reverts all records in reverse order and clears the recorder.
-func (recorder *DefaultRecorder) Undo() {
-	for i := len(recorder.records) - 1; i >= 0; i-- {
-		recorder.records[i].Undo()
-		recorder.records[i] = nil // Allow garbage collection
+// UndoAll reverts all actions in reverse order and clears the recorder.
+// It returns the number of actions undone.
+func (r *BaseRecorder) UndoAll() (n int) {
+	n = len(r.actions)
+	for i := len(r.actions) - 1; i >= 0; i-- {
+		r.actions[i].Undo()
+		r.actions[i] = nil // Allow garbage collection
 	}
-	recorder.records = recorder.records[:0]
+	r.actions = r.actions[:0]
+	return
 }
 
-// ValueRecord creates a new Record for undoing changes to a value of any type.
-func ValueRecord[T any](ptr *T, old T) Record {
-	return &valueRecord[T]{
+// Undo reverts the last action in the recorder.
+// It returns true if an action was undone.
+func (r *BaseRecorder) Undo() bool {
+	if len(r.actions) == 0 {
+		return false
+	}
+	i := len(r.actions) - 1
+	r.actions[i].Undo()
+	r.actions[i] = nil // Allow garbage collection
+	r.actions = r.actions[:i]
+	return true
+}
+
+// ValueUndoAction creates a new Action for undoing changes to a value of any type.
+func ValueUndoAction[T any](ptr *T, old T) Action {
+	return &valueUndoAction[T]{
 		ptr: ptr,
 		old: old,
 	}
 }
 
-// valueRecord is a generic implementation of the Record interface for value types.
-type valueRecord[T any] struct {
+type valueUndoAction[T any] struct {
 	ptr *T
 	old T
 }
 
 // Undo restores the original value.
-func (vr *valueRecord[T]) Undo() {
-	*vr.ptr = vr.old
+func (a *valueUndoAction[T]) Undo() {
+	*a.ptr = a.old
 }

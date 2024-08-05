@@ -80,8 +80,8 @@ func (dispatcher *dispatcher[T]) AddListener(listener Listener[T]) ID {
 	var eventType = listener.EventType()
 	var listeners = dispatcher.listeners[eventType]
 	var index = len(listeners)
-	dispatcher.listeners[eventType] = append(listeners, pair.Make(id, listener))
-	dispatcher.mapping[id] = pair.Make(eventType, index)
+	dispatcher.listeners[eventType] = append(listeners, pair.New(id, listener))
+	dispatcher.mapping[id] = pair.New(eventType, index)
 	return id
 }
 
@@ -101,11 +101,11 @@ func (dispatcher *dispatcher[T]) RemoveListener(id ID) bool {
 		if dispatcher.ordered {
 			copy(listeners[index.Second:last], listeners[index.Second+1:])
 			for i := index.Second; i < last; i++ {
-				dispatcher.mapping[listeners[i].First] = pair.Make(eventType, i)
+				dispatcher.mapping[listeners[i].First] = pair.New(eventType, i)
 			}
 		} else {
 			listeners[index.Second] = listeners[last]
-			dispatcher.mapping[listeners[index.Second].First] = pair.Make(eventType, index.Second)
+			dispatcher.mapping[listeners[index.Second].First] = pair.New(eventType, index.Second)
 		}
 	}
 	listeners[last].Second = nil
