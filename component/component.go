@@ -150,7 +150,9 @@ func (com *BaseComponent[T]) OnCreated(entity Entity, config Config) error {
 	com.name = config.Name
 	com.entity = entity
 	if len(config.Options) > 0 {
-		return json.Unmarshal(config.Options, &com.options)
+		if err := json.Unmarshal(config.Options, &com.options); err != nil {
+			return fmt.Errorf("failed to unmarshal options: %w", err)
+		}
 	}
 	return com.resolveDependencies()
 }
