@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/gopherd/core/errkit"
 	"github.com/gopherd/core/event"
 	"github.com/gopherd/core/lifecycle"
 )
@@ -56,12 +55,57 @@ type Metadata interface {
 	Entity() Entity
 }
 
+// Resolver resolves a dependency for a component.
+type Resolver interface {
+	Resolve(Entity) error
+}
+
+// Dependency represents a dependency on another component.
+type Dependency[T any] struct {
+	component T
+	uuid      string
+}
+
+// MarshalJSON marshals the dependency component uuid to JSON.
+func (d *Dependency[T]) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.uuid)
+}
+
+// UnmarshalJSON unmarshals the dependency component uuid from JSON.
+func (d *Dependency[T]) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &d.uuid)
+}
+
+// Component returns the target component.
+func (d *Dependency[T]) Component() T {
+	return d.component
+}
+
+// Resolve resolves the target component.
+func (d *Dependency[T]) Resolve(entity Entity) error {
+	return Resolve(&d.component, entity, d.uuid)
+}
+
+func Resolve[T any](target *T, entity Entity, uuid string) error {
+	com := entity.GetComponent(uuid)
+	if com == nil {
+		return fmt.Errorf("component %q not found", uuid)
+	}
+	if c, ok := com.(T); ok {
+		*target = c
+		return nil
+	}
+	return fmt.Errorf("component %q type mismatch", uuid)
+}
+
 // Component defines the interface for a generic logic component.
 type Component interface {
 	Metadata
 	lifecycle.Lifecycle
 	// OnCreated is called when the component is created.
 	OnCreated(Entity, Config) error
+	// Dependencies returns a list of dependency resolvers.
+	Dependencies() []Resolver
 }
 
 // BaseComponent provides a basic implementation of the Component interface.
@@ -100,6 +144,11 @@ func (com *BaseComponent[T]) OnCreated(entity Entity, config Config) error {
 	if len(config.Options) > 0 {
 		return json.Unmarshal(config.Options, &com.options)
 	}
+	return nil
+}
+
+// Dependencies implements the Component Dependencies method.
+func (com *BaseComponent[T]) Dependencies() []Resolver {
 	return nil
 }
 
@@ -277,32 +326,4 @@ func Lookup(name string) ComponentCreator {
 	creatorsMu.RLock()
 	defer creatorsMu.RUnlock()
 	return creators[name]
-}
-
-type resolver[T any] struct {
-	target *T
-	entity Entity
-	uuid   string
-}
-
-// Exec implements the Executor interface.
-func (r *resolver[T]) Exec() error {
-	com := r.entity.GetComponent(r.uuid)
-	if com == nil {
-		return fmt.Errorf("component %q not found", r.uuid)
-	}
-	if c, ok := com.(T); ok {
-		*r.target = c
-		return nil
-	}
-	return fmt.Errorf("component %q type mismatch", r.uuid)
-}
-
-// Resolver creates a new resolver for the target component.
-func Resolver[T any](target *T, entity Entity, uuid string) errkit.Executor {
-	return &resolver[T]{
-		target: target,
-		entity: entity,
-		uuid:   uuid,
-	}
 }

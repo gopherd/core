@@ -432,7 +432,7 @@ func TestResolve(t *testing.T) {
 		entity.AddComponent(comp)
 
 		var resolved *mockComponent
-		err := component.Resolver(&resolved, entity, "test-uuid").Exec()
+		err := component.Resolve(&resolved, entity, "test-uuid")
 		if err != nil {
 			t.Fatalf("Resolve failed: %v", err)
 		}
@@ -446,7 +446,7 @@ func TestResolve(t *testing.T) {
 		entity := newMockEntity()
 
 		var com *mockComponent
-		err := component.Resolver(&com, entity, "non-existent").Exec()
+		err := component.Resolve(&com, entity, "non-existent")
 		if err == nil {
 			t.Error("Resolve should return an error for a non-existent component")
 		}
@@ -461,7 +461,7 @@ func TestResolve(t *testing.T) {
 
 		type wrongComponent struct{}
 		var com *wrongComponent
-		err := component.Resolver(&com, entity, "test-uuid").Exec()
+		err := component.Resolve(&com, entity, "test-uuid")
 		if err == nil {
 			t.Error("Resolve should return an error for a component of the wrong type")
 		}

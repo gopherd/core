@@ -95,16 +95,3 @@ func (me multiError) As(target interface{}) bool {
 	}
 	return false
 }
-
-type Executor interface {
-	Exec() error
-}
-
-func Try(executors ...Executor) error {
-	for _, e := range executors {
-		if err := e.Exec(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
