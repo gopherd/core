@@ -159,8 +159,8 @@ func (com *BaseComponent[T]) OnCreated(entity Entity, config Config) error {
 
 // ResolveDependencies iterates over the Deps field in options and calls the Resolve method on fields that implement DependencyResolver
 func (com *BaseComponent[T]) resolveDependencies() error {
-	optionsValue := reflect.ValueOf(&com.options)
-	optionsType := reflect.TypeOf(&com.options)
+	optionsValue := reflect.ValueOf(&com.options).Elem()
+	optionsType := reflect.TypeOf(&com.options).Elem()
 
 	// Find the Deps field
 	depsField, found := optionsType.FieldByName("Deps")
