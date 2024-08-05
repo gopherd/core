@@ -67,7 +67,7 @@ type Dependency[T any] struct {
 }
 
 // UUID returns the UUID of the dependency component.
-func (d *Dependency[T]) UUID() string {
+func (d Dependency[T]) UUID() string {
 	return d.uuid
 }
 
@@ -77,7 +77,7 @@ func (d *Dependency[T]) SetUUID(uuid string) {
 }
 
 // MarshalJSON marshals the dependency component uuid to JSON.
-func (d *Dependency[T]) MarshalJSON() ([]byte, error) {
+func (d Dependency[T]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.uuid)
 }
 
@@ -87,7 +87,7 @@ func (d *Dependency[T]) UnmarshalJSON(data []byte) error {
 }
 
 // Component returns the target component.
-func (d *Dependency[T]) Component() T {
+func (d Dependency[T]) Component() T {
 	return d.component
 }
 
