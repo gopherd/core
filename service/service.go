@@ -13,6 +13,7 @@ import (
 	"github.com/gopherd/core/buildinfo"
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/config"
+	"github.com/gopherd/core/container/pair"
 	"github.com/gopherd/core/event"
 	"github.com/gopherd/core/lifecycle"
 )
@@ -143,6 +144,7 @@ func (s *BaseService[Self, Config]) Init(ctx context.Context) error {
 	s.name = core.Name
 
 	// create components
+	var components = make([]pair.Pair[component.Component, component.Config], 0, len(core.Components))
 	for _, c := range core.Components {
 		creator := component.Lookup(c.Name)
 		if creator == nil {
@@ -152,11 +154,16 @@ func (s *BaseService[Self, Config]) Init(ctx context.Context) error {
 		if com == nil {
 			return fmt.Errorf("create component %q error", c.UUID)
 		}
-		if err := com.OnCreated(s.self, c); err != nil {
-			return fmt.Errorf("create component %q error: %w", c.UUID, err)
-		}
+		components = append(components, pair.New(com, c))
 		if s.components.AddComponent(com) == nil {
 			return fmt.Errorf("duplicate component id: %q", c.UUID)
+		}
+	}
+	for _, p := range components {
+		c := p.Second
+		com := p.First
+		if err := com.OnCreated(s.self, c); err != nil {
+			return fmt.Errorf("create component %q error: %w", c.UUID, err)
 		}
 	}
 

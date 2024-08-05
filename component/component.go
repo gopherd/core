@@ -154,7 +154,7 @@ func (com *BaseComponent[T]) OnCreated(entity Entity, config Config) error {
 			return fmt.Errorf("failed to unmarshal options: %w", err)
 		}
 	}
-	return com.resolveDependencies()
+	return nil
 }
 
 // ResolveDependencies iterates over the Deps field in options and calls the Resolve method on fields that implement DependencyResolver
