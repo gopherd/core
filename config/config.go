@@ -38,7 +38,6 @@ type BaseConfig[Context any] struct {
 	flags struct {
 		source          string
 		output          string
-		stdin           bool
 		test            bool
 		print           bool
 		disableTemplate bool
@@ -69,12 +68,11 @@ func (c *BaseConfig[Context]) GetComponents() []component.Config {
 
 // SetupFlags sets command-line arguments for the BaseConfig.
 func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
-	flagSet.StringVar(&c.flags.source, "c", "", "Config source (file path or URL)")
-	flagSet.StringVar(&c.flags.output, "o", "", "Path to output the config")
-	flagSet.BoolVar(&c.flags.stdin, "i", false, "Read config from stdin")
-	flagSet.BoolVar(&c.flags.test, "t", false, "Test config only")
-	flagSet.BoolVar(&c.flags.disableTemplate, "T", false, "Disable template parsing")
-	flagSet.BoolVar(&c.flags.print, "p", false, "Print config and exit")
+	flagSet.StringVar(&c.flags.source, "c", "", "Specify the config source, which can be a file path, an HTTP URL, or '-' to read from standard input.")
+	flagSet.StringVar(&c.flags.output, "o", "", "Specify the output path for the config, used to save the read or default config to a file (the program will exit immediately after outputting the config).")
+	flagSet.BoolVar(&c.flags.test, "t", false, "Test if the config can be correctly parsed (will also test the program's default config if no config is read; the program will exit after testing).")
+	flagSet.BoolVar(&c.flags.print, "p", false, "Output the program's config to standard output.")
+	flagSet.BoolVar(&c.flags.disableTemplate, "T", false, "Disable template parsing, meaning the component config will not be treated as a template.")
 }
 
 // Load processes the configuration based on command-line flags.
@@ -92,6 +90,9 @@ func (c *BaseConfig[Context]) Load() (exit bool, err error) {
 		if c.flags.print && err == nil {
 			c.encode(os.Stdout)
 		}
+		if err == nil && !exit && c.flags.source == "" {
+			err = errors.New("no config source specified")
+		}
 	}()
 	if exit, err := c.load(); err != nil {
 		return exit, err
@@ -107,16 +108,16 @@ func (c *BaseConfig[Context]) Load() (exit bool, err error) {
 }
 
 func (c *BaseConfig[Context]) load() (bool, error) {
-	if c.flags.stdin {
+	switch c.flags.source {
+	case "":
+	case "-":
 		if err := c.decode(os.Stdin); err != nil {
 			return false, fmt.Errorf("failed to read config from stdin: %w", err)
 		}
-	} else if c.flags.source != "" {
+	default:
 		if err := c.loadFromSource(c.flags.source); err != nil {
-			return false, err
+			return false, fmt.Errorf("failed to load config from source: %w", err)
 		}
-	} else {
-		return false, nil
 	}
 
 	if c.flags.output != "" {
