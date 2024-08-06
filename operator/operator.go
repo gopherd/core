@@ -131,3 +131,25 @@ func Second[T1, T2 any](_ T1, x2 T2, _ ...any) T2 {
 func Third[T1, T2, T3 any](_ T1, _ T2, x3 T3, _ ...any) T3 {
 	return x3
 }
+
+// Deref returns the value of p if it is not nil, otherwise it returns the zero value of T.
+func Deref[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
+}
+
+// DerefOr returns the value of p if it is not nil, otherwise it returns defaultValue.
+func DerefOr[T any](p *T, defaultValue T) T {
+	if p == nil {
+		return defaultValue
+	}
+	return *p
+}
+
+// AddressOf returns the address of x.
+func AddressOf[T any](x T) *T {
+	return &x
+}
