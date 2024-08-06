@@ -143,7 +143,7 @@ func Stringify[T comparable](node Node[T], options *Options) string {
 
 // recursivelyPrintNode prints a node and its children recursively.
 func recursivelyPrintNode[T comparable](
-	x interface{},
+	x any,
 	w io.Writer,
 	stack *bytes.Buffer,
 	prefix string,

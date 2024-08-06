@@ -157,7 +157,7 @@ func TestBool(t *testing.T) {
 func TestEqual(t *testing.T) {
 	tests := []struct {
 		name string
-		x, y interface{}
+		x, y any
 		want bool
 	}{
 		{"equal ints", 1, 1, true},

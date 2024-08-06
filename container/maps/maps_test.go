@@ -662,7 +662,7 @@ func TestEdgeCases(t *testing.T) {
 	})
 
 	t.Run("Clone with nested maps", func(t *testing.T) {
-		m := map[string]interface{}{
+		m := map[string]any{
 			"a": 1,
 			"b": map[string]int{"x": 10, "y": 20},
 		}

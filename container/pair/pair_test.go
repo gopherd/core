@@ -12,33 +12,33 @@ func TestPair(t *testing.T) {
 	t.Run("New", func(t *testing.T) {
 		tests := []struct {
 			name     string
-			first    interface{}
-			second   interface{}
-			expected pair.Pair[interface{}, interface{}]
+			first    any
+			second   any
+			expected pair.Pair[any, any]
 		}{
 			{
 				name:     "int and string",
 				first:    42,
 				second:   "hello",
-				expected: pair.Pair[interface{}, interface{}]{First: 42, Second: "hello"},
+				expected: pair.Pair[any, any]{First: 42, Second: "hello"},
 			},
 			{
 				name:     "float and bool",
 				first:    3.14,
 				second:   true,
-				expected: pair.Pair[interface{}, interface{}]{First: 3.14, Second: true},
+				expected: pair.Pair[any, any]{First: 3.14, Second: true},
 			},
 			{
 				name:     "string and nil",
 				first:    "test",
 				second:   nil,
-				expected: pair.Pair[interface{}, interface{}]{First: "test", Second: nil},
+				expected: pair.Pair[any, any]{First: "test", Second: nil},
 			},
 			{
 				name:     "nil and nil",
 				first:    nil,
 				second:   nil,
-				expected: pair.Pair[interface{}, interface{}]{First: nil, Second: nil},
+				expected: pair.Pair[any, any]{First: nil, Second: nil},
 			},
 		}
 
