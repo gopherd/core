@@ -68,7 +68,7 @@ func (s *BaseService[Config]) Config() Config {
 // SetupFlags implements the Service SetupFlags method.
 func (s *BaseService[Config]) SetupFlags(flagSet *flag.FlagSet) {
 	s.Config().SetupFlags(flagSet)
-	flagSet.BoolVar(&s.flags.version, "v", false, "Print version information")
+	flagSet.BoolVar(&s.flags.version, "v", false, "Print version information including build details")
 }
 
 // Init implements the Service Init method.
