@@ -68,11 +68,11 @@ func (c *BaseConfig[Context]) GetComponents() []component.Config {
 
 // SetupFlags sets command-line arguments for the BaseConfig.
 func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
-	flagSet.StringVar(&c.flags.source, "c", "", "Specify the config source, which can be a file path, an HTTP URL, or '-' to read from standard input.")
-	flagSet.StringVar(&c.flags.output, "o", "", "Specify the output path for the config, used to save the read or default config to a file (the program will exit immediately after outputting the config).")
-	flagSet.BoolVar(&c.flags.test, "t", false, "Test if the config can be correctly parsed (will also test the program's default config if no config is read; the program will exit after testing).")
-	flagSet.BoolVar(&c.flags.print, "p", false, "Output the program's config to standard output.")
-	flagSet.BoolVar(&c.flags.disableTemplate, "T", false, "Disable template parsing, meaning the component config will not be treated as a template.")
+	flagSet.StringVar(&c.flags.source, "c", "", "Specify the config source (file path, HTTP URL, or '-' for stdin)")
+	flagSet.StringVar(&c.flags.output, "o", "", "Specify the output path for the config (exits after output)")
+	flagSet.BoolVar(&c.flags.test, "t", false, "Test the config for validity and exit")
+	flagSet.BoolVar(&c.flags.disableTemplate, "T", false, "Disable template parsing for components config")
+	flagSet.BoolVar(&c.flags.print, "p", false, "Print the config and exit")
 }
 
 // Load processes the configuration based on command-line flags.
