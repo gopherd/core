@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/gopherd/core/discovery"
+	"github.com/gopherd/core/api/discovery"
 )
 
 // Consumer used to consume received messages from mq.
