@@ -15,7 +15,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gopherd/core/buildinfo"
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/raw"
 	"github.com/gopherd/core/text/templateutil"
@@ -112,15 +111,12 @@ func (c *BaseConfig[Context]) load() (bool, error) {
 		if err := c.decode(os.Stdin); err != nil {
 			return false, fmt.Errorf("failed to read config from stdin: %w", err)
 		}
-	} else {
-		optional := c.flags.source == ""
-		source := c.flags.source
-		if source == "" {
-			source = buildinfo.AppName() + ".json"
-		}
-		if err := c.loadFromSource(source, optional); err != nil {
+	} else if c.flags.source != "" {
+		if err := c.loadFromSource(c.flags.source); err != nil {
 			return false, err
 		}
+	} else {
+		return false, nil
 	}
 
 	if c.flags.output != "" {
@@ -134,7 +130,7 @@ func (c *BaseConfig[Context]) load() (bool, error) {
 }
 
 // loadFromSource loads the configuration from a file or HTTP service.
-func (c *BaseConfig[Context]) loadFromSource(source string, optional bool) error {
+func (c *BaseConfig[Context]) loadFromSource(source string) error {
 	var r io.ReadCloser
 	var err error
 
@@ -145,9 +141,6 @@ func (c *BaseConfig[Context]) loadFromSource(source string, optional bool) error
 	}
 
 	if err != nil {
-		if optional && os.IsNotExist(err) {
-			return nil
-		}
 		return err
 	}
 	defer r.Close()
