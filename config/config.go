@@ -10,7 +10,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"os"
@@ -19,6 +18,7 @@ import (
 	"github.com/gopherd/core/buildinfo"
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/raw"
+	"github.com/gopherd/core/text/templateutil"
 )
 
 // Config represents the configuration interface for an application.
@@ -221,7 +221,7 @@ func (c *BaseConfig[Context]) parseComponentTemplates() error {
 func (c *BaseConfig[Context]) parseTemplateField(field *raw.Object) error {
 	data := field.Bytes()
 
-	tmpl, err := template.New("field").Parse(string(data))
+	tmpl, err := templateutil.DefaultTemplate("field").Parse(string(data))
 	if err != nil {
 		return fmt.Errorf("parse template: %w", err)
 	}
