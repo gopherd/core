@@ -72,7 +72,6 @@ func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
 	flagSet.StringVar(&c.flags.export, "e", "", "Path to export the config")
 	flagSet.BoolVar(&c.flags.stdin, "i", false, "Read config from stdin")
 	flagSet.BoolVar(&c.flags.disableTemplate, "disable-template", false, "Disable template parsing for components")
-
 }
 
 // Load processes the configuration based on command-line flags.
@@ -80,6 +79,8 @@ func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
 func (c *BaseConfig[Context]) Load() (bool, error) {
 	if exit, err := c.load(); err != nil {
 		return exit, err
+	} else if exit {
+		return true, nil
 	}
 	if !c.flags.disableTemplate {
 		if err := c.parseComponentTemplates(); err != nil {
@@ -94,17 +95,15 @@ func (c *BaseConfig[Context]) load() (bool, error) {
 		if err := c.decode(os.Stdin); err != nil {
 			return false, fmt.Errorf("failed to read config from stdin: %w", err)
 		}
-		return false, nil
-	}
-
-	optional := c.flags.source == ""
-	source := c.flags.source
-	if source == "" {
-		source = buildinfo.AppName() + ".json"
-	}
-
-	if err := c.loadFromSource(source, optional); err != nil {
-		return false, err
+	} else {
+		optional := c.flags.source == ""
+		source := c.flags.source
+		if source == "" {
+			source = buildinfo.AppName() + ".json"
+		}
+		if err := c.loadFromSource(source, optional); err != nil {
+			return false, err
+		}
 	}
 
 	if c.flags.export != "" {
