@@ -1,6 +1,6 @@
 // Package config provides functionality for managing application configuration.
 // It includes interfaces and implementations for parsing command-line arguments,
-// loading configuration from various sources (local files or HTTP), and exporting
+// loading configuration from various sources (local files or HTTP), and outputting
 // configuration data to JSON format.
 package config
 
@@ -38,7 +38,7 @@ type Config interface {
 type BaseConfig[Context any] struct {
 	flags struct {
 		source          string
-		export          string
+		output          string
 		stdin           bool
 		test            bool
 		print           bool
@@ -71,7 +71,7 @@ func (c *BaseConfig[Context]) GetComponents() []component.Config {
 // SetupFlags sets command-line arguments for the BaseConfig.
 func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
 	flagSet.StringVar(&c.flags.source, "c", "", "Config source (file path or URL)")
-	flagSet.StringVar(&c.flags.export, "e", "", "Path to export the config")
+	flagSet.StringVar(&c.flags.output, "o", "", "Path to output the config")
 	flagSet.BoolVar(&c.flags.stdin, "i", false, "Read config from stdin")
 	flagSet.BoolVar(&c.flags.test, "t", false, "Test config only")
 	flagSet.BoolVar(&c.flags.disableTemplate, "disable-template", false, "Disable template parsing for components")
@@ -123,9 +123,9 @@ func (c *BaseConfig[Context]) load() (bool, error) {
 		}
 	}
 
-	if c.flags.export != "" {
-		if err := c.exportConfig(c.flags.export); err != nil {
-			return false, fmt.Errorf("failed to export config: %w", err)
+	if c.flags.output != "" {
+		if err := c.outputConfig(c.flags.output); err != nil {
+			return false, fmt.Errorf("failed to output config: %w", err)
 		}
 		return true, nil
 	}
@@ -192,8 +192,8 @@ func (c *BaseConfig[Context]) loadFromHTTP(source string) (io.ReadCloser, error)
 	return nil, errors.New("too many redirects")
 }
 
-// exportConfig exports the current configuration to a JSON file.
-func (c *BaseConfig[Context]) exportConfig(path string) error {
+// outputConfig outputs the current configuration to a JSON file.
+func (c *BaseConfig[Context]) outputConfig(path string) error {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
