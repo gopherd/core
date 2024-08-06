@@ -151,18 +151,18 @@ func (c *BaseComponent[T]) OnMounted(entity Entity) error {
 }
 
 // BaseComponentWithRefs provides a basic implementation of the Component interface with references.
-type BaseComponentWithRefs[T any, R any] struct {
+type BaseComponentWithRefs[R, T any] struct {
 	BaseComponent[T]
 	refs R
 }
 
 // Refs returns a pointer to the component's references.
-func (c *BaseComponentWithRefs[T, R]) Refs() *R {
+func (c *BaseComponentWithRefs[R, T]) Refs() *R {
 	return &c.refs
 }
 
 // Ctor implements the Component Ctor method.
-func (c *BaseComponentWithRefs[T, R]) Ctor(config Config) error {
+func (c *BaseComponentWithRefs[R, T]) Ctor(config Config) error {
 	if err := c.BaseComponent.Ctor(config); err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func (c *BaseComponentWithRefs[T, R]) Ctor(config Config) error {
 }
 
 // OnMounted implements the Component OnMounted method.
-func (c *BaseComponentWithRefs[T, R]) OnMounted(entity Entity) error {
+func (c *BaseComponentWithRefs[R, T]) OnMounted(entity Entity) error {
 	if err := c.BaseComponent.OnMounted(entity); err != nil {
 		return err
 	}
@@ -181,7 +181,7 @@ func (c *BaseComponentWithRefs[T, R]) OnMounted(entity Entity) error {
 }
 
 // resolveReferences iterates over the refs field and calls the Resolve method on fields that implement ReferenceResolver
-func (c *BaseComponentWithRefs[T, R]) resolveReferences() error {
+func (c *BaseComponentWithRefs[R, T]) resolveReferences() error {
 	t := reflect.TypeOf(&c.refs).Elem()
 	v := reflect.ValueOf(&c.refs).Elem()
 	if v.Kind() != reflect.Struct {
@@ -191,7 +191,7 @@ func (c *BaseComponentWithRefs[T, R]) resolveReferences() error {
 }
 
 // recursiveResolveReferences recursively resolves references in nested structs
-func (c *BaseComponentWithRefs[T, R]) recursiveResolveReferences(t reflect.Type, v reflect.Value) error {
+func (c *BaseComponentWithRefs[R, T]) recursiveResolveReferences(t reflect.Type, v reflect.Value) error {
 	for i := 0; i < v.NumField(); i++ {
 		ft := t.Field(i)
 		fv := v.Field(i)

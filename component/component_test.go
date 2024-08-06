@@ -525,15 +525,18 @@ func TestOptionsRefs(t *testing.T) {
 
 	t.Run("ValidOptions", func(t *testing.T) {
 		type usersComponent struct {
-			component.BaseComponentWithRefs[struct {
-				Hello string
-				Oops  int
-			}, struct {
-				DB     component.Reference[DBComponent]
-				Nested struct {
-					Redis component.Reference[RedisComponent]
-				}
-			}]
+			component.BaseComponentWithRefs[
+				struct {
+					DB     component.Reference[DBComponent]
+					Nested struct {
+						Redis component.Reference[RedisComponent]
+					}
+				},
+				struct {
+					Hello string
+					Oops  int
+				},
+			]
 		}
 
 		// create users component
@@ -561,9 +564,12 @@ func TestOptionsRefs(t *testing.T) {
 
 	t.Run("InvalidRedis", func(t *testing.T) {
 		type usersComponent struct {
-			component.BaseComponentWithRefs[struct{}, struct {
-				InvalidRedis component.Reference[DBComponent]
-			}]
+			component.BaseComponentWithRefs[
+				struct {
+					InvalidRedis component.Reference[DBComponent]
+				},
+				struct{},
+			]
 		}
 
 		// create users component
@@ -581,9 +587,12 @@ func TestOptionsRefs(t *testing.T) {
 
 	t.Run("UUIDNotFound", func(t *testing.T) {
 		type usersComponent struct {
-			component.BaseComponentWithRefs[struct{}, struct {
-				UUIDNotFound component.Reference[DBComponent]
-			}]
+			component.BaseComponentWithRefs[
+				struct {
+					UUIDNotFound component.Reference[DBComponent]
+				},
+				struct{},
+			]
 		}
 
 		// create users component
@@ -601,9 +610,12 @@ func TestOptionsRefs(t *testing.T) {
 
 	t.Run("TypeNotFound", func(t *testing.T) {
 		type usersComponent struct {
-			component.BaseComponentWithRefs[struct{}, struct {
-				TypeNotFound component.Reference[component.BaseComponent[struct{}]]
-			}]
+			component.BaseComponentWithRefs[
+				struct {
+					TypeNotFound component.Reference[component.BaseComponent[struct{}]]
+				},
+				struct{},
+			]
 		}
 
 		// create users component
