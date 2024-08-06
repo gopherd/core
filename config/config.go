@@ -5,10 +5,12 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"os"
@@ -16,6 +18,7 @@ import (
 
 	"github.com/gopherd/core/buildinfo"
 	"github.com/gopherd/core/component"
+	"github.com/gopherd/core/raw"
 )
 
 // Config represents the configuration interface for an application.
@@ -38,7 +41,7 @@ type BaseConfig[Context any] struct {
 		export string
 		stdin  bool
 	}
-	core struct {
+	data struct {
 		Context    Context            `json:",omitempty"`
 		Components []component.Config `json:",omitempty"`
 	}
@@ -47,19 +50,19 @@ type BaseConfig[Context any] struct {
 // NewBaseConfig creates a new BaseConfig with the given context and components.
 func NewBaseConfig[Context any](context Context, components ...component.Config) *BaseConfig[Context] {
 	c := &BaseConfig[Context]{}
-	c.core.Context = context
-	c.core.Components = components
+	c.data.Context = context
+	c.data.Components = components
 	return c
 }
 
 // GetContext returns the context of the BaseConfig.
 func (c *BaseConfig[Context]) GetContext() Context {
-	return c.core.Context
+	return c.data.Context
 }
 
 // GetComponents returns the components of the BaseConfig.
 func (c *BaseConfig[Context]) GetComponents() []component.Config {
-	return c.core.Components
+	return c.data.Components
 }
 
 // SetupFlags sets command-line arguments for the BaseConfig.
@@ -72,6 +75,16 @@ func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
 // Load processes the configuration based on command-line flags.
 // It returns true if the program should exit after this call, along with any error encountered.
 func (c *BaseConfig[Context]) Load() (bool, error) {
+	if exit, err := c.load(); err != nil {
+		return exit, err
+	}
+	if err := c.parseComponents(); err != nil {
+		return false, fmt.Errorf("failed to parse components: %w", err)
+	}
+	return false, nil
+}
+
+func (c *BaseConfig[Context]) load() (bool, error) {
 	if c.flags.stdin {
 		if err := c.decode(os.Stdin); err != nil {
 			return false, fmt.Errorf("failed to read config from stdin: %w", err)
@@ -85,7 +98,7 @@ func (c *BaseConfig[Context]) Load() (bool, error) {
 		source = buildinfo.AppName() + ".json"
 	}
 
-	if err := c.load(source, optional); err != nil {
+	if err := c.loadFromSource(source, optional); err != nil {
 		return false, err
 	}
 
@@ -99,8 +112,8 @@ func (c *BaseConfig[Context]) Load() (bool, error) {
 	return false, nil
 }
 
-// load loads the configuration from a file or HTTP service.
-func (c *BaseConfig[Context]) load(source string, optional bool) error {
+// loadFromSource loads the configuration from a file or HTTP service.
+func (c *BaseConfig[Context]) loadFromSource(source string, optional bool) error {
 	var r io.ReadCloser
 	var err error
 
@@ -174,7 +187,7 @@ func (c *BaseConfig[Context]) encode(w io.Writer) error {
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "    ")
 
-	if err := encoder.Encode(c.core); err != nil {
+	if err := encoder.Encode(c.data); err != nil {
 		return fmt.Errorf("failed to encode config: %w", err)
 	}
 	return nil
@@ -182,5 +195,38 @@ func (c *BaseConfig[Context]) encode(w io.Writer) error {
 
 // decode reads the configuration from JSON using the given reader.
 func (c *BaseConfig[Context]) decode(r io.Reader) error {
-	return json.NewDecoder(r).Decode(&c.core)
+	return json.NewDecoder(r).Decode(&c.data)
+}
+
+// parseComponents processes the Refs and Options fields of each component.Config
+// as text/template templates, using c.data.Context as the template context.
+func (c *BaseConfig[Context]) parseComponents() error {
+	for _, com := range c.data.Components {
+		if err := c.parseTemplateField(&com.Refs); err != nil {
+			return fmt.Errorf("parse Refs for component %s: %w", com.UUID, err)
+		}
+
+		if err := c.parseTemplateField(&com.Options); err != nil {
+			return fmt.Errorf("parse Options for component %s: %w", com.UUID, err)
+		}
+	}
+	return nil
+}
+
+// parseTemplateField parses the raw.Object field as a template.
+func (c *BaseConfig[Context]) parseTemplateField(field *raw.Object) error {
+	data := field.Bytes()
+
+	tmpl, err := template.New("field").Parse(string(data))
+	if err != nil {
+		return fmt.Errorf("parse template: %w", err)
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, c.data.Context); err != nil {
+		return fmt.Errorf("execute template: %w", err)
+	}
+
+	field.SetBytes(buf.Bytes())
+	return nil
 }

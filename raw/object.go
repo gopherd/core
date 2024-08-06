@@ -37,6 +37,11 @@ func (o Object) Bytes() []byte {
 	return o.data
 }
 
+// SetBytes sets the raw byte slice of the Object.
+func (o *Object) SetBytes(b []byte) {
+	o.data = b
+}
+
 // MarshalJSON implements the json.Marshaler interface.
 // It returns the raw JSON encoding of the Object.
 func (o Object) MarshalJSON() ([]byte, error) {
