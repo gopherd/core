@@ -82,16 +82,16 @@ func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
 // It returns true if the program should exit after this call, along with any error encountered.
 func (c *BaseConfig[Context]) Load() (exit bool, err error) {
 	defer func() {
-		if c.flags.test || c.flags.print {
+		if c.flags.test {
 			if err != nil {
 				fmt.Println("Config test failed: ", err)
 			} else {
 				fmt.Println("Config test successful")
 			}
-			if c.flags.print {
-				c.encode(os.Stdout)
-			}
 			exit = true
+		}
+		if c.flags.print && err == nil {
+			c.encode(os.Stdout)
 		}
 	}()
 	if exit, err := c.load(); err != nil {
