@@ -73,7 +73,7 @@ func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
 	flagSet.StringVar(&c.flags.output, "o", "", "Path to output the config")
 	flagSet.BoolVar(&c.flags.stdin, "i", false, "Read config from stdin")
 	flagSet.BoolVar(&c.flags.test, "t", false, "Test config only")
-	flagSet.BoolVar(&c.flags.disableTemplate, "disable-template", false, "Disable template parsing for components")
+	flagSet.BoolVar(&c.flags.disableTemplate, "T", false, "Disable template parsing")
 	flagSet.BoolVar(&c.flags.print, "p", false, "Print config and exit")
 }
 
