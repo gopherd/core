@@ -12,8 +12,8 @@ import (
 // ErrUnexpectedEventType is the error returned when an unexpected event type is received.
 var ErrUnexpectedEventType = errors.New("unexpected event type")
 
-// ID represents a unique identifier for listeners.
-type ID int
+// ListenerID represents a unique identifier for listeners.
+type ListenerID int
 
 // Event is the interface that wraps the basic Typeof method.
 type Event[T comparable] interface {
@@ -55,27 +55,27 @@ func (h listenerFunc[T, E, H]) HandleEvent(ctx context.Context, event Event[T]) 
 // Dispatcher manages event listeners and dispatches events.
 type Dispatcher[T comparable] interface {
 	// AddListener registers a new listener and returns its ID.
-	AddListener(Listener[T]) ID
+	AddListener(Listener[T]) ListenerID
 	// RemoveListener removes the listener with the given ID.
-	RemoveListener(ID) bool
+	RemoveListener(ListenerID) bool
 	// HasListener checks if a listener with the given ID exists.
-	HasListener(ID) bool
+	HasListener(ListenerID) bool
 	// DispatchEvent sends an event to all registered listeners of its type.
 	DispatchEvent(context.Context, Event[T]) error
 }
 
 type dispatcher[T comparable] struct {
-	nextID    ID
+	nextID    ListenerID
 	ordered   bool
-	listeners map[T][]pair.Pair[ID, Listener[T]]
-	mapping   map[ID]pair.Pair[T, int]
+	listeners map[T][]pair.Pair[ListenerID, Listener[T]]
+	mapping   map[ListenerID]pair.Pair[T, int]
 }
 
 func newDispatcher[T comparable](ordered bool) *dispatcher[T] {
 	return &dispatcher[T]{
 		ordered:   ordered,
-		listeners: make(map[T][]pair.Pair[ID, Listener[T]]),
-		mapping:   make(map[ID]pair.Pair[T, int]),
+		listeners: make(map[T][]pair.Pair[ListenerID, Listener[T]]),
+		mapping:   make(map[ListenerID]pair.Pair[T, int]),
 	}
 }
 
@@ -85,7 +85,7 @@ func NewDispatcher[T comparable](ordered bool) Dispatcher[T] {
 }
 
 // AddListener implements the Dispatcher interface.
-func (d *dispatcher[T]) AddListener(listener Listener[T]) ID {
+func (d *dispatcher[T]) AddListener(listener Listener[T]) ListenerID {
 	d.nextID++
 	id := d.nextID
 	eventType := listener.EventType()
@@ -97,7 +97,7 @@ func (d *dispatcher[T]) AddListener(listener Listener[T]) ID {
 }
 
 // RemoveListener implements the Dispatcher interface.
-func (d *dispatcher[T]) RemoveListener(id ID) bool {
+func (d *dispatcher[T]) RemoveListener(id ListenerID) bool {
 	index, ok := d.mapping[id]
 	if !ok {
 		return false
@@ -123,7 +123,7 @@ func (d *dispatcher[T]) RemoveListener(id ID) bool {
 }
 
 // HasListener implements the Dispatcher interface.
-func (d *dispatcher[T]) HasListener(id ID) bool {
+func (d *dispatcher[T]) HasListener(id ListenerID) bool {
 	_, ok := d.mapping[id]
 	return ok
 }
