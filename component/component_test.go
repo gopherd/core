@@ -7,11 +7,9 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/gopherd/core/component"
-	"github.com/gopherd/core/event"
 	"github.com/gopherd/core/raw"
 )
 
@@ -25,13 +23,11 @@ func TestMain(m *testing.M) {
 
 type mockEntity struct {
 	*component.Manager
-	event.Dispatcher[reflect.Type]
 }
 
 func newMockEntity() *mockEntity {
 	return &mockEntity{
-		Manager:    component.NewManager(),
-		Dispatcher: event.NewDispatcher[reflect.Type](true),
+		Manager: component.NewManager(),
 	}
 }
 

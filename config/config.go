@@ -37,9 +37,10 @@ type Config interface {
 // configuration structure for most applications.
 type BaseConfig[Context any] struct {
 	flags struct {
-		source string
-		export string
-		stdin  bool
+		source          string
+		export          string
+		stdin           bool
+		disableTemplate bool
 	}
 	data struct {
 		Context    Context            `json:",omitempty"`
@@ -70,6 +71,8 @@ func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
 	flagSet.StringVar(&c.flags.source, "c", "", "Config source (file path or URL)")
 	flagSet.StringVar(&c.flags.export, "e", "", "Path to export the config")
 	flagSet.BoolVar(&c.flags.stdin, "i", false, "Read config from stdin")
+	flagSet.BoolVar(&c.flags.disableTemplate, "disable-template", false, "Disable template parsing for components")
+
 }
 
 // Load processes the configuration based on command-line flags.
@@ -78,8 +81,10 @@ func (c *BaseConfig[Context]) Load() (bool, error) {
 	if exit, err := c.load(); err != nil {
 		return exit, err
 	}
-	if err := c.parseComponents(); err != nil {
-		return false, fmt.Errorf("failed to parse components: %w", err)
+	if !c.flags.disableTemplate {
+		if err := c.parseComponentTemplates(); err != nil {
+			return false, fmt.Errorf("failed to parse components: %w", err)
+		}
 	}
 	return false, nil
 }
@@ -198,9 +203,9 @@ func (c *BaseConfig[Context]) decode(r io.Reader) error {
 	return json.NewDecoder(r).Decode(&c.data)
 }
 
-// parseComponents processes the Refs and Options fields of each component.Config
+// parseComponentTemplates processes the Refs and Options fields of each component.Config
 // as text/template templates, using c.data.Context as the template context.
-func (c *BaseConfig[Context]) parseComponents() error {
+func (c *BaseConfig[Context]) parseComponentTemplates() error {
 	for _, com := range c.data.Components {
 		if err := c.parseTemplateField(&com.Refs); err != nil {
 			return fmt.Errorf("parse Refs for component %s: %w", com.UUID, err)

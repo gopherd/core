@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/gopherd/core/event"
 	"github.com/gopherd/core/lifecycle"
 	"github.com/gopherd/core/raw"
 )
@@ -45,15 +44,9 @@ type Component interface {
 	OnMounted(Entity) error
 }
 
-// ComponentGetter is an interface for getting a component by UUID.
-type ComponentGetter interface {
-	GetComponent(uuid string) Component
-}
-
 // Entity represents a generic entity that can hold components.
 type Entity interface {
-	event.Dispatcher[reflect.Type]
-	ComponentGetter
+	GetComponent(uuid string) Component
 }
 
 // ComponentCreator is a function type that creates a new Component instance.
@@ -61,7 +54,7 @@ type ComponentCreator func() Component
 
 // ReferenceResolver resolves a reference for a component.
 type ReferenceResolver interface {
-	ResolveReference(ComponentGetter) error
+	ResolveReference(Entity) error
 }
 
 // Reference represents a reference on another component.
@@ -96,13 +89,13 @@ func Ref[T any](uuid string) Reference[T] {
 }
 
 // ResolveReference resolves the target component.
-func (r *Reference[T]) ResolveReference(getter ComponentGetter) error {
-	return Resolve(&r.component, getter, r.uuid)
+func (r *Reference[T]) ResolveReference(entity Entity) error {
+	return Resolve(&r.component, entity, r.uuid)
 }
 
 // Resolve resolves the target component for the given entity and UUID.
-func Resolve[T any](target *T, getter ComponentGetter, uuid string) error {
-	com := getter.GetComponent(uuid)
+func Resolve[T any](target *T, entity Entity, uuid string) error {
+	com := entity.GetComponent(uuid)
 	if com == nil {
 		return fmt.Errorf("component %q not found", uuid)
 	}

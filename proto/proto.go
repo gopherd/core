@@ -473,7 +473,7 @@ type Listener = event.Listener[Type]
 type Dispatcher = event.Dispatcher[Type]
 
 // Listen listens message handler
-func Listen[H ~func(context.Context, M), M Message](h H) Listener {
+func Listen[H ~func(context.Context, M) error, M Message](h H) Listener {
 	var m M
 	return event.Listen[Type, M](m.Typeof(), h)
 }

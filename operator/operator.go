@@ -1,8 +1,12 @@
+// Package operator provides a set of generic functions that extend
+// and complement Go's built-in operators and basic operations.
+// It includes utilities for conditional logic, comparisons, and type manipulations.
 package operator
 
 import "github.com/gopherd/core/constraints"
 
-// Or returns a || b
+// Or returns b if a is the zero value for T, otherwise returns a.
+// It provides a generic "or" operation for any comparable type.
 func Or[T comparable](a, b T) T {
 	var zero T
 	if a == zero {
@@ -11,7 +15,8 @@ func Or[T comparable](a, b T) T {
 	return a
 }
 
-// OrFunc returns a || new()
+// OrFunc returns the result of calling new() if a is the zero value for T,
+// otherwise returns a. It allows for lazy evaluation of the alternative value.
 func OrFunc[T comparable](a T, new func() T) T {
 	var zero T
 	if a == zero {
@@ -20,28 +25,33 @@ func OrFunc[T comparable](a T, new func() T) T {
 	return a
 }
 
-// Ternary returns yes ? a : b
-func Ternary[T any](yes bool, a, b T) T {
-	if yes {
+// Ternary returns a if condition is true, otherwise returns b.
+// It provides a generic ternary operation for any type.
+func Ternary[T any](condition bool, a, b T) T {
+	if condition {
 		return a
 	}
 	return b
 }
 
-// TernaryFunc returns yes ? a() : b()
-func TernaryFunc[T any](yes bool, a, b func() T) T {
-	if yes {
+// TernaryFunc returns the result of calling a() if condition is true,
+// otherwise returns the result of calling b().
+// It allows for lazy evaluation of both alternatives.
+func TernaryFunc[T any](condition bool, a, b func() T) T {
+	if condition {
 		return a()
 	}
 	return b()
 }
 
-// Bool converts bool to number
+// Bool converts a boolean to a number (1 for true, 0 for false).
+// It provides a generic way to convert boolean values to numeric types.
 func Bool[T constraints.Number](ok bool) T {
 	return Ternary[T](ok, 1, 0)
 }
 
 // Equal reports whether x and y are equal.
+// It provides a generic equality check for any comparable type.
 func Equal[T comparable](x, y T) bool {
 	return x == y
 }
@@ -55,19 +65,20 @@ func Less[T constraints.Ordered](x, y T) bool {
 
 // Greater reports whether x is greater than y.
 // For floating-point types, a NaN is considered less than any non-NaN,
-// and -0.0 is not less than (is equal to) 0.0.
+// and -0.0 is not greater than (is equal to) 0.0.
 func Greater[T constraints.Ordered](x, y T) bool {
-	return (isNaN(x) && !isNaN(y)) || x > y
+	return (!isNaN(x) && isNaN(y)) || x > y
 }
 
-// Asc returns
+// Asc compares x and y, returning:
 //
-//	-1 if x is less than y,
-//	 0 if x equals y,
-//	+1 if x is greater than y.
+//	-1 if x < y
+//	 0 if x == y
+//	+1 if x > y
 //
-// For floating-point types, a NaN is considered less than any non-NaN,
-// a NaN is considered equal to a NaN, and -0.0 is equal to 0.0.
+// For floating-point types, NaN values are handled specially:
+// a NaN is considered less than any non-NaN, equal to another NaN,
+// and -0.0 is considered equal to 0.0.
 func Asc[T constraints.Ordered](x, y T) int {
 	xNaN := isNaN(x)
 	yNaN := isNaN(y)
@@ -83,57 +94,40 @@ func Asc[T constraints.Ordered](x, y T) int {
 	return 0
 }
 
-// Dec returns
+// Dec compares x and y in descending order, returning:
 //
-//	-1 if x is greater than y,
-//	 0 if x equals y,
-//	+1 if x is less than y.
+//	-1 if x > y
+//	 0 if x == y
+//	+1 if x < y
 //
-// For floating-point types, a NaN is considered less than any non-NaN,
-// a NaN is considered equal to a NaN, and -0.0 is equal to 0.0.
+// For floating-point types, NaN values are handled specially:
+// a NaN is considered less than any non-NaN, equal to another NaN,
+// and -0.0 is considered equal to 0.0.
 func Dec[T constraints.Ordered](x, y T) int {
 	return Asc(y, x)
 }
 
-// isNaN reports whether x is a NaN without requiring the math package.
-// This will always return false if T is not floating-point.
+// isNaN reports whether x is a NaN value.
+// This function works for any ordered type, but will always return false
+// for non-floating-point types.
 func isNaN[T constraints.Ordered](x T) bool {
 	return x != x
 }
 
-// First returns the first argument
-func First[T1 any](x1 T1, others ...any) T1 {
+// First returns the first argument.
+// It's useful in contexts where you need to extract the first value from a set.
+func First[T1 any](x1 T1, _ ...any) T1 {
 	return x1
 }
 
-// Second returns the second argument
-func Second[T1, T2 any](_ T1, x2 T2, others ...any) T2 {
+// Second returns the second argument.
+// It's useful in contexts where you need to extract the second value from a set.
+func Second[T1, T2 any](_ T1, x2 T2, _ ...any) T2 {
 	return x2
 }
 
-// Third returns the third argument
-func Third[T1, T2, T3 any](_ T1, _ T2, x3 T3, others ...any) T3 {
+// Third returns the third argument.
+// It's useful in contexts where you need to extract the third value from a set.
+func Third[T1, T2, T3 any](_ T1, _ T2, x3 T3, _ ...any) T3 {
 	return x3
-}
-
-// TryDeref a pointer value, if the pointer is nil, return the zero value of the type.
-func TryDeref[T any](v *T) T {
-	var zero T
-	if v == nil {
-		return zero
-	}
-	return *v
-}
-
-// Deref a pointer value, if the pointer is nil, return the zero value of the type and false.
-func Deref[T any](v *T, defaultValue T) T {
-	if v == nil {
-		return defaultValue
-	}
-	return *v
-}
-
-// AddressOf returns a pointer to the value.
-func Of[T any](v T) *T {
-	return &v
 }

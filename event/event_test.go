@@ -2,79 +2,224 @@ package event_test
 
 import (
 	"context"
-	"reflect"
+	"errors"
+	"sync/atomic"
 	"testing"
 
 	"github.com/gopherd/core/event"
 )
 
-type testStringEvent struct {
+type testEvent struct {
+	eventType int
 }
 
-func (e testStringEvent) Typeof() string {
-	return "test"
+func (e testEvent) Typeof() int {
+	return e.eventType
 }
 
-func TestDispatchEvent(t *testing.T) {
-	var fired bool
-	var dispatcher = event.NewDispatcher[string](true)
-	dispatcher.AddListener(event.Listen("test", func(_ context.Context, e testStringEvent) {
-		fired = true
-	}))
-	dispatcher.DispatchEvent(context.Background(), testStringEvent{})
-	if !fired {
-		t.Fatal("event not fired")
-	}
+type anotherTestEvent struct {
+	eventType int
 }
 
-func TestDispatchEventPointer(t *testing.T) {
-	var fired bool
-	var dispatcher = event.NewDispatcher[string](true)
-	dispatcher.AddListener(event.Listen("test", func(_ context.Context, e *testStringEvent) {
-		fired = true
-	}))
-	dispatcher.DispatchEvent(context.Background(), &testStringEvent{})
-	if !fired {
-		t.Fatal("event not fired")
-	}
+func (e anotherTestEvent) Typeof() int {
+	return e.eventType
 }
 
-type testIntEvent struct {
-}
+func TestDispatcher(t *testing.T) {
+	t.Run("AddListener", func(t *testing.T) {
+		d := event.NewDispatcher[int](false)
+		id := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+			return nil
+		}))
+		if !d.HasListener(id) {
+			t.Errorf("Expected listener to be added")
+		}
+	})
 
-func (e testIntEvent) Typeof() int {
-	return 1
-}
+	t.Run("RemoveListener", func(t *testing.T) {
+		d := event.NewDispatcher[int](false)
+		id := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+			return nil
+		}))
+		if !d.RemoveListener(id) {
+			t.Errorf("Expected listener to be removed")
+		}
+		if d.HasListener(id) {
+			t.Errorf("Expected listener to not exist after removal")
+		}
+	})
 
-func TestDispatchIntEvent(t *testing.T) {
-	var fired bool
-	var dispatcher = event.NewDispatcher[int](true)
-	dispatcher.AddListener(event.Listen(1, func(_ context.Context, e testIntEvent) {
-		fired = true
-	}))
-	dispatcher.DispatchEvent(context.Background(), testIntEvent{})
-	if !fired {
-		t.Fatal("event not fired")
-	}
-}
+	t.Run("DispatchEvent", func(t *testing.T) {
+		d := event.NewDispatcher[int](false)
+		called := false
+		d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+			called = true
+			return nil
+		}))
+		err := d.DispatchEvent(context.Background(), testEvent{eventType: 1})
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		if !called {
+			t.Errorf("Expected listener to be called")
+		}
+	})
 
-type testTypeEvent struct {
-}
+	t.Run("DispatchEventError", func(t *testing.T) {
+		d := event.NewDispatcher[int](false)
+		expectedErr := errors.New("test error")
+		d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+			return expectedErr
+		}))
+		err := d.DispatchEvent(context.Background(), testEvent{eventType: 1})
+		if err == nil {
+			t.Errorf("Expected error, got nil")
+		}
+		if !errors.Is(err, expectedErr) {
+			t.Errorf("Expected error %v, got %v", expectedErr, err)
+		}
+	})
 
-var eventType = reflect.TypeOf((*testTypeEvent)(nil))
+	t.Run("TypeMismatch", func(t *testing.T) {
+		d := event.NewDispatcher[int](false)
+		d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+			return nil
+		}))
+		err := d.DispatchEvent(context.Background(), anotherTestEvent{eventType: 1})
+		if err == nil {
+			t.Errorf("Expected an error, got nil")
+		}
+		if !errors.Is(err, event.ErrUnexpectedEventType) {
+			t.Errorf("Expected ErrUnexpectedEventType, got %v", err)
+		}
+	})
 
-func (e *testTypeEvent) Typeof() reflect.Type {
-	return eventType
-}
+	t.Run("DispatchNonExistentEventType", func(t *testing.T) {
+		d := event.NewDispatcher[int](false)
+		err := d.DispatchEvent(context.Background(), testEvent{eventType: 999})
+		if err != nil {
+			t.Errorf("Expected no error for non-existent event type, got %v", err)
+		}
+	})
 
-func TestDispatchTypeEvent(t *testing.T) {
-	var fired bool
-	var dispatcher = event.NewDispatcher[reflect.Type](true)
-	dispatcher.AddListener(event.Listen(eventType, func(_ context.Context, e *testTypeEvent) {
-		fired = true
-	}))
-	dispatcher.DispatchEvent(context.Background(), &testTypeEvent{})
-	if !fired {
-		t.Fatal("event not fired")
-	}
+	t.Run("MultipleListeners", func(t *testing.T) {
+		d := event.NewDispatcher[int](false)
+		count := 0
+		for i := 0; i < 3; i++ {
+			d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+				count++
+				return nil
+			}))
+		}
+		d.DispatchEvent(context.Background(), testEvent{eventType: 1})
+		if count != 3 {
+			t.Errorf("Expected 3 listeners to be called, got %d", count)
+		}
+	})
+
+	t.Run("RemoveMiddleListenerUnordered", func(t *testing.T) {
+		var called atomic.Int32
+		d := event.NewDispatcher[int](false) // unordered dispatcher
+		id1 := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+			called.Add(1)
+			return nil
+		}))
+		id2 := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+			called.Add(1)
+			return nil
+		}))
+		id3 := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+			called.Add(1)
+			return nil
+		}))
+
+		// Remove the middle listener
+		if !d.RemoveListener(id2) {
+			t.Errorf("Failed to remove middle listener")
+		}
+
+		// Verify other listeners still exist
+		if !d.HasListener(id1) || !d.HasListener(id3) {
+			t.Errorf("Other listeners should still exist")
+		}
+
+		// Verify the removed listener no longer exists
+		if d.HasListener(id2) {
+			t.Errorf("Removed listener should not exist")
+		}
+
+		// Verify the remaining listeners still work
+		d.DispatchEvent(context.Background(), testEvent{eventType: 1})
+		if n := called.Load(); n != 2 {
+			t.Errorf("Expected 2 listeners to be called, got %d", n)
+		}
+	})
+
+	t.Run("RemoveMiddleListenerOrdered", func(t *testing.T) {
+		d := event.NewDispatcher[int](true) // ordered dispatcher
+		callOrder := []int{}
+		id1 := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+			callOrder = append(callOrder, 1)
+			return nil
+		}))
+		id2 := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+			callOrder = append(callOrder, 2)
+			return nil
+		}))
+		id3 := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+			callOrder = append(callOrder, 3)
+			return nil
+		}))
+
+		// Remove the middle listener
+		if !d.RemoveListener(id2) {
+			t.Errorf("Failed to remove middle listener")
+		}
+
+		// Verify other listeners still exist
+		if !d.HasListener(id1) || !d.HasListener(id3) {
+			t.Errorf("Other listeners should still exist")
+		}
+
+		// Verify the removed listener no longer exists
+		if d.HasListener(id2) {
+			t.Errorf("Removed listener should not exist")
+		}
+
+		// Verify the remaining listeners still work and are in the correct order
+		d.DispatchEvent(context.Background(), testEvent{eventType: 1})
+		if len(callOrder) != 2 || callOrder[0] != 1 || callOrder[1] != 3 {
+			t.Errorf("Expected call order [1, 3], got %v", callOrder)
+		}
+	})
+
+	t.Run("RemoveLastListener", func(t *testing.T) {
+		d := event.NewDispatcher[int](false)
+		id1 := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+			return nil
+		}))
+		id2 := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
+			return nil
+		}))
+
+		// Remove the last listener
+		if !d.RemoveListener(id2) {
+			t.Errorf("Failed to remove last listener")
+		}
+
+		// Remove a non-existent listener
+		if d.RemoveListener(id2) {
+			t.Errorf("Should not be able to remove non-existent listener")
+		}
+
+		// Verify the first listener still exists
+		if !d.HasListener(id1) {
+			t.Errorf("First listener should still exist")
+		}
+
+		// Verify the removed listener no longer exists
+		if d.HasListener(id2) {
+			t.Errorf("Removed listener should not exist")
+		}
+	})
 }

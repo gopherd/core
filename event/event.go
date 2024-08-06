@@ -1,61 +1,71 @@
+// Package event provides a generic event handling system.
 package event
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/gopherd/core/container/pair"
 )
 
-type ID = int
+// ErrUnexpectedEventType is the error returned when an unexpected event type is received.
+var ErrUnexpectedEventType = errors.New("unexpected event type")
 
-// Event is the interface that wraps the basic Type method.
+// ID represents a unique identifier for listeners.
+type ID int
+
+// Event is the interface that wraps the basic Typeof method.
 type Event[T comparable] interface {
-	Typeof() T // Type gets type of event
+	// Typeof returns the type of the event.
+	Typeof() T
 }
 
-// A Listener handles fired event
+// Listener handles fired events.
 type Listener[T comparable] interface {
-	// Typeof gets type of listening event
+	// EventType returns the type of event this listener handles.
 	EventType() T
-	// HandleEvent handles fired event
-	HandleEvent(context.Context, Event[T])
+	// HandleEvent processes the fired event.
+	HandleEvent(context.Context, Event[T]) error
 }
 
-// Listen creates a Listener by eventType and handler function
-func Listen[T comparable, E Event[T], H ~func(context.Context, E)](eventType T, handler H) Listener[T] {
+// Listen creates a Listener for the given event type and handler function.
+func Listen[T comparable, E Event[T], H ~func(context.Context, E) error](eventType T, handler H) Listener[T] {
 	return listenerFunc[T, E, H]{eventType, handler}
 }
 
-type listenerFunc[T comparable, E Event[T], H ~func(context.Context, E)] struct {
+type listenerFunc[T comparable, E Event[T], H ~func(context.Context, E) error] struct {
 	eventType T
 	handler   H
 }
 
-// EventType implements Listener EventType method
+// EventType implements the Listener interface.
 func (h listenerFunc[T, E, H]) EventType() T {
 	return h.eventType
 }
 
-// HandleEvent implements Listener HandleEvent method
-func (h listenerFunc[T, E, H]) HandleEvent(ctx context.Context, event Event[T]) {
+// HandleEvent implements the Listener interface.
+func (h listenerFunc[T, E, H]) HandleEvent(ctx context.Context, event Event[T]) error {
 	if e, ok := event.(E); ok {
-		h.handler(ctx, e)
-	} else {
-		panic(fmt.Sprintf("unexpected event %T for type %v", event, event.Typeof()))
+		return h.handler(ctx, e)
 	}
+	return fmt.Errorf("%w: got %T for type %v", ErrUnexpectedEventType, event, event.Typeof())
 }
 
+// Dispatcher manages event listeners and dispatches events.
 type Dispatcher[T comparable] interface {
+	// AddListener registers a new listener and returns its ID.
 	AddListener(Listener[T]) ID
+	// RemoveListener removes the listener with the given ID.
 	RemoveListener(ID) bool
+	// HasListener checks if a listener with the given ID exists.
 	HasListener(ID) bool
-	DispatchEvent(context.Context, Event[T]) bool
+	// DispatchEvent sends an event to all registered listeners of its type.
+	DispatchEvent(context.Context, Event[T]) error
 }
 
-// dispatcher manages event listeners
 type dispatcher[T comparable] struct {
-	nextid    ID
+	nextID    ID
 	ordered   bool
 	listeners map[T][]pair.Pair[ID, Listener[T]]
 	mapping   map[ID]pair.Pair[T, int]
@@ -69,71 +79,64 @@ func newDispatcher[T comparable](ordered bool) *dispatcher[T] {
 	}
 }
 
+// NewDispatcher creates a new Dispatcher instance.
 func NewDispatcher[T comparable](ordered bool) Dispatcher[T] {
 	return newDispatcher[T](ordered)
 }
 
-// AddListener registers a Listener
-func (dispatcher *dispatcher[T]) AddListener(listener Listener[T]) ID {
-	dispatcher.nextid++
-	var id = dispatcher.nextid
-	var eventType = listener.EventType()
-	var listeners = dispatcher.listeners[eventType]
-	var index = len(listeners)
-	dispatcher.listeners[eventType] = append(listeners, pair.New(id, listener))
-	dispatcher.mapping[id] = pair.New(eventType, index)
+// AddListener implements the Dispatcher interface.
+func (d *dispatcher[T]) AddListener(listener Listener[T]) ID {
+	d.nextID++
+	id := d.nextID
+	eventType := listener.EventType()
+	listeners := d.listeners[eventType]
+	index := len(listeners)
+	d.listeners[eventType] = append(listeners, pair.New(id, listener))
+	d.mapping[id] = pair.New(eventType, index)
 	return id
 }
 
-// RemoveListener removes specified listener
-func (dispatcher *dispatcher[T]) RemoveListener(id ID) bool {
-	if dispatcher.listeners == nil {
-		return false
-	}
-	index, ok := dispatcher.mapping[id]
+// RemoveListener implements the Dispatcher interface.
+func (d *dispatcher[T]) RemoveListener(id ID) bool {
+	index, ok := d.mapping[id]
 	if !ok {
 		return false
 	}
-	var eventType = index.First
-	var listeners = dispatcher.listeners[eventType]
-	var last = len(listeners) - 1
+	eventType := index.First
+	listeners := d.listeners[eventType]
+	last := len(listeners) - 1
 	if index.Second != last {
-		if dispatcher.ordered {
+		if d.ordered {
 			copy(listeners[index.Second:last], listeners[index.Second+1:])
 			for i := index.Second; i < last; i++ {
-				dispatcher.mapping[listeners[i].First] = pair.New(eventType, i)
+				d.mapping[listeners[i].First] = pair.New(eventType, i)
 			}
 		} else {
 			listeners[index.Second] = listeners[last]
-			dispatcher.mapping[listeners[index.Second].First] = pair.New(eventType, index.Second)
+			d.mapping[listeners[index.Second].First] = pair.New(eventType, index.Second)
 		}
 	}
 	listeners[last].Second = nil
-	dispatcher.listeners[eventType] = listeners[:last]
-	delete(dispatcher.mapping, id)
+	d.listeners[eventType] = listeners[:last]
+	delete(d.mapping, id)
 	return true
 }
 
-// HasListener reports whether dispatcher has specified listener
-func (dispatcher *dispatcher[T]) HasListener(id ID) bool {
-	if dispatcher.mapping == nil {
-		return false
-	}
-	_, ok := dispatcher.mapping[id]
+// HasListener implements the Dispatcher interface.
+func (d *dispatcher[T]) HasListener(id ID) bool {
+	_, ok := d.mapping[id]
 	return ok
 }
 
-// DispatchEvent fires event
-func (dispatcher *dispatcher[T]) DispatchEvent(ctx context.Context, event Event[T]) bool {
-	if dispatcher.listeners == nil {
-		return false
-	}
-	listeners, ok := dispatcher.listeners[event.Typeof()]
+// DispatchEvent implements the Dispatcher interface.
+func (d *dispatcher[T]) DispatchEvent(ctx context.Context, event Event[T]) error {
+	listeners, ok := d.listeners[event.Typeof()]
 	if !ok || len(listeners) == 0 {
-		return false
+		return nil
 	}
+	var errs []error
 	for i := range listeners {
-		listeners[i].Second.HandleEvent(ctx, event)
+		errs = append(errs, listeners[i].Second.HandleEvent(ctx, event))
 	}
-	return true
+	return errors.Join(errs...)
 }

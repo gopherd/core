@@ -1,3 +1,4 @@
+// Package mime64 provides functionality to encode various types of content into base64 MIME format.
 package mime64
 
 import (
@@ -12,7 +13,7 @@ import (
 	"os"
 )
 
-// EncodeType encodes mime content with specified mime type
+// EncodeType encodes content with a specified MIME type into a base64 MIME string.
 func EncodeType(mimeType string, content []byte) []byte {
 	var buf bytes.Buffer
 	buf.WriteString("data:")
@@ -22,20 +23,17 @@ func EncodeType(mimeType string, content []byte) []byte {
 	return buf.Bytes()
 }
 
-// Encode encodes mime content
-func Encode(mime []byte) []byte {
-	return EncodeType(http.DetectContentType(mime), mime)
+// Encode detects the MIME type of the content and encodes it into a base64 MIME string.
+func Encode(content []byte) []byte {
+	return EncodeType(http.DetectContentType(content), content)
 }
 
-//----------------------------------------------------------
-// Helper functions
-
-// EncodeToString encodes mime content to string
+// EncodeToString encodes content into a base64 MIME string.
 func EncodeToString(content []byte) string {
 	return string(Encode(content))
 }
 
-// EncodeReader encodes mime content from reader to string
+// EncodeReader reads content from an io.Reader and encodes it into a base64 MIME string.
 func EncodeReader(r io.Reader) (string, error) {
 	content, err := io.ReadAll(r)
 	if err != nil {
@@ -44,7 +42,7 @@ func EncodeReader(r io.Reader) (string, error) {
 	return EncodeToString(content), nil
 }
 
-// EncodeFile encodes mime content from file to string
+// EncodeFile reads content from a file and encodes it into a base64 MIME string.
 func EncodeFile(filename string) (string, error) {
 	content, err := os.ReadFile(filename)
 	if err != nil {
@@ -53,7 +51,7 @@ func EncodeFile(filename string) (string, error) {
 	return EncodeToString(content), nil
 }
 
-// EncodeURL encodes mime content from url to string
+// EncodeURL fetches content from a URL and encodes it into a base64 MIME string.
 func EncodeURL(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -67,7 +65,7 @@ func EncodeURL(url string) (string, error) {
 	return EncodeToString(content), nil
 }
 
-// EncodeImagePNG encodes image/png to string
+// EncodeImagePNG encodes an image.Image as PNG into a base64 MIME string.
 func EncodeImagePNG(img image.Image) (string, error) {
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, img); err != nil {
@@ -76,7 +74,7 @@ func EncodeImagePNG(img image.Image) (string, error) {
 	return EncodeToString(buf.Bytes()), nil
 }
 
-// EncodeImageJPEG encodes image/jpeg to string
+// EncodeImageJPEG encodes an image.Image as JPEG into a base64 MIME string.
 func EncodeImageJPEG(img image.Image) (string, error) {
 	var buf bytes.Buffer
 	if err := jpeg.Encode(&buf, img, nil); err != nil {
@@ -85,7 +83,7 @@ func EncodeImageJPEG(img image.Image) (string, error) {
 	return EncodeToString(buf.Bytes()), nil
 }
 
-// EncodeImageGIF encodes image/gif to string
+// EncodeImageGIF encodes an image.Image as GIF into a base64 MIME string.
 func EncodeImageGIF(img image.Image) (string, error) {
 	var buf bytes.Buffer
 	if err := gif.Encode(&buf, img, nil); err != nil {

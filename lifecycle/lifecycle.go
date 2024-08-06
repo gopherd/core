@@ -1,23 +1,30 @@
+// Package lifecycle provides interfaces and types for managing the lifecycle of components.
 package lifecycle
 
 import (
 	"context"
-	"strconv"
+	"fmt"
 )
 
-// Status represents lifecycle state
+// Status represents the lifecycle state of a component.
 type Status int
 
 const (
+	// Created indicates that the component has been instantiated but not yet initialized.
 	Created Status = iota
+	// Starting indicates that the component is in the process of starting.
 	Starting
+	// Running indicates that the component is fully operational.
 	Running
+	// Stopping indicates that the component is in the process of shutting down.
 	Stopping
+	// Closed indicates that the component has been fully shut down.
 	Closed
 )
 
-func (state Status) String() string {
-	switch state {
+// String returns a string representation of the Status.
+func (s Status) String() string {
+	switch s {
 	case Created:
 		return "Created"
 	case Starting:
@@ -29,32 +36,41 @@ func (state Status) String() string {
 	case Closed:
 		return "Closed"
 	default:
-		return "Unknown(" + strconv.Itoa(int(state)) + ")"
+		return fmt.Sprintf("Unknown(%d)", int(s))
 	}
 }
 
+// Lifecycle defines the interface for components with lifecycle management.
 type Lifecycle interface {
+	// Init initializes the component.
 	Init(context.Context) error
+	// Uninit performs cleanup after the component is no longer needed.
 	Uninit(context.Context) error
+	// Start begins the component's main operations.
 	Start(context.Context) error
+	// Shutdown gracefully stops the component's operations.
 	Shutdown(context.Context) error
 }
 
-type BaseLifecycle struct {
-}
+// BaseLifecycle provides a default implementation of the Lifecycle interface.
+type BaseLifecycle struct{}
 
-func (l *BaseLifecycle) Init(_ context.Context) error {
+// Init implements the Init method of the Lifecycle interface.
+func (*BaseLifecycle) Init(context.Context) error {
 	return nil
 }
 
-func (l *BaseLifecycle) Uninit(_ context.Context) error {
+// Uninit implements the Uninit method of the Lifecycle interface.
+func (*BaseLifecycle) Uninit(context.Context) error {
 	return nil
 }
 
-func (l *BaseLifecycle) Start(_ context.Context) error {
+// Start implements the Start method of the Lifecycle interface.
+func (*BaseLifecycle) Start(context.Context) error {
 	return nil
 }
 
-func (l *BaseLifecycle) Shutdown(_ context.Context) error {
+// Shutdown implements the Shutdown method of the Lifecycle interface.
+func (*BaseLifecycle) Shutdown(context.Context) error {
 	return nil
 }

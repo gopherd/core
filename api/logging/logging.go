@@ -14,11 +14,8 @@ type Provider interface {
 	Close() error
 }
 
-// Options represents logger options
-type Options = json.RawMessage
-
 // ProviderFunc creates a logger provider
-type ProviderFunc func(Options) (Provider, error)
+type ProviderFunc func([]byte) (Provider, error)
 
 var (
 	proviersMu sync.RWMutex
@@ -47,16 +44,16 @@ func Lookup(name string) ProviderFunc {
 
 // Register standard providers
 func init() {
-	Register("stderr", func(options Options) (Provider, error) {
+	Register("stderr", func(options []byte) (Provider, error) {
 		return newStdProvider(os.Stderr, "text", options)
 	})
-	Register("stdout", func(options Options) (Provider, error) {
+	Register("stdout", func(options []byte) (Provider, error) {
 		return newStdProvider(os.Stdout, "text", options)
 	})
-	Register("stderr/json", func(options Options) (Provider, error) {
+	Register("stderr/json", func(options []byte) (Provider, error) {
 		return newStdProvider(os.Stderr, "json", options)
 	})
-	Register("stdout/json", func(options Options) (Provider, error) {
+	Register("stdout/json", func(options []byte) (Provider, error) {
 		return newStdProvider(os.Stdout, "json", options)
 	})
 }
@@ -79,7 +76,7 @@ type StdOptions struct {
 	AddSource bool
 }
 
-func newStdProvider(writer io.Writer, formatter string, opts Options) (Provider, error) {
+func newStdProvider(writer io.Writer, formatter string, opts []byte) (Provider, error) {
 	var options StdOptions
 	if err := json.Unmarshal(opts, &options); err != nil {
 		return nil, err

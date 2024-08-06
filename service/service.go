@@ -8,20 +8,17 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"reflect"
 	"sync/atomic"
 	"time"
 
 	"github.com/gopherd/core/buildinfo"
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/config"
-	"github.com/gopherd/core/event"
 	"github.com/gopherd/core/lifecycle"
 )
 
 // Service represents a process with lifecycle management and component handling.
 type Service interface {
-	event.Dispatcher[reflect.Type]
 	lifecycle.Lifecycle
 
 	// IsBusy reports whether the service is busy.
@@ -36,8 +33,6 @@ type Service interface {
 
 // BaseService implements the Service interface.
 type BaseService[Config config.Config] struct {
-	event.Dispatcher[reflect.Type]
-
 	flags struct {
 		version bool
 	}
@@ -49,7 +44,6 @@ type BaseService[Config config.Config] struct {
 // NewBaseService creates a new BaseService with the given configuration.
 func NewBaseService[Config config.Config](cfg Config) *BaseService[Config] {
 	s := &BaseService[Config]{
-		Dispatcher: event.NewDispatcher[reflect.Type](true),
 		components: component.NewManager(),
 	}
 	s.config.Store(cfg)
@@ -140,7 +134,7 @@ func (e *ExitError) Error() string {
 
 // Run starts and manages the lifecycle of the given service.
 func Run(s Service) {
-	if err := run(s); err != nil {
+	if err := run(s, flag.CommandLine); err != nil {
 		if exit := (*ExitError)(nil); errors.As(err, &exit) {
 			os.Exit(exit.Code)
 		}
@@ -148,13 +142,13 @@ func Run(s Service) {
 	}
 }
 
-func run(s Service) error {
+func run(s Service, flagSet *flag.FlagSet) error {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: slog.LevelWarn,
 	})))
 
-	s.SetupFlags(flag.CommandLine)
-	flag.CommandLine.Parse(os.Args[1:])
+	s.SetupFlags(flagSet)
+	flagSet.Parse(os.Args[1:])
 
 	defer func() {
 		slog.Info("uninitializing service")
