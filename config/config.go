@@ -205,7 +205,8 @@ func (c *BaseConfig[Context]) decode(r io.Reader) error {
 // parseComponentTemplates processes the Refs and Options fields of each component.Config
 // as text/template templates, using c.data.Context as the template context.
 func (c *BaseConfig[Context]) parseComponentTemplates() error {
-	for _, com := range c.data.Components {
+	for i := range c.data.Components {
+		com := &c.data.Components[i]
 		if err := c.parseTemplateField(&com.Refs); err != nil {
 			return fmt.Errorf("parse Refs for component %s: %w", com.UUID, err)
 		}
