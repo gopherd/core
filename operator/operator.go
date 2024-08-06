@@ -115,3 +115,25 @@ func Second[T1, T2 any](_ T1, x2 T2, others ...any) T2 {
 func Third[T1, T2, T3 any](_ T1, _ T2, x3 T3, others ...any) T3 {
 	return x3
 }
+
+// TryDeref a pointer value, if the pointer is nil, return the zero value of the type.
+func TryDeref[T any](v *T) T {
+	var zero T
+	if v == nil {
+		return zero
+	}
+	return *v
+}
+
+// Deref a pointer value, if the pointer is nil, return the zero value of the type and false.
+func Deref[T any](v *T, defaultValue T) T {
+	if v == nil {
+		return defaultValue
+	}
+	return *v
+}
+
+// AddressOf returns a pointer to the value.
+func Of[T any](v T) *T {
+	return &v
+}

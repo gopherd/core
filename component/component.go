@@ -2,9 +2,9 @@
 package component
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"reflect"
@@ -12,92 +12,97 @@ import (
 
 	"github.com/gopherd/core/event"
 	"github.com/gopherd/core/lifecycle"
+	"github.com/gopherd/core/raw"
 )
-
-// Options represents component-specific configuration options.
-type Options = json.RawMessage
 
 // Config defines the configuration structure for creating a component.
 type Config struct {
-	UUID    string `json:",omitempty"`
 	Name    string
-	Options Options `json:",omitempty"`
+	UUID    string     `json:",omitempty"`
+	Refs    raw.Object `json:",omitempty"`
+	Options raw.Object `json:",omitempty"`
 }
 
-// CreateOptions marshals any value into Options. It panics if marshaling fails.
-func CreateOptions(v any) Options {
-	var out bytes.Buffer
-	encoder := json.NewEncoder(&out)
-	encoder.SetEscapeHTML(false)
-	encoder.SetIndent("", "    ")
-	if err := encoder.Encode(v); err != nil {
-		panic(err)
-	}
-	return Options(out.Bytes())
+// Component defines the interface for a generic logic component.
+type Component interface {
+	lifecycle.Lifecycle
+
+	// UUID returns the unique identifier of the component.
+	UUID() string
+
+	// Name returns the name of the component.
+	Name() string
+
+	// Entity returns the entity to which the component belongs.
+	// It's available after the component is mounted.
+	Entity() Entity
+
+	// Ctor is called when the component is created.
+	// The entity currently not available, so the component should not reference other components.
+	Ctor(Config) error
+
+	// OnMounted is called when the component is mounted to the entity.
+	OnMounted(Entity) error
+}
+
+// ComponentGetter is an interface for getting a component by UUID.
+type ComponentGetter interface {
+	GetComponent(uuid string) Component
 }
 
 // Entity represents a generic entity that can hold components.
 type Entity interface {
 	event.Dispatcher[reflect.Type]
-	GetComponent(uuid string) Component
+	ComponentGetter
 }
 
 // ComponentCreator is a function type that creates a new Component instance.
 type ComponentCreator func() Component
 
-// Metadata defines the interface for accessing component metadata.
-type Metadata interface {
-	// UUID returns the unique identifier of the component.
-	UUID() string
-	// Name returns the name of the component.
-	Name() string
-	// Entity returns the entity to which the component belongs.
-	Entity() Entity
+// ReferenceResolver resolves a reference for a component.
+type ReferenceResolver interface {
+	ResolveReference(ComponentGetter) error
 }
 
-// DependencyResolver resolves a dependency for a component.
-type DependencyResolver interface {
-	Resolve(Entity) error
-}
-
-// Dependency represents a dependency on another component.
-type Dependency[T any] struct {
+// Reference represents a reference on another component.
+type Reference[T any] struct {
 	component T
 	uuid      string
 }
 
-// UUID returns the UUID of the dependency component.
-func (d Dependency[T]) UUID() string {
-	return d.uuid
+// UUID returns the UUID of the referenced component.
+func (r Reference[T]) UUID() string {
+	return r.uuid
 }
 
-// SetUUID sets the UUID of the dependency component.
-func (d *Dependency[T]) SetUUID(uuid string) {
-	d.uuid = uuid
+// MarshalJSON marshals the referenced component UUID to JSON.
+func (r Reference[T]) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.uuid)
 }
 
-// MarshalJSON marshals the dependency component uuid to JSON.
-func (d Dependency[T]) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.uuid)
-}
-
-// UnmarshalJSON unmarshals the dependency component uuid from JSON.
-func (d *Dependency[T]) UnmarshalJSON(data []byte) error {
-	return json.Unmarshal(data, &d.uuid)
+// UnmarshalJSON unmarshals the referenced component UUID from JSON.
+func (r *Reference[T]) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &r.uuid)
 }
 
 // Component returns the target component.
-func (d Dependency[T]) Component() T {
-	return d.component
+func (r Reference[T]) Component() T {
+	return r.component
 }
 
-// Resolve resolves the target component.
-func (d *Dependency[T]) Resolve(entity Entity) error {
-	return Resolve(&d.component, entity, d.uuid)
+// Ref creates a new reference to a component.
+func Ref[T any](uuid string) Reference[T] {
+	return Reference[T]{uuid: uuid}
 }
 
-func Resolve[T any](target *T, entity Entity, uuid string) error {
-	com := entity.GetComponent(uuid)
+// ResolveReference resolves the target component.
+func (r *Reference[T]) ResolveReference(getter ComponentGetter) error {
+	return Resolve(&r.component, getter, r.uuid)
+}
+
+// Resolve resolves the target component for the given entity and UUID.
+func Resolve[T any](target *T, getter ComponentGetter, uuid string) error {
+	com := getter.GetComponent(uuid)
 	if com == nil {
 		return fmt.Errorf("component %q not found", uuid)
 	}
@@ -106,17 +111,6 @@ func Resolve[T any](target *T, entity Entity, uuid string) error {
 		return nil
 	}
 	return fmt.Errorf("component %q type mismatch", uuid)
-}
-
-type CreatedCallback func() error
-
-// Component defines the interface for a generic logic component.
-type Component interface {
-	Metadata
-	lifecycle.Lifecycle
-	// OnCreated is called when the component is created.
-	// It returns a callback function that will be called when all components are created.
-	OnCreated(Entity, Config) (CreatedCallback, error)
 }
 
 // BaseComponent provides a basic implementation of the Component interface.
@@ -128,92 +122,122 @@ type BaseComponent[T any] struct {
 }
 
 // Options returns a pointer to the component's options.
-func (com *BaseComponent[T]) Options() *T {
-	return &com.options
+func (c *BaseComponent[T]) Options() *T {
+	return &c.options
 }
 
-// UUID implements the Metadata UUID method.
-func (com *BaseComponent[T]) UUID() string {
-	return com.uuid
+// UUID implements the Component UUID method.
+func (c *BaseComponent[T]) UUID() string {
+	return c.uuid
 }
 
-// Name implements the Metadata Name method.
-func (com *BaseComponent[T]) Name() string {
-	return com.name
+// Name implements the Component Name method.
+func (c *BaseComponent[T]) Name() string {
+	return c.name
 }
 
-// Entity implements the Metadata Entity method.
-func (com *BaseComponent[T]) Entity() Entity {
-	return com.entity
+// Entity implements the Component Entity method.
+func (c *BaseComponent[T]) Entity() Entity {
+	return c.entity
 }
 
-// OnCreated implements the Component OnCreated method.
-func (com *BaseComponent[T]) OnCreated(entity Entity, config Config) (CreatedCallback, error) {
-	com.uuid = config.UUID
-	com.name = config.Name
-	com.entity = entity
-	if len(config.Options) > 0 {
-		if err := json.Unmarshal(config.Options, &com.options); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal options: %w", err)
-		}
+// Ctor implements the Component Ctor method.
+func (c *BaseComponent[T]) Ctor(config Config) error {
+	c.uuid = config.UUID
+	c.name = config.Name
+	if err := config.Options.DecodeJSON(&c.options); err != nil {
+		return fmt.Errorf("failed to unmarshal options: %w", err)
 	}
-	return com.resolveDependencies, nil
+	return nil
 }
 
-// ResolveDependencies iterates over the Deps field in options and calls the Resolve method on fields that implement DependencyResolver
-func (com *BaseComponent[T]) resolveDependencies() error {
-	t := reflect.TypeOf(&com.options).Elem()
-	v := reflect.ValueOf(&com.options).Elem()
+// OnMounted implements the Component Mount method.
+func (c *BaseComponent[T]) OnMounted(entity Entity) error {
+	c.entity = entity
+	return nil
+}
+
+// BaseComponentWithRefs provides a basic implementation of the Component interface with references.
+type BaseComponentWithRefs[T any, R any] struct {
+	BaseComponent[T]
+	refs R
+}
+
+// Refs returns a pointer to the component's references.
+func (c *BaseComponentWithRefs[T, R]) Refs() *R {
+	return &c.refs
+}
+
+// Ctor implements the Component Ctor method.
+func (c *BaseComponentWithRefs[T, R]) Ctor(config Config) error {
+	if err := c.BaseComponent.Ctor(config); err != nil {
+		return err
+	}
+	if err := config.Refs.DecodeJSON(&c.refs); err != nil {
+		return fmt.Errorf("failed to unmarshal refs: %w", err)
+	}
+	return nil
+}
+
+// OnMounted implements the Component OnMounted method.
+func (c *BaseComponentWithRefs[T, R]) OnMounted(entity Entity) error {
+	if err := c.BaseComponent.OnMounted(entity); err != nil {
+		return err
+	}
+	return c.resolveReferences()
+}
+
+// resolveReferences iterates over the refs field and calls the Resolve method on fields that implement ReferenceResolver
+func (c *BaseComponentWithRefs[T, R]) resolveReferences() error {
+	t := reflect.TypeOf(&c.refs).Elem()
+	v := reflect.ValueOf(&c.refs).Elem()
 	if v.Kind() != reflect.Struct {
 		return nil
 	}
-	return com.recursiveResolveDependencies(t, v)
+	return c.recursiveResolveReferences(t, v)
 }
 
-func (com *BaseComponent[T]) recursiveResolveDependencies(t reflect.Type, v reflect.Value) error {
-	// Iterate over the fields of the v
+// recursiveResolveReferences recursively resolves references in nested structs
+func (c *BaseComponentWithRefs[T, R]) recursiveResolveReferences(t reflect.Type, v reflect.Value) error {
 	for i := 0; i < v.NumField(); i++ {
 		ft := t.Field(i)
 		fv := v.Field(i)
 
-		// Check if the field or its address implements DependencyResolver interface
-		resolver := reflectDependencyResolver(fv)
+		resolver := reflectReferenceResolver(fv)
 		if resolver == nil && fv.CanAddr() {
-			resolver = reflectDependencyResolver(fv.Addr())
+			resolver = reflectReferenceResolver(fv.Addr())
 		}
 		if resolver == nil {
 			if fv.Kind() == reflect.Struct {
-				if err := com.recursiveResolveDependencies(fv.Type(), fv); err != nil {
+				if err := c.recursiveResolveReferences(fv.Type(), fv); err != nil {
 					return err
 				}
 			}
 			continue
 		}
 
-		// Resolve the dependency
-		if err := resolver.Resolve(com.entity); err != nil {
-			return fmt.Errorf("failed to resolve dependency %s: %w", ft.Name, err)
-		} else {
-			slog.Debug(
-				"resolved dependency",
-				slog.String("component", com.UUID()),
-				slog.String("dependency", ft.Name),
-			)
+		if err := resolver.ResolveReference(c.entity); err != nil {
+			return fmt.Errorf("failed to resolve reference %s: %w", ft.Name, err)
 		}
+		slog.Debug(
+			"resolved reference",
+			slog.String("component", c.UUID()),
+			slog.String("reference", ft.Name),
+		)
 	}
 
 	return nil
 }
 
-// reflectDependencyResolver safely checks if the field implements DependencyResolver interface
-func reflectDependencyResolver(field reflect.Value) DependencyResolver {
+// reflectReferenceResolver safely checks if the field implements ReferenceResolver interface
+func reflectReferenceResolver(field reflect.Value) ReferenceResolver {
 	if !field.IsValid() || (field.Kind() == reflect.Ptr && field.IsNil()) {
 		return nil
 	}
 	if !field.CanInterface() {
 		return nil
 	}
-	if resolver, ok := field.Interface().(DependencyResolver); ok {
+	if resolver, ok := field.Interface().(ReferenceResolver); ok {
 		return resolver
 	}
 	return nil
@@ -221,16 +245,16 @@ func reflectDependencyResolver(field reflect.Value) DependencyResolver {
 
 // Manager manages a group of components.
 type Manager struct {
-	components     []Component
-	uuid2component map[string]Component
-	numInitialized int
-	numStarted     int
+	components      []Component
+	uuidToComponent map[string]Component
+	numInitialized  int
+	numStarted      int
 }
 
 // NewManager creates a new Manager instance.
 func NewManager() *Manager {
 	return &Manager{
-		uuid2component: make(map[string]Component),
+		uuidToComponent: make(map[string]Component),
 	}
 }
 
@@ -239,10 +263,10 @@ func NewManager() *Manager {
 func (m *Manager) AddComponent(com Component) Component {
 	uuid := com.UUID()
 	if uuid != "" {
-		if _, exists := m.uuid2component[uuid]; exists {
+		if _, exists := m.uuidToComponent[uuid]; exists {
 			return nil
 		}
-		m.uuid2component[uuid] = com
+		m.uuidToComponent[uuid] = com
 	}
 	m.components = append(m.components, com)
 	return com
@@ -250,10 +274,18 @@ func (m *Manager) AddComponent(com Component) Component {
 
 // GetComponent retrieves a component by its UUID.
 func (m *Manager) GetComponent(uuid string) Component {
-	if uuid == "" {
-		return nil
+	return m.uuidToComponent[uuid]
+}
+
+// OnMounted calls the OnMounted method on all components.
+func (m *Manager) OnMounted(entity Entity) error {
+	for i := range m.components {
+		com := m.components[i]
+		if err := com.OnMounted(entity); err != nil {
+			return err
+		}
 	}
-	return m.uuid2component[uuid]
+	return nil
 }
 
 // Init initializes all components in the manager.
@@ -341,6 +373,7 @@ func (m *Manager) Start(ctx context.Context) error {
 
 // Shutdown shuts down all components in reverse order.
 func (m *Manager) Shutdown(ctx context.Context) error {
+	var errs []error
 	for i := m.numStarted - 1; i >= 0; i-- {
 		com := m.components[i]
 		slog.Info(
@@ -355,6 +388,7 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 				slog.String("name", com.Name()),
 				slog.Any("error", err),
 			)
+			errs = append(errs, err)
 		} else {
 			slog.Info(
 				"component shutdown",
@@ -363,12 +397,12 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 			)
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 var (
 	creatorsMu sync.RWMutex
-	creators   map[string]ComponentCreator
+	creators   = make(map[string]ComponentCreator)
 )
 
 // Register makes a component creator available by the provided name.
@@ -376,9 +410,6 @@ var (
 func Register(name string, creator ComponentCreator) {
 	creatorsMu.Lock()
 	defer creatorsMu.Unlock()
-	if creators == nil {
-		creators = make(map[string]ComponentCreator)
-	}
 	if creator == nil {
 		panic("component: Register component " + name + " creator is nil")
 	}

@@ -2,15 +2,14 @@
 package query
 
 import (
+	"errors"
 	"net/url"
 	"time"
-
-	"github.com/gopherd/core/errkit"
 )
 
 // Parser used to parse arguments like url
 type Parser struct {
-	errors errkit.List
+	errors []error
 	q      Query
 }
 
@@ -19,7 +18,7 @@ func Parse(rawquery string) *Parser {
 	p := &Parser{}
 	q, err := url.ParseQuery(rawquery)
 	if err != nil {
-		p.errors.Append(err)
+		p.errors = append(p.errors, err)
 	} else {
 		p.q = q
 	}
@@ -34,12 +33,12 @@ func New(q Query) *Parser {
 }
 
 func (p *Parser) next() bool {
-	return p.errors.Len() == 0
+	return len(p.errors) == 0
 }
 
 // Err returns all errors while parsing arguments
 func (p *Parser) Err() error {
-	return p.errors.Err()
+	return errors.Join(p.errors...)
 }
 
 // RequiredInt parses required argument
@@ -47,7 +46,7 @@ func (p *Parser) RequiredInt(val *int, key string) *Parser {
 	if p.next() {
 		v, err := RequiredInt(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -60,7 +59,7 @@ func (p *Parser) Int(val *int, key string, dft int) *Parser {
 	if p.next() {
 		v, err := Int(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -73,7 +72,7 @@ func (p *Parser) RequiredInt8(val *int8, key string) *Parser {
 	if p.next() {
 		v, err := RequiredInt8(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -86,7 +85,7 @@ func (p *Parser) Int8(val *int8, key string, dft int8) *Parser {
 	if p.next() {
 		v, err := Int8(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -99,7 +98,7 @@ func (p *Parser) RequiredInt16(val *int16, key string) *Parser {
 	if p.next() {
 		v, err := RequiredInt16(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -112,7 +111,7 @@ func (p *Parser) Int16(val *int16, key string, dft int16) *Parser {
 	if p.next() {
 		v, err := Int16(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -125,7 +124,7 @@ func (p *Parser) RequiredInt32(val *int32, key string) *Parser {
 	if p.next() {
 		v, err := RequiredInt32(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -138,7 +137,7 @@ func (p *Parser) Int32(val *int32, key string, dft int32) *Parser {
 	if p.next() {
 		v, err := Int32(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -151,7 +150,7 @@ func (p *Parser) RequiredInt64(val *int64, key string) *Parser {
 	if p.next() {
 		v, err := RequiredInt64(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -164,7 +163,7 @@ func (p *Parser) Int64(val *int64, key string, dft int64) *Parser {
 	if p.next() {
 		v, err := Int64(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -177,7 +176,7 @@ func (p *Parser) RequiredUint(val *uint, key string) *Parser {
 	if p.next() {
 		v, err := RequiredUint(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -190,7 +189,7 @@ func (p *Parser) Uint(val *uint, key string, dft uint) *Parser {
 	if p.next() {
 		v, err := Uint(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -203,7 +202,7 @@ func (p *Parser) RequiredUint8(val *uint8, key string) *Parser {
 	if p.next() {
 		v, err := RequiredUint8(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -216,7 +215,7 @@ func (p *Parser) Uint8(val *uint8, key string, dft uint8) *Parser {
 	if p.next() {
 		v, err := Uint8(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -229,7 +228,7 @@ func (p *Parser) RequiredUint16(val *uint16, key string) *Parser {
 	if p.next() {
 		v, err := RequiredUint16(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -242,7 +241,7 @@ func (p *Parser) Uint16(val *uint16, key string, dft uint16) *Parser {
 	if p.next() {
 		v, err := Uint16(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -255,7 +254,7 @@ func (p *Parser) RequiredUint32(val *uint32, key string) *Parser {
 	if p.next() {
 		v, err := RequiredUint32(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -268,7 +267,7 @@ func (p *Parser) Uint32(val *uint32, key string, dft uint32) *Parser {
 	if p.next() {
 		v, err := Uint32(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -281,7 +280,7 @@ func (p *Parser) RequiredUint64(val *uint64, key string) *Parser {
 	if p.next() {
 		v, err := RequiredUint64(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -294,7 +293,7 @@ func (p *Parser) Uint64(val *uint64, key string, dft uint64) *Parser {
 	if p.next() {
 		v, err := Uint64(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -307,7 +306,7 @@ func (p *Parser) RequiredBool(val *bool, key string) *Parser {
 	if p.next() {
 		v, err := RequiredBool(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -320,7 +319,7 @@ func (p *Parser) Bool(val *bool, key string, dft bool) *Parser {
 	if p.next() {
 		v, err := Bool(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -333,7 +332,7 @@ func (p *Parser) RequiredString(val *string, key string) *Parser {
 	if p.next() {
 		v, err := RequiredString(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -354,7 +353,7 @@ func (p *Parser) RequiredFloat32(val *float32, key string) *Parser {
 	if p.next() {
 		v, err := RequiredFloat32(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -367,7 +366,7 @@ func (p *Parser) Float32(val *float32, key string, dft float32) *Parser {
 	if p.next() {
 		v, err := Float32(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -380,7 +379,7 @@ func (p *Parser) RequiredFloat64(val *float64, key string) *Parser {
 	if p.next() {
 		v, err := RequiredFloat64(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -393,7 +392,7 @@ func (p *Parser) Float64(val *float64, key string, dft float64) *Parser {
 	if p.next() {
 		v, err := Float64(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -406,7 +405,7 @@ func (p *Parser) RequiredDuration(val *time.Duration, key string) *Parser {
 	if p.next() {
 		v, err := RequiredDuration(p.q, key)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}
@@ -419,7 +418,7 @@ func (p *Parser) Duration(val *time.Duration, key string, dft time.Duration) *Pa
 	if p.next() {
 		v, err := Duration(p.q, key, dft)
 		if err != nil {
-			p.errors.Append(err)
+			p.errors = append(p.errors, err)
 		} else {
 			*val = v
 		}

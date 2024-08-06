@@ -2,7 +2,6 @@ package component_test
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,7 +12,7 @@ import (
 
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/event"
-	"github.com/gopherd/core/operator"
+	"github.com/gopherd/core/raw"
 )
 
 func TestMain(m *testing.M) {
@@ -86,11 +85,11 @@ func TestBaseComponent(t *testing.T) {
 			UUID: "test-uuid",
 			Name: "test-component",
 		}
-		cb, err := bc.OnCreated(entity, config)
+		err := bc.Ctor(config)
 		if err != nil {
 			t.Fatalf("OnCreated failed: %v", err)
 		}
-		if err := cb(); err != nil {
+		if err := bc.OnMounted(entity); err != nil {
 			t.Fatalf("OnCreated failed: %v", err)
 		}
 
@@ -113,14 +112,14 @@ func TestBaseComponent(t *testing.T) {
 		config := component.Config{
 			UUID:    "new-uuid",
 			Name:    "new-name",
-			Options: json.RawMessage(`{"TestField":"test-value"}`),
+			Options: raw.String(`{"TestField":"test-value"}`),
 		}
 
-		cb, err := bc.OnCreated(entity, config)
+		err := bc.Ctor(config)
 		if err != nil {
 			t.Fatalf("OnCreated failed: %v", err)
 		}
-		if err := cb(); err != nil {
+		if err := bc.OnMounted(entity); err != nil {
 			t.Fatalf("OnCreated failed: %v", err)
 		}
 
@@ -162,12 +161,12 @@ func TestManager(t *testing.T) {
 
 		// Try to add component with duplicate UUID
 		config := component.Config{UUID: "duplicate"}
-		comp1.OnCreated(entity, config)
+		comp1.Ctor(config)
 		if added := entity.AddComponent(comp1); added == nil {
 			t.Error("AddComponent should return the added component")
 		} else {
 			comp3 := &mockComponent{}
-			comp3.OnCreated(entity, config)
+			comp3.Ctor(config)
 			added = entity.AddComponent(comp3)
 			if added != nil {
 				t.Error("AddComponent should return nil for duplicate UUID")
@@ -179,7 +178,7 @@ func TestManager(t *testing.T) {
 		entity := newMockEntity()
 		comp := &mockComponent{}
 		config := component.Config{UUID: "test-uuid"}
-		comp.OnCreated(entity, config)
+		comp.Ctor(config)
 		entity.AddComponent(comp)
 
 		retrieved := entity.GetComponent("test-uuid")
@@ -307,7 +306,7 @@ func TestSequentialComponentOperations(t *testing.T) {
 	for i := 0; i < componentCount; i++ {
 		comp := &mockComponent{}
 		config := component.Config{UUID: fmt.Sprintf("comp-%d", i)}
-		comp.OnCreated(entity, config)
+		comp.Ctor(config)
 		added := entity.AddComponent(comp)
 		if added == nil {
 			t.Errorf("Failed to add component: %s", comp.UUID())
@@ -409,13 +408,13 @@ func TestCreateOptions(t *testing.T) {
 			Field2: 42,
 		}
 
-		createdOpts := component.CreateOptions(opts)
-		if string(createdOpts) != `{
+		createdOpts := raw.MustJSON(opts)
+		if string(createdOpts.Bytes()) != `{
     "Field1": "test",
     "Field2": 42
 }
 ` {
-			t.Errorf("Unexpected created options: %q", string(createdOpts))
+			t.Errorf("Unexpected created options: %q", string(createdOpts.Bytes()))
 		}
 	})
 
@@ -426,7 +425,7 @@ func TestCreateOptions(t *testing.T) {
 			}
 		}()
 
-		component.CreateOptions(make(chan int)) // channels cannot be marshaled to JSON
+		raw.MustJSON(make(chan int)) // channels cannot be marshaled to JSON
 	})
 }
 
@@ -435,7 +434,7 @@ func TestResolve(t *testing.T) {
 		entity := newMockEntity()
 		comp := &mockComponent{}
 		config := component.Config{UUID: "test-uuid"}
-		comp.OnCreated(entity, config)
+		comp.Ctor(config)
 		entity.AddComponent(comp)
 
 		var resolved *mockComponent
@@ -463,7 +462,7 @@ func TestResolve(t *testing.T) {
 		entity := newMockEntity()
 		comp := &mockComponent{}
 		config := component.Config{UUID: "test-uuid"}
-		comp.OnCreated(entity, config)
+		comp.Ctor(config)
 		entity.AddComponent(comp)
 
 		type wrongComponent struct{}
@@ -504,117 +503,122 @@ func (com *redisComponent) HGet(key, field string) (string, error) {
 	return "value", nil
 }
 
-func TestOptionsDeps(t *testing.T) {
+func TestOptionsRefs(t *testing.T) {
 	var entity = newMockEntity()
 
 	// create db component
 	var db dbComponent
 	db.Options().Driver = "test-driver"
 	db.Options().DSN = "test-dsn"
-	operator.First(db.OnCreated(entity, component.Config{
+	db.Ctor(component.Config{
 		UUID: "@db",
 		Name: "db",
-	}))()
+	})
 	entity.AddComponent(&db)
+	db.OnMounted(entity)
 
 	// create redis component
 	var redis redisComponent
 	redis.Options().Source = "test-source"
-	operator.First(redis.OnCreated(entity, component.Config{
+	redis.Ctor(component.Config{
 		UUID: "@redis",
 		Name: "redis",
-	}))()
+	})
 	entity.AddComponent(&redis)
+	redis.OnMounted(entity)
 
 	t.Run("ValidOptions", func(t *testing.T) {
 		type usersComponent struct {
-			component.BaseComponent[struct {
-				DB     component.Dependency[DBComponent]
+			component.BaseComponentWithRefs[struct {
+				Hello string
+				Oops  int
+			}, struct {
+				DB     component.Reference[DBComponent]
 				Nested struct {
-					Redis component.Dependency[RedisComponent]
-					Hello string
+					Redis component.Reference[RedisComponent]
 				}
-
-				Oops int
 			}]
 		}
 
 		// create users component
 		var users usersComponent
-		users.Options().DB.SetUUID("@db")
-		users.Options().Nested.Redis.SetUUID("@redis")
-		users.Options().Nested.Hello = "world"
+		users.Refs().DB = component.Ref[DBComponent]("@db")
+		users.Refs().Nested.Redis = component.Ref[RedisComponent]("@redis")
+		users.Options().Hello = "world"
 		users.Options().Oops = 42
-		if err := operator.First(users.OnCreated(entity, component.Config{
+		users.Ctor(component.Config{
 			UUID: "@users1",
 			Name: "users",
-		}))(); err != nil {
+		})
+		entity.AddComponent(&users)
+		if err := users.OnMounted(entity); err != nil {
 			t.Fatalf("OnCreated failed: %v", err)
 		}
-		entity.AddComponent(&users)
 
-		if users.Options().DB.Component() == nil {
+		if users.Refs().DB.Component() == nil {
 			t.Error("DB component not resolved")
 		}
-		if users.Options().Nested.Redis.Component() == nil {
+		if users.Refs().Nested.Redis.Component() == nil {
 			t.Error("Redis component not resolved")
 		}
 	})
 
 	t.Run("InvalidRedis", func(t *testing.T) {
 		type usersComponent struct {
-			component.BaseComponent[struct {
-				InvalidRedis component.Dependency[DBComponent]
+			component.BaseComponentWithRefs[struct{}, struct {
+				InvalidRedis component.Reference[DBComponent]
 			}]
 		}
 
 		// create users component
 		var users usersComponent
-		users.Options().InvalidRedis.SetUUID("@redis")
-		if err := operator.First(users.OnCreated(entity, component.Config{
+		users.Refs().InvalidRedis = component.Ref[DBComponent]("@redis")
+		users.Ctor(component.Config{
 			UUID: "@users2",
 			Name: "users",
-		}))(); err == nil {
+		})
+		entity.AddComponent(&users)
+		if err := users.OnMounted(entity); err == nil {
 			t.Errorf("OnCreated should have failed")
 		}
-		entity.AddComponent(&users)
 	})
 
 	t.Run("UUIDNotFound", func(t *testing.T) {
 		type usersComponent struct {
-			component.BaseComponent[struct {
-				UUIDNotFound component.Dependency[DBComponent]
+			component.BaseComponentWithRefs[struct{}, struct {
+				UUIDNotFound component.Reference[DBComponent]
 			}]
 		}
 
 		// create users component
 		var users usersComponent
-		users.Options().UUIDNotFound.SetUUID("@not-found")
-		if err := operator.First(users.OnCreated(entity, component.Config{
+		users.Refs().UUIDNotFound = component.Ref[DBComponent]("@not-found")
+		users.Ctor(component.Config{
 			UUID: "@users3",
 			Name: "users",
-		}))(); err == nil {
+		})
+		entity.AddComponent(&users)
+		if err := users.OnMounted(entity); err == nil {
 			t.Errorf("OnCreated should have failed")
 		}
-		entity.AddComponent(&users)
 	})
 
 	t.Run("TypeNotFound", func(t *testing.T) {
 		type usersComponent struct {
-			component.BaseComponent[struct {
-				TypeNotFound component.Dependency[struct {
-					component.BaseComponent[struct{}]
-				}]
+			component.BaseComponentWithRefs[struct{}, struct {
+				TypeNotFound component.Reference[component.BaseComponent[struct{}]]
 			}]
 		}
 
 		// create users component
 		var users usersComponent
-		users.Options().TypeNotFound.SetUUID("@db")
-		if err := operator.First(users.OnCreated(entity, component.Config{
+		users.Refs().TypeNotFound = component.Ref[component.BaseComponent[struct{}]]("@db")
+		users.Ctor(component.Config{
 			UUID: "@users4",
 			Name: "users",
-		}))(); err == nil {
+		})
+		entity.AddComponent(&users)
+		if err := users.OnMounted(entity); err == nil {
 			t.Errorf("OnCreated should have failed")
 		}
 		entity.AddComponent(&users)

@@ -1,6 +1,5 @@
 // resp implements redis RESP
 // @see https://redis.io/topics/protocol
-//
 package resp
 
 import (
@@ -31,10 +30,9 @@ const (
 )
 
 var (
-	crlf       = []byte{cr, lf}
-	nilBytes   = []byte{'-', '1'}
-	spaceBytes = []byte{space}
-	okBytes    = []byte{'O', 'K'}
+	crlf     = []byte{cr, lf}
+	nilBytes = []byte{'-', '1'}
+	okBytes  = []byte{'O', 'K'}
 )
 
 // Reader used to read resp content
@@ -82,11 +80,11 @@ func (t Type) String() string {
 }
 
 var type2bytes = map[Type][]byte{
-	StringType:  []byte{byte(StringType)},
-	ErrorType:   []byte{byte(ErrorType)},
-	IntegerType: []byte{byte(IntegerType)},
-	BytesType:   []byte{byte(BytesType)},
-	ArrayType:   []byte{byte(ArrayType)},
+	StringType:  {byte(StringType)},
+	ErrorType:   {byte(ErrorType)},
+	IntegerType: {byte(IntegerType)},
+	BytesType:   {byte(BytesType)},
+	ArrayType:   {byte(ArrayType)},
 }
 
 func (t Type) bytes() []byte {
@@ -293,12 +291,6 @@ func (v *Value) writeValue(value []byte) {
 	v.end = v.raw.Len()
 }
 
-func (v *Value) writeStringValue(value string) {
-	v.begin = v.raw.Len()
-	v.raw.WriteString(value)
-	v.end = v.raw.Len()
-}
-
 func reflectArray(v *Value, x []any) error {
 	elements := v.getElements()
 	v.Type = ArrayType
@@ -425,11 +417,13 @@ func (v *Value) String() string {
 }
 
 // WriteTo writes marshaled content to w
-func (v *Value) WriteTo(w io.Writer) (int, error) {
+func (v *Value) WriteTo(w io.Writer) (int64, error) {
 	if v.root {
-		return writeBytes(None, w, v.raw.Bytes(), false)
+		i, err := writeBytes(None, w, v.raw.Bytes(), false)
+		return int64(i), err
 	}
-	return v.writeTo(w)
+	i, err := v.writeTo(w)
+	return int64(i), err
 }
 
 func (v *Value) writeTo(w io.Writer) (int, error) {

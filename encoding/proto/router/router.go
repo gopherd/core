@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gopherd/core/discovery"
+	"github.com/gopherd/core/registry/discovery"
 )
 
 const (

@@ -16,28 +16,32 @@ import (
 )
 
 func TestNewBaseConfig(t *testing.T) {
-	core := config.CoreConfig{
+	var ctx = struct {
+		Project string
+		Name    string
+		ID      int
+	}{
 		Project: "test",
 		Name:    "testapp",
 		ID:      1,
 	}
-	cfg := config.NewBaseConfig(core)
+	cfg := config.NewBaseConfig(ctx)
 
 	if cfg == nil {
 		t.Fatal("NewBaseConfig returned nil")
 	}
 
-	if !reflect.DeepEqual(cfg.CoreConfig(), &core) {
-		t.Errorf("CoreConfig does not match: got %v, want %v", cfg.CoreConfig(), &core)
+	if !reflect.DeepEqual(cfg.GetContext(), ctx) {
+		t.Errorf("CoreConfig does not match: got %v, want %v", cfg.GetContext(), ctx)
 	}
 }
 
 func TestSetFlags(t *testing.T) {
-	cfg := config.NewBaseConfig(config.CoreConfig{})
+	cfg := config.NewBaseConfig(struct{}{})
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	cfg.SetFlags(fs)
+	cfg.SetupFlags(fs)
 
-	flags := []string{"-c", "config.json", "-e", "export.json"}
+	flags := []string{"-c", "config.json", "-e", "export.json", "-i"}
 	err := fs.Parse(flags)
 	if err != nil {
 		t.Fatalf("Failed to parse flags: %v", err)
@@ -51,6 +55,11 @@ func TestSetFlags(t *testing.T) {
 	e := fs.Lookup("e")
 	if e == nil || e.Value.String() != "export.json" {
 		t.Errorf("Expected -e flag to be 'export.json', got %v", e)
+	}
+
+	i := fs.Lookup("i")
+	if i == nil || i.Value.String() != "true" {
+		t.Errorf("Expected -i flag to be 'true', got %v", i)
 	}
 }
 
@@ -123,9 +132,9 @@ func TestLoad(t *testing.T) {
 			cleanup := tt.setupMock()
 			defer cleanup()
 
-			cfg := config.NewBaseConfig(config.CoreConfig{})
+			cfg := config.NewBaseConfig(struct{}{})
 			fs := flag.NewFlagSet("test", flag.ContinueOnError)
-			cfg.SetFlags(fs)
+			cfg.SetupFlags(fs)
 			fs.Parse(os.Args[1:])
 
 			exit, err := cfg.Load()
@@ -159,9 +168,9 @@ func TestLoadFromHTTPWithRedirects(t *testing.T) {
 	}))
 	defer server.Close()
 
-	cfg := config.NewBaseConfig(config.CoreConfig{})
+	cfg := config.NewBaseConfig(struct{}{})
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	cfg.SetFlags(fs)
+	cfg.SetupFlags(fs)
 	fs.Parse([]string{"-c", server.URL})
 
 	exit, err := cfg.Load()
@@ -177,6 +186,12 @@ func TestLoadFromHTTPWithRedirects(t *testing.T) {
 	}
 }
 
+type contextConfig struct {
+	Project string
+	Name    string
+	ID      int
+}
+
 func TestExportConfig(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "config_test")
 	if err != nil {
@@ -185,18 +200,18 @@ func TestExportConfig(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	exportPath := filepath.Join(tmpDir, "export.json")
-	core := config.CoreConfig{
+	ctx := contextConfig{
 		Project: "test",
 		Name:    "testapp",
 		ID:      1,
-		Components: []component.Config{
-			{Name: "comp1"},
-		},
+	}
+	components := []component.Config{
+		{Name: "comp1"},
 	}
 
-	cfg := config.NewBaseConfig(core)
+	cfg := config.NewBaseConfig(ctx, components...)
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	cfg.SetFlags(fs)
+	cfg.SetupFlags(fs)
 	fs.Parse([]string{"-e", exportPath})
 
 	exit, err := cfg.Load()
@@ -213,33 +228,43 @@ func TestExportConfig(t *testing.T) {
 		t.Fatalf("Failed to read exported file: %v", err)
 	}
 
-	var exportedConfig config.CoreConfig
+	var exportedConfig struct {
+		Context    contextConfig      `json:",omitempty"`
+		Components []component.Config `json:",omitempty"`
+	}
 	err = json.Unmarshal(exportedData, &exportedConfig)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal exported config: %v", err)
 	}
 
 	// Use a custom comparison function to ignore the Enabled field
-	if !compareConfigs(exportedConfig, core) {
-		t.Errorf("Exported config does not match original: got %v, want %v", exportedConfig, core)
+	if !compareContextConfig(exportedConfig.Context, ctx) {
+		t.Errorf("Exported context config does not match original: got %v, want %v", exportedConfig.Context, ctx)
+	}
+	if !compareComponentsConfig(exportedConfig.Components, components) {
+		t.Errorf("Exported components config does not match original: got %v, want %v", exportedConfig.Components, components)
 	}
 }
 
-func compareConfigs(a, b config.CoreConfig) bool {
-	if a.Project != b.Project || a.Name != b.Name || a.ID != b.ID {
+func compareContextConfig(a, b contextConfig) bool {
+	return a.Project == b.Project && a.Name == b.Name && a.ID == b.ID
+}
+
+func compareComponentsConfig(a, b []component.Config) bool {
+	if len(a) != len(b) {
 		return false
 	}
-	if len(a.Components) != len(b.Components) {
-		return false
-	}
-	for i := range a.Components {
-		if a.Components[i].UUID != b.Components[i].UUID {
+	for i := range a {
+		if a[i].UUID != b[i].UUID {
 			return false
 		}
-		if a.Components[i].Name != b.Components[i].Name {
+		if a[i].Name != b[i].Name {
 			return false
 		}
-		if !bytes.Equal(a.Components[i].Options, b.Components[i].Options) {
+		if !bytes.Equal(a[i].Refs.Bytes(), b[i].Refs.Bytes()) {
+			return false
+		}
+		if !bytes.Equal(a[i].Options.Bytes(), b[i].Options.Bytes()) {
 			return false
 		}
 	}
@@ -253,9 +278,9 @@ func TestLoadOptionalConfig(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	cfg := config.NewBaseConfig(config.CoreConfig{})
+	cfg := config.NewBaseConfig(struct{}{})
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	cfg.SetFlags(fs)
+	cfg.SetupFlags(fs)
 
 	// Don't set the -c flag, let it use the default empty string
 	// fs.Parse([]string{"-c", nonExistentPath})
