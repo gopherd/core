@@ -40,6 +40,7 @@ type BaseConfig[Context any] struct {
 		source          string
 		export          string
 		stdin           bool
+		test            bool
 		disableTemplate bool
 	}
 	data struct {
@@ -71,12 +72,23 @@ func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
 	flagSet.StringVar(&c.flags.source, "c", "", "Config source (file path or URL)")
 	flagSet.StringVar(&c.flags.export, "e", "", "Path to export the config")
 	flagSet.BoolVar(&c.flags.stdin, "i", false, "Read config from stdin")
+	flagSet.BoolVar(&c.flags.test, "t", false, "Test config only")
 	flagSet.BoolVar(&c.flags.disableTemplate, "disable-template", false, "Disable template parsing for components")
 }
 
 // Load processes the configuration based on command-line flags.
 // It returns true if the program should exit after this call, along with any error encountered.
-func (c *BaseConfig[Context]) Load() (bool, error) {
+func (c *BaseConfig[Context]) Load() (exit bool, err error) {
+	defer func() {
+		if c.flags.test {
+			if err != nil {
+				fmt.Println("Config test failed: ", err)
+			} else {
+				fmt.Println("Config test successful")
+			}
+			exit = true
+		}
+	}()
 	if exit, err := c.load(); err != nil {
 		return exit, err
 	} else if exit {
