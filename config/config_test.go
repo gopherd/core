@@ -25,7 +25,7 @@ func TestNewBaseConfig(t *testing.T) {
 		Name:    "testapp",
 		ID:      1,
 	}
-	cfg := config.NewBaseConfig(ctx)
+	cfg := config.NewBaseConfig(ctx, nil)
 
 	if cfg == nil {
 		t.Fatal("NewBaseConfig returned nil")
@@ -37,7 +37,7 @@ func TestNewBaseConfig(t *testing.T) {
 }
 
 func TestSetFlags(t *testing.T) {
-	cfg := config.NewBaseConfig(struct{}{})
+	cfg := config.NewBaseConfig(struct{}{}, nil)
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	cfg.SetupFlags(fs)
 
@@ -132,7 +132,7 @@ func TestLoad(t *testing.T) {
 			cleanup := tt.setupMock()
 			defer cleanup()
 
-			cfg := config.NewBaseConfig(struct{}{})
+			cfg := config.NewBaseConfig(struct{}{}, nil)
 			fs := flag.NewFlagSet("test", flag.ContinueOnError)
 			cfg.SetupFlags(fs)
 			fs.Parse(os.Args[1:])
@@ -168,7 +168,7 @@ func TestLoadFromHTTPWithRedirects(t *testing.T) {
 	}))
 	defer server.Close()
 
-	cfg := config.NewBaseConfig(struct{}{})
+	cfg := config.NewBaseConfig(struct{}{}, nil)
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	cfg.SetupFlags(fs)
 	fs.Parse([]string{"-c", server.URL})
@@ -209,7 +209,7 @@ func TestExportConfig(t *testing.T) {
 		{Name: "comp1"},
 	}
 
-	cfg := config.NewBaseConfig(ctx, components...)
+	cfg := config.NewBaseConfig(ctx, components)
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	cfg.SetupFlags(fs)
 	fs.Parse([]string{"-e", exportPath})
@@ -278,7 +278,7 @@ func TestLoadOptionalConfig(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	cfg := config.NewBaseConfig(struct{}{})
+	cfg := config.NewBaseConfig(struct{}{}, nil)
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	cfg.SetupFlags(fs)
 

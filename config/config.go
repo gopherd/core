@@ -49,7 +49,7 @@ type BaseConfig[Context any] struct {
 }
 
 // NewBaseConfig creates a new BaseConfig with the given context and components.
-func NewBaseConfig[Context any](context Context, components ...component.Config) *BaseConfig[Context] {
+func NewBaseConfig[Context any](context Context, components []component.Config) *BaseConfig[Context] {
 	c := &BaseConfig[Context]{}
 	c.data.Context = context
 	c.data.Components = components
