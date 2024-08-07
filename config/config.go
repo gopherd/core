@@ -39,7 +39,6 @@ type BaseConfig[Context any] struct {
 		source          string
 		output          string
 		test            bool
-		print           bool
 		disableTemplate bool
 	}
 	data struct {
@@ -69,10 +68,9 @@ func (c *BaseConfig[Context]) GetComponents() []component.Config {
 // SetupFlags sets command-line arguments for the BaseConfig.
 func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
 	flagSet.StringVar(&c.flags.source, "c", "", "Specify the config source (file path, HTTP URL, or '-' for stdin)")
-	flagSet.StringVar(&c.flags.output, "o", "", "Specify the output path for the config (exits after output)")
+	flagSet.StringVar(&c.flags.output, "o", "", "Specify the output path (file path or '-' for stdout, exits after output)")
 	flagSet.BoolVar(&c.flags.test, "t", false, "Test the config for validity and exit")
 	flagSet.BoolVar(&c.flags.disableTemplate, "T", false, "Disable template parsing for components config")
-	flagSet.BoolVar(&c.flags.print, "p", false, "Print the config and exit")
 }
 
 // Load processes the configuration based on command-line flags.
@@ -86,9 +84,6 @@ func (c *BaseConfig[Context]) Load() (exit bool, err error) {
 				fmt.Println("Config test successful")
 			}
 			exit = true
-		}
-		if c.flags.print && err == nil {
-			c.encode(os.Stdout)
 		}
 		if err == nil && !exit && c.flags.source == "" {
 			err = errors.New("no config source specified")
