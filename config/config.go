@@ -35,10 +35,10 @@ type Config interface {
 // configuration structure for most applications.
 type BaseConfig[Context any] struct {
 	flags struct {
-		source          string
-		output          string
-		test            bool
-		disableTemplate bool
+		source   string
+		output   string
+		test     bool
+		template bool
 	}
 	data struct {
 		Context    Context            `json:",omitempty"`
@@ -69,7 +69,7 @@ func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
 	flagSet.StringVar(&c.flags.source, "c", "", "Specify the config source (file path, HTTP URL, or '-' for stdin)")
 	flagSet.StringVar(&c.flags.output, "o", "", "Specify the config output (file path or '-' for stdout) and exit")
 	flagSet.BoolVar(&c.flags.test, "t", false, "Test the config for validity and exit")
-	flagSet.BoolVar(&c.flags.disableTemplate, "T", false, "Disable template parsing for components config")
+	flagSet.BoolVar(&c.flags.template, "T", false, "Enable template parsing for components config")
 }
 
 // Load processes the configuration based on command-line flags.
@@ -96,7 +96,7 @@ func (c *BaseConfig[Context]) Load() (err error) {
 		return
 	}
 
-	if !c.flags.disableTemplate {
+	if c.flags.template {
 		if err = c.parseComponentTemplates(); err != nil {
 			err = fmt.Errorf("failed to parse components: %w", err)
 			return
