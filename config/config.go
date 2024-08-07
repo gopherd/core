@@ -169,9 +169,6 @@ func (c *BaseConfig[Context]) loadFromHTTP(source string) (io.ReadCloser, error)
 
 		if resp.StatusCode >= 300 && resp.StatusCode < 400 {
 			url = resp.Header.Get("Location")
-			if resp.StatusCode == http.StatusMovedPermanently || resp.StatusCode == http.StatusPermanentRedirect {
-				source = url
-			}
 			resp.Body.Close()
 			continue
 		}
