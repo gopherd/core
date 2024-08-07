@@ -1,4 +1,4 @@
-package buildinfo
+package builder
 
 import (
 	"fmt"
@@ -35,17 +35,17 @@ func AppName() string {
 	return strings.TrimSuffix(exe, ".exe")
 }
 
-// BuildString returns a formatted string containing all build information.
+// Info returns a formatted string containing all build information.
 // This includes the application name, version, branch, commit hash,
 // build datetime, and the Go runtime version.
-func BuildString() string {
+func Info() string {
 	return fmt.Sprintf("%s %s(%s: %s) built at %s by %s",
 		AppName(), version, branch, commit, datetime, runtime.Version())
 }
 
-// PrintVersion outputs the full build information to stdout.
-func PrintVersion() {
-	fmt.Println(BuildString())
+// Print outputs the full build information to stdout.
+func PrintInfo() {
+	fmt.Println(Info())
 }
 
 // Version returns the version string set at compile time.

@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gopherd/core/buildinfo"
+	"github.com/gopherd/core/builder"
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/config"
 	"github.com/gopherd/core/errkit"
@@ -36,18 +36,27 @@ type BaseService[Config config.Config] struct {
 	flags struct {
 		version bool
 	}
-
-	config     atomic.Value
-	components *component.Manager
+	versionFunc func()
+	config      atomic.Value
+	components  *component.Manager
 }
 
 // NewBaseService creates a new BaseService with the given configuration.
 func NewBaseService[Config config.Config](cfg Config) *BaseService[Config] {
 	s := &BaseService[Config]{
-		components: component.NewManager(),
+		components:  component.NewManager(),
+		versionFunc: builder.PrintInfo,
 	}
 	s.config.Store(cfg)
 	return s
+}
+
+// SetVersionFunc sets the version function.
+// The version function is called when the service is started with the -v flag.
+// If the version function is not set, the default version function is used.
+// And if set to nil, the version function is disabled.
+func (s *BaseService[Config]) SetVersionFunc(f func()) {
+	s.versionFunc = f
 }
 
 // GetComponent returns a component by its UUID.
@@ -74,7 +83,9 @@ func (s *BaseService[Config]) SetupFlags(flagSet *flag.FlagSet) {
 // Init implements the Service Init method.
 func (s *BaseService[Config]) Init(ctx context.Context) error {
 	if s.flags.version {
-		buildinfo.PrintVersion()
+		if s.versionFunc != nil {
+			s.versionFunc()
+		}
 		return errkit.NewExitError(0)
 	}
 
