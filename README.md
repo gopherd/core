@@ -1,5 +1,12 @@
 # gopherd/core
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/gopherd/core.svg)](https://pkg.go.dev/github.com/gopherd/core)
+[![Go Report Card](https://goreportcard.com/badge/github.com/gopherd/core)](https://goreportcard.com/report/github.com/gopherd/core)
+[![codecov](https://codecov.io/gh/gopherd/core/branch/main/graph/badge.svg)](https://codecov.io/gh/gopherd/core)
+[![Build Status](https://github.com/gopherd/core/workflows/Go/badge.svg)](https://github.com/gopherd/core/actions)
+[![License](https://img.shields.io/github/license/gopherd/core.svg)](https://github.com/gopherd/core/blob/main/LICENSE)
+
+
 `gopherd/core` is a comprehensive collection of Go packages providing a wide range of utilities and functionalities for Go projects.
 
 ## Overview
