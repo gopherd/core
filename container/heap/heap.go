@@ -1,3 +1,4 @@
+// Package heap provides a generic heap implementation.
 package heap
 
 import "sort"
