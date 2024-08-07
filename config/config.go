@@ -183,6 +183,9 @@ func (c *BaseConfig[Context]) loadFromHTTP(source string) (io.ReadCloser, error)
 
 // outputConfig outputs the current configuration to a JSON file.
 func (c *BaseConfig[Context]) outputConfig(path string) error {
+	if path == "-" {
+		return c.encode(os.Stdout)
+	}
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
