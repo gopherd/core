@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -152,7 +153,7 @@ func TestRun(t *testing.T) {
 	}
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		s.shutdown = true
+		s.shutdown.Store(true)
 	}()
 
 	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
@@ -192,7 +193,7 @@ type MockService struct {
 	started        bool
 	shutdownCalled bool
 	uninitialized  bool
-	shutdown       bool
+	shutdown       atomic.Bool
 	initErr        error
 	startErr       error
 }
@@ -224,7 +225,7 @@ func (m *MockService) Uninit(ctx context.Context) error {
 }
 
 func (m *MockService) IsBusy() bool {
-	return !m.shutdown
+	return !m.shutdown.Load()
 }
 
 // runTestService is a helper function to run a service for testing
