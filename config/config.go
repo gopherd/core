@@ -5,7 +5,6 @@
 package config
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -16,7 +15,7 @@ import (
 	"strings"
 
 	"github.com/gopherd/core/component"
-	"github.com/gopherd/core/raw"
+	"github.com/gopherd/core/errkit"
 	"github.com/gopherd/core/text/templateutil"
 )
 
@@ -25,8 +24,8 @@ type Config interface {
 	// SetupFlags sets the command-line flags for the configuration.
 	SetupFlags(flagSet *flag.FlagSet)
 
-	// Load loads the configuration and returns whether to exit and any error encountered.
-	Load() (exit bool, err error)
+	// Load loads the configuration
+	Load() error
 
 	// GetComponents returns the components in the configuration.
 	GetComponents() []component.Config
@@ -68,61 +67,68 @@ func (c *BaseConfig[Context]) GetComponents() []component.Config {
 // SetupFlags sets command-line arguments for the BaseConfig.
 func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
 	flagSet.StringVar(&c.flags.source, "c", "", "Specify the config source (file path, HTTP URL, or '-' for stdin)")
-	flagSet.StringVar(&c.flags.output, "o", "", "Specify the output path (file path or '-' for stdout, exits after output)")
+	flagSet.StringVar(&c.flags.output, "o", "", "Specify the config output (file path or '-' for stdout) and exit")
 	flagSet.BoolVar(&c.flags.test, "t", false, "Test the config for validity and exit")
 	flagSet.BoolVar(&c.flags.disableTemplate, "T", false, "Disable template parsing for components config")
 }
 
 // Load processes the configuration based on command-line flags.
 // It returns true if the program should exit after this call, along with any error encountered.
-func (c *BaseConfig[Context]) Load() (exit bool, err error) {
+func (c *BaseConfig[Context]) Load() (err error) {
 	defer func() {
 		if c.flags.test {
 			if err != nil {
 				fmt.Println("Config test failed: ", err)
 			} else {
 				fmt.Println("Config test successful")
+				// Exit after test
+				err = errkit.NewExitError(0)
 			}
-			exit = true
 		}
-		if err == nil && !exit && c.flags.source == "" {
+		if err == nil && c.flags.source == "" {
+			// Config source is required unless testing or outputting
 			err = errors.New("no config source specified")
 		}
 	}()
-	if exit, err := c.load(); err != nil {
-		return exit, err
-	} else if exit {
-		return true, nil
-	}
-	if !c.flags.disableTemplate {
-		if err := c.parseComponentTemplates(); err != nil {
-			return false, fmt.Errorf("failed to parse components: %w", err)
-		}
-	}
-	return false, nil
-}
 
-func (c *BaseConfig[Context]) load() (bool, error) {
-	switch c.flags.source {
-	case "":
-	case "-":
-		if err := c.decode(os.Stdin); err != nil {
-			return false, fmt.Errorf("failed to read config from stdin: %w", err)
-		}
-	default:
-		if err := c.loadFromSource(c.flags.source); err != nil {
-			return false, fmt.Errorf("failed to load config from source: %w", err)
+	err = c.load()
+	if err != nil {
+		return
+	}
+
+	if !c.flags.disableTemplate {
+		if err = c.parseComponentTemplates(); err != nil {
+			err = fmt.Errorf("failed to parse components: %w", err)
+			return
 		}
 	}
 
 	if c.flags.output != "" {
-		if err := c.outputConfig(c.flags.output); err != nil {
-			return false, fmt.Errorf("failed to output config: %w", err)
+		if err = c.outputConfig(c.flags.output); err != nil {
+			err = fmt.Errorf("failed to output config: %w", err)
+			return
 		}
-		return true, nil
+		// Exit after output
+		return errkit.NewExitError(0)
 	}
 
-	return false, nil
+	return nil
+}
+
+func (c *BaseConfig[Context]) load() error {
+	switch c.flags.source {
+	case "":
+	case "-":
+		if err := c.decode(os.Stdin); err != nil {
+			return fmt.Errorf("failed to read config from stdin: %w", err)
+		}
+	default:
+		if err := c.loadFromSource(c.flags.source); err != nil {
+			return fmt.Errorf("failed to load config from source: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // loadFromSource loads the configuration from a file or HTTP service.
@@ -216,31 +222,27 @@ func (c *BaseConfig[Context]) decode(r io.Reader) error {
 func (c *BaseConfig[Context]) parseComponentTemplates() error {
 	for i := range c.data.Components {
 		com := &c.data.Components[i]
-		if err := c.parseTemplateField(&com.Refs); err != nil {
-			return fmt.Errorf("parse Refs for component %s: %w", com.UUID, err)
+		if com.UUID != "" {
+			if new, err := templateutil.Execute(com.UUID, c.data.Context); err != nil {
+				return fmt.Errorf("parse UUID for component %s: %w", com.UUID, err)
+			} else {
+				com.UUID = new
+			}
 		}
-
-		if err := c.parseTemplateField(&com.Options); err != nil {
-			return fmt.Errorf("parse Options for component %s: %w", com.UUID, err)
+		if com.Refs.Len() > 0 {
+			if new, err := templateutil.Execute(com.Refs.String(), c.data.Context); err != nil {
+				return fmt.Errorf("parse Refs for component %s: %w", com.UUID, err)
+			} else {
+				com.Refs.SetString(new)
+			}
+		}
+		if com.Options.Len() > 0 {
+			if new, err := templateutil.Execute(com.Options.String(), c.data.Context); err != nil {
+				return fmt.Errorf("parse Options for component %s: %w", com.UUID, err)
+			} else {
+				com.Options.SetString(new)
+			}
 		}
 	}
-	return nil
-}
-
-// parseTemplateField parses the raw.Object field as a template.
-func (c *BaseConfig[Context]) parseTemplateField(field *raw.Object) error {
-	data := field.Bytes()
-
-	tmpl, err := templateutil.DefaultTemplate("field").Parse(string(data))
-	if err != nil {
-		return fmt.Errorf("parse template: %w", err)
-	}
-
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, c.data.Context); err != nil {
-		return fmt.Errorf("execute template: %w", err)
-	}
-
-	field.SetBytes(buf.Bytes())
 	return nil
 }

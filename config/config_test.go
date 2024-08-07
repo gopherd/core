@@ -13,6 +13,7 @@ import (
 
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/config"
+	"github.com/gopherd/core/errkit"
 )
 
 func TestNewBaseConfig(t *testing.T) {
@@ -41,7 +42,7 @@ func TestSetFlags(t *testing.T) {
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	cfg.SetupFlags(fs)
 
-	flags := []string{"-c", "config.json", "-e", "export.json", "-i"}
+	flags := []string{"-c", "config.json", "-o", "export.json", "-t", "-T"}
 	err := fs.Parse(flags)
 	if err != nil {
 		t.Fatalf("Failed to parse flags: %v", err)
@@ -52,14 +53,18 @@ func TestSetFlags(t *testing.T) {
 		t.Errorf("Expected -c flag to be 'config.json', got %v", c)
 	}
 
-	e := fs.Lookup("e")
+	e := fs.Lookup("o")
 	if e == nil || e.Value.String() != "export.json" {
-		t.Errorf("Expected -e flag to be 'export.json', got %v", e)
+		t.Errorf("Expected -o flag to be 'export.json', got %v", e)
 	}
 
-	i := fs.Lookup("i")
-	if i == nil || i.Value.String() != "true" {
-		t.Errorf("Expected -i flag to be 'true', got %v", i)
+	test := fs.Lookup("t")
+	if test == nil || test.Value.String() != "true" {
+		t.Errorf("Expected -i flag to be 'true', got %v", test)
+	}
+	disableTemplate := fs.Lookup("T")
+	if disableTemplate == nil || disableTemplate.Value.String() != "true" {
+		t.Errorf("Expected -T flag to be 'true', got %v", disableTemplate)
 	}
 }
 
@@ -117,7 +122,7 @@ func TestLoad(t *testing.T) {
 				}
 				exportPath := filepath.Join(tmpDir, "export.json")
 				oldArgs := os.Args
-				os.Args = []string{"cmd", "-e", exportPath}
+				os.Args = []string{"cmd", "-o", exportPath}
 				return func() {
 					os.Args = oldArgs
 					os.RemoveAll(tmpDir)
@@ -137,7 +142,11 @@ func TestLoad(t *testing.T) {
 			cfg.SetupFlags(fs)
 			fs.Parse(os.Args[1:])
 
-			exit, err := cfg.Load()
+			err := cfg.Load()
+			_, exit := errkit.ExitCode(err)
+			if exit {
+				err = nil
+			}
 
 			if exit != tt.expectedExit {
 				t.Errorf("Expected exit to be %v, got %v", tt.expectedExit, exit)
@@ -173,7 +182,8 @@ func TestLoadFromHTTPWithRedirects(t *testing.T) {
 	cfg.SetupFlags(fs)
 	fs.Parse([]string{"-c", server.URL})
 
-	exit, err := cfg.Load()
+	err := cfg.Load()
+	_, exit := errkit.ExitCode(err)
 
 	if exit {
 		t.Errorf("Expected exit to be false, got true")
@@ -212,15 +222,18 @@ func TestExportConfig(t *testing.T) {
 	cfg := config.NewBaseConfig(ctx, components)
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	cfg.SetupFlags(fs)
-	fs.Parse([]string{"-e", exportPath})
+	fs.Parse([]string{"-o", exportPath})
 
-	exit, err := cfg.Load()
-
-	if !exit {
-		t.Errorf("Expected exit to be true, got false")
+	err = cfg.Load()
+	_, exit := errkit.ExitCode(err)
+	if exit {
+		err = nil
 	}
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
+	}
+	if !exit {
+		t.Errorf("Expected exit to be true, got false")
 	}
 
 	exportedData, err := os.ReadFile(exportPath)
@@ -271,7 +284,7 @@ func compareComponentsConfig(a, b []component.Config) bool {
 	return true
 }
 
-func TestLoadOptionalConfig(t *testing.T) {
+func TestLoadConfigWithoutSource(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "config_test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
@@ -285,12 +298,13 @@ func TestLoadOptionalConfig(t *testing.T) {
 	// Don't set the -c flag, let it use the default empty string
 	// fs.Parse([]string{"-c", nonExistentPath})
 
-	exit, err := cfg.Load()
+	err = cfg.Load()
+	_, exit := errkit.ExitCode(err)
 
 	if exit {
 		t.Errorf("Expected exit to be false, got true")
 	}
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
 	}
 }

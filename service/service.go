@@ -3,7 +3,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -14,6 +13,7 @@ import (
 	"github.com/gopherd/core/buildinfo"
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/config"
+	"github.com/gopherd/core/errkit"
 	"github.com/gopherd/core/lifecycle"
 )
 
@@ -75,14 +75,12 @@ func (s *BaseService[Config]) SetupFlags(flagSet *flag.FlagSet) {
 func (s *BaseService[Config]) Init(ctx context.Context) error {
 	if s.flags.version {
 		buildinfo.PrintVersion()
-		return &ExitError{Code: 0}
+		return errkit.NewExitError(0)
 	}
 
 	cfg := s.Config()
-	if exit, err := cfg.Load(); err != nil {
+	if err := cfg.Load(); err != nil {
 		return err
-	} else if exit {
-		return &ExitError{Code: 0}
 	}
 
 	for _, c := range cfg.GetComponents() {
@@ -123,20 +121,11 @@ func (s *BaseService[Config]) Shutdown(ctx context.Context) error {
 	return s.components.Shutdown(ctx)
 }
 
-// ExitError represents an error that causes the service to exit.
-type ExitError struct {
-	Code int
-}
-
-func (e *ExitError) Error() string {
-	return fmt.Sprintf("exit with code %d", e.Code)
-}
-
 // Run starts and manages the lifecycle of the given service.
 func Run(s Service) {
 	if err := run(s, flag.CommandLine); err != nil {
-		if exit := (*ExitError)(nil); errors.As(err, &exit) {
-			os.Exit(exit.Code)
+		if exitCode, ok := errkit.ExitCode(err); ok {
+			os.Exit(exitCode)
 		}
 		os.Exit(1)
 	}
@@ -159,8 +148,8 @@ func run(s Service, flagSet *flag.FlagSet) error {
 	}()
 	if err := s.Init(context.Background()); err != nil {
 		// If the error is an ExitError, return it directly without logging.
-		if exit := (*ExitError)(nil); errors.As(err, &exit) {
-			return exit
+		if _, ok := errkit.ExitCode(err); ok {
+			return err
 		}
 		slog.Error("failed to initialize service", slog.Any("error", err))
 		return err

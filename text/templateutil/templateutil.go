@@ -2,6 +2,7 @@
 package templateutil
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"math"
@@ -111,6 +112,19 @@ func DefaultFuncs() template.FuncMap {
 // DefaultTemplate creates a new template with the default functions.
 func DefaultTemplate(name string) *template.Template {
 	return template.New(name).Funcs(DefaultFuncs())
+}
+
+// Execute executes the default template with the given text and data.
+func Execute(text string, data any) (string, error) {
+	var buf bytes.Buffer
+	t := DefaultTemplate("default")
+	if t, err := t.Parse(text); err != nil {
+		return "", err
+	} else if err := t.Execute(&buf, data); err != nil {
+		return "", err
+	} else {
+		return buf.String(), nil
+	}
 }
 
 // toFloat64 converts various numeric types to float64.

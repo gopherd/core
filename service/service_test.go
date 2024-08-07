@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gopherd/core/component"
+	"github.com/gopherd/core/errkit"
 )
 
 func TestMain(m *testing.M) {
@@ -24,7 +25,7 @@ type MockConfig struct {
 }
 
 func (m *MockConfig) SetupFlags(*flag.FlagSet) {}
-func (m *MockConfig) Load() (bool, error)      { return false, nil }
+func (m *MockConfig) Load() error              { return nil }
 func (m *MockConfig) GetComponents() []component.Config {
 	return m.components
 }
@@ -165,10 +166,10 @@ func TestRun(t *testing.T) {
 func TestRun_ExitError(t *testing.T) {
 	s := &MockService{
 		BaseService: NewBaseService(&MockConfig{}),
-		initErr:     &ExitError{Code: 42},
+		initErr:     errkit.NewExitError(42),
 	}
 	err := runTestService(t, "TestRun_ExitError", s)
-	if exitErr, ok := err.(*ExitError); !ok || exitErr.Code != 42 {
+	if exitCode, ok := errkit.ExitCode(err); !ok || exitCode != 42 {
 		t.Errorf("Expected ExitError with code 42, got %v", err)
 	}
 }
@@ -176,7 +177,7 @@ func TestRun_ExitError(t *testing.T) {
 func TestRun_OtherError(t *testing.T) {
 	s := &MockService{
 		BaseService: NewBaseService(&MockConfig{}),
-		initErr:     &ExitError{Code: 1},
+		initErr:     errkit.NewExitError(1),
 	}
 	err := runTestService(t, "TestRun_OtherError", s)
 	if err == nil || err.Error() != "exit with code 1" {
@@ -243,6 +244,6 @@ func runTestService(t *testing.T, caseName string, s Service) error {
 	case err := <-errCh:
 		return err
 	case <-time.After(1 * time.Second):
-		return &ExitError{Code: 1}
+		return errkit.NewExitError(1)
 	}
 }
