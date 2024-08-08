@@ -8,7 +8,7 @@
 *.exe
 testdata/
 
-# temp
-/io/memfs/
+# go coverage files
 coverage.out
 coverage.txt
+coverage.html
