@@ -1,4 +1,4 @@
-# gopherd/core
+# 🚀 gopherd/core
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/gopherd/core.svg)](https://pkg.go.dev/github.com/gopherd/core)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gopherd/core)](https://goreportcard.com/report/github.com/gopherd/core)
@@ -6,26 +6,25 @@
 [![Build Status](https://github.com/gopherd/core/workflows/Go/badge.svg)](https://github.com/gopherd/core/actions)
 [![License](https://img.shields.io/github/license/gopherd/core.svg)](https://github.com/gopherd/core/blob/main/LICENSE)
 
-`gopherd/core` is a powerful Go library that provides a component-based development framework for building backend services, along with a set of essential utility functions.
+`gopherd/core` is a powerful Go library that provides a component-based development framework for building backend services, along with a set of essential utility functions. Let's dive in! 💡
 
-## Overview
+## 🌟 Overview
 
-This library offers a robust mechanism for component-based development, enabling Go developers to create highly modular and maintainable backend services. By leveraging `gopherd/core`, developers can:
+This library offers a mechanism for component-based development, enabling Go developers to create highly modular and maintainable backend services. By leveraging `gopherd/core`, developers can:
 
-- Easily create and manage components for various functionalities (e.g., database connections, caching, authentication)
-- Implement a plugin-like architecture for extensible services
-- Utilize a set of fundamental helper functions to streamline common tasks
+- 🧩 Easily create and manage components for various functionalities (e.g., database connections, caching, authentication)
+- 🔌 Implement a plugin-like architecture for extensible services
+- 🛠️ Utilize a set of fundamental helper functions to streamline common tasks
 
-The component-based approach allows for better organization, reusability, and scalability of your Go backend services.
+The component-based approach allows for better organization, reusability, and scalability of your Go backend services. It's like LEGO for your code! 🧱
 
-## Key Features
+## 🔥 Key Features
 
-- Component-based architecture for modular service development
-- Simplified configuration management for components
-- Easy integration of custom components
-- Helper functions for various low-level operations
+- **Component-based architecture**: Easily create and manage reusable components
+- **Flexible configuration**: Load configurations from files, URLs, or standard input
+- **Template processing**: Use Go templates in your component configurations
 
-## Installation
+## 📦 Installation
 
 To use `gopherd/core` in your Go project, install it using `go get`:
 
@@ -33,95 +32,141 @@ To use `gopherd/core` in your Go project, install it using `go get`:
 go get github.com/gopherd/core
 ```
 
-## Usage Example
+## ⚡ Quick Start
 
-Here's a simplified example of how to use `gopherd/core` to create a modular backend service:
+Here's a simple example of how to use the library:
 
 ```go
+// demo/main.go
 package main
 
 import (
-    "github.com/gopherd/core/component"
-    "github.com/gopherd/core/config"
-    "github.com/gopherd/core/raw"
-    "github.com/gopherd/core/service"
+	"context"
+	"fmt"
 
-    // your components
-    "github.com/your/components/logger"
-    "github.com/your/components/db"
-    "github.com/your/components/httpserver"
-    "github.com/your/components/blockexit"
+	"github.com/gopherd/core/component"
+	"github.com/gopherd/core/service"
 )
 
+// helloComponent is a simple example of a component.
+type helloComponent struct {
+	component.BaseComponent[struct {
+		Message string
+	}]
+}
+
+func (c *helloComponent) Init(ctx context.Context) error {
+	fmt.Println("Hello, " + c.Options().Message + "!")
+	return nil
+}
+
+func init() {
+	component.Register("hello", func() component.Component { return &helloComponent{} })
+}
+
 func main() {
-    // Define context for your service
-    var context struct {
-        Name       string
-        ID         int
-    }
-    context.Name = "MyService"
-    context.ID = 1
-
-    // Run the service with components
-    service.Run(service.NewBaseService(config.NewBaseConfig(
-        context,
-        []component.Config{
-            {
-                Name:    logger.Name,
-                Options: raw.MustJSON(logger.DefaultOptions(nil)),
-            },
-            {
-                Name: db.Name,
-                Options: raw.MustJSON(db.Options{
-                    Driver: "postgres",
-                    DSN:    "host=localhost user=myuser password=mypassword dbname=mydb sslmode=disable",
-                }),
-            },
-            {
-                Name: httpserver.Name,
-                Options: raw.MustJSON(httpserver.Options{
-                    Addr: ":8080",
-                }),
-            },
-
-            // Add more custom components to handle your business logic, such as:
-            // - Auth component for processing authorization
-            // - Users component for managing application users
-            // ...
-
-            {
-                Name: blockexit.Name,
-            },
-        },
-    )))
+	service.Run()
 }
 ```
 
-This example demonstrates:
+Yes, it's that simple! 😮 With just these few lines of code, you can leverage the power of our component-based architecture. The simplicity of this example demonstrates how our library abstracts away the complexities of component management, allowing you to focus on building your application logic. Magic, right? ✨
 
-1. Configuring multiple components (logger, database, HTTP server, ...)
-2. Running the service with the configured components
+### Basic Usage
 
-Remember to implement your custom business logic within these components or create additional components as needed for your specific use case.
+Run your application with a configuration file:
 
-## Documentation
+```
+./demo app.json
+```
+
+### Load Configuration from Different Sources
+
+- From a file: `./demo app.json` 📄
+- From a URL: `./demo http://example.com/app.json` 🌐
+- From stdin: `echo '{"Components":[...]}' | ./demo -` ⌨️
+
+### Command-line Options
+
+- `-v`: Print version information 🏷️
+- `-p`: Print loaded configuration 🖨️
+- `-t`: Test the configuration for validity ✅
+- `-T`: Enable template processing for component configurations 🧩
+
+### Example with Template Processing
+
+```
+echo '{"Context":{"Name":"world"},"Components":[{"Name":"hello","Options":{"Msg":"{{.Name}}"}}]}' | go run . -T -
+```
+
+This example demonstrates how to use template processing in your component configurations. Cool, huh? 😎
+
+### Help
+
+For a full list of options and usage examples, run:
+
+```
+./demo -h
+```
+
+This will display the following help information:
+
+```
+Usage: ./demo [OPTIONS] <config>
+       ./demo <path/to/file>   (Read config from file)
+       ./demo <url>            (Read config from http)
+       ./demo -                (Read config from stdin)
+       ./demo -v               (Print version information)
+       ./demo -p               (Print loaded config)
+       ./demo -t               (Test the config for validity)
+       ./demo -T               (Enable template processing for components config)
+
+Examples:
+       ./demo app.json
+       ./demo http://example.com/app.json
+       echo '{"Components":[{"Name":"$hello","Options":{"Message":"world"}}]}' | ./demo -
+       ./demo -p app.json
+       ./demo -t app.json
+       ./demo -T app.json
+       ./demo -p -T app.json
+       ./demo -t -T app.json
+```
+
+Here's an example `app.json`
+
+```json
+{
+	"Context": {
+		"Name": "world"
+	},
+	"Components": [
+		{
+			"Name": "hello",
+			"Options": {
+				"Msg": "{{.Name}}"
+			}
+		}
+	]
+}
+```
+
+## 📚 Documentation
 
 For detailed documentation of each package and component, please refer to the GoDoc:
 
 [https://pkg.go.dev/github.com/gopherd/core](https://pkg.go.dev/github.com/gopherd/core)
 
-## Contributing
+## 👥 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please feel free to submit a Pull Request. Let's make this library even more awesome together! 🤝
 
-## License
+## 📜 License
 
 This project is licensed under the [MIT License](LICENSE).
 
-## Support
+## 🆘 Support
 
-If you encounter any problems or have any questions, please open an issue in this repository.
+If you encounter any problems or have any questions, please open an issue in this repository. We're here to help! 💪
 
 ---
 
-We hope you find `gopherd/core` valuable for your Go backend projects! Whether you're building a small microservice or a complex distributed system, `gopherd/core` provides the foundation for creating modular, maintainable, and efficient backend services.
+We hope you find `gopherd/core` valuable for your Go backend projects! Whether you're building a small microservice or a complex distributed system, `gopherd/core` provides the foundation for creating modular, maintainable, and efficient backend services. Happy coding! 🎉

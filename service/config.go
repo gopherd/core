@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -109,24 +110,14 @@ func (c *Config[T]) processTemplate() error {
 	return nil
 }
 
-// output outputs the current configuration to a JSON file or stdout if path is "-".
-func (c Config[T]) output(path string) error {
-	var w io.Writer
-	if path == "-" {
-		w = os.Stdout
-	} else {
-		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-		if err != nil {
-			return fmt.Errorf("failed to open file: %w", err)
-		}
-		defer f.Close()
-		w = f
-	}
-	encoder := json.NewEncoder(w)
+func (c Config[T]) output() {
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "    ")
 	if err := encoder.Encode(c); err != nil {
-		return fmt.Errorf("failed to encode config: %w", err)
+		fmt.Fprintf(os.Stderr, "failed to encode config: %e\n", err)
+		return
 	}
-	return nil
+	fmt.Fprint(os.Stdout, buf.String())
 }

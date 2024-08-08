@@ -25,11 +25,11 @@ type Service interface {
 // BaseService implements the Service interface.
 type BaseService[T any] struct {
 	flags struct {
-		version  bool   // print version information
-		source   string // config source (file path, HTTP URL, or '-' for stdin)
-		output   string // config output (file path or '-' for stdout)
-		test     bool   // test the config for validity
-		template bool   // enable template parsing for components config
+		source         string // config source path, URL or "-" for stdin
+		version        bool   // print version information and exit
+		printConfig    bool   // output the config and exit
+		testConfig     bool   // test the config for validity and exit
+		enableTemplate bool   // enable template parsing for components config
 	}
 	versionFunc func()
 
@@ -38,10 +38,10 @@ type BaseService[T any] struct {
 }
 
 // NewBaseService creates a new BaseService with the given configuration.
-func NewBaseService[T any](context T) *BaseService[T] {
+func NewBaseService[T any](config Config[T]) *BaseService[T] {
 	return &BaseService[T]{
 		versionFunc: builder.PrintInfo,
-		config:      Config[T]{Context: context},
+		config:      config,
 		components:  component.NewGroup(),
 	}
 }
@@ -65,25 +65,61 @@ func (s *BaseService[T]) Config() *Config[T] {
 }
 
 // setupCommandLineFlags sets command-line arguments for the service.
-func (s *BaseService[T]) setupCommandLineFlags() {
+func (s *BaseService[T]) setupCommandLineFlags() error {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [-v] [-c <path>] [-o <path>] [-t] [T]\n\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "Options:\n")
-		flag.PrintDefaults()
+		name := os.Args[0]
+		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] <config>\n", name)
+		fmt.Fprintf(os.Stderr, "       %s <path/to/file>   (Read config from file)\n", name)
+		fmt.Fprintf(os.Stderr, "       %s <url>            (Read config from http)\n", name)
+		fmt.Fprintf(os.Stderr, "       %s -                (Read config from stdin)\n", name)
+		fmt.Fprintf(os.Stderr, "       %s -v               (Print version information)\n", name)
+		fmt.Fprintf(os.Stderr, "       %s -p               (Print loaded config)\n", name)
+		fmt.Fprintf(os.Stderr, "       %s -t               (Test the config for validity)\n", name)
+		fmt.Fprintf(os.Stderr, "       %s -T               (Enable template processing for components config)\n", name)
+		fmt.Fprintf(os.Stderr, "\nExamples:\n")
+		fmt.Fprintf(os.Stderr, "       %s app.json\n", name)
+		fmt.Fprintf(os.Stderr, "       %s http://example.com/app.json\n", name)
+		fmt.Fprintf(os.Stderr, `       echo '{"Components":[{"Name":"$hello","Options":{"Message":"world"}}]}' | %s -`+"\n", name)
+		fmt.Fprintf(os.Stderr, "       %s -p app.json\n", name)
+		fmt.Fprintf(os.Stderr, "       %s -t app.json\n", name)
+		fmt.Fprintf(os.Stderr, "       %s -T app.json\n", name)
+		fmt.Fprintf(os.Stderr, "       %s -p -T app.json\n", name)
+		fmt.Fprintf(os.Stderr, "       %s -t -T app.json\n", name)
 	}
 
-	flag.BoolVar(&s.flags.version, "v", false, "Print version information including build details")
-	flag.StringVar(&s.flags.source, "c", "", "Specify the config source (file path, HTTP URL, or '-' for stdin)")
-	flag.StringVar(&s.flags.output, "o", "", "Specify the config output (file path or '-' for stdout) and exit")
-	flag.BoolVar(&s.flags.test, "t", false, "Test the config for validity and exit")
-	flag.BoolVar(&s.flags.template, "T", false, "Enable template processing for components config")
+	flag.BoolVar(&s.flags.version, "v", false, "")
+	flag.BoolVar(&s.flags.printConfig, "p", false, "")
+	flag.BoolVar(&s.flags.testConfig, "t", false, "")
+	flag.BoolVar(&s.flags.enableTemplate, "T", false, "")
 
 	flag.Parse()
+
+	if s.flags.version {
+		// print version information and exit
+		if s.versionFunc != nil {
+			s.versionFunc()
+		}
+		return errkit.NewExitError(0)
+	}
+
+	if flag.NArg() == 0 || flag.Arg(0) == "" {
+		fmt.Fprintf(os.Stderr, "No config source specified!\n\n")
+		flag.Usage()
+		return errkit.NewExitError(2)
+	}
+	if flag.NArg() > 1 {
+		fmt.Fprintf(os.Stderr, "Too many arguments!\n\n")
+		flag.Usage()
+		return errkit.NewExitError(2)
+	}
+	s.flags.source = flag.Arg(0)
+
+	return nil
 }
 
 func (s *BaseService[T]) processConfig() (err error) {
 	defer func() {
-		if s.flags.test {
+		if s.flags.testConfig {
 			if err != nil {
 				fmt.Println("Config test failed: ", err)
 			} else {
@@ -92,30 +128,21 @@ func (s *BaseService[T]) processConfig() (err error) {
 				err = errkit.NewExitError(0)
 			}
 		}
-		if err == nil && s.flags.source == "" {
-			// Config source is required unless testing or outputting
-			fmt.Fprintf(os.Stderr, "No config source specified!\n\n")
-			flag.Usage()
-			err = errkit.NewExitError(2)
-		}
 	}()
 
 	if err = s.config.load(s.flags.source); err != nil {
 		return
 	}
 
-	if s.flags.template {
+	if s.flags.enableTemplate {
 		if err = s.config.processTemplate(); err != nil {
 			err = fmt.Errorf("failed to process template: %w", err)
 			return
 		}
 	}
 
-	if s.flags.output != "" {
-		if err = s.config.output(s.flags.output); err != nil {
-			err = fmt.Errorf("failed to output config: %w", err)
-			return
-		}
+	if s.flags.printConfig {
+		s.config.output()
 		// Exit after output
 		return errkit.NewExitError(0)
 	}
@@ -125,18 +152,13 @@ func (s *BaseService[T]) processConfig() (err error) {
 
 // Init implements the Service Init method.
 func (s *BaseService[T]) Init(ctx context.Context) error {
-	s.setupCommandLineFlags()
-
-	if s.flags.version {
-		if s.versionFunc != nil {
-			s.versionFunc()
-		}
-		return errkit.NewExitError(0)
-	}
-
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: slog.LevelWarn,
 	})))
+
+	if err := s.setupCommandLineFlags(); err != nil {
+		return err
+	}
 
 	if err := s.processConfig(); err != nil {
 		return err
