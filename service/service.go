@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"sync/atomic"
 
 	"github.com/gopherd/core/builder"
 	"github.com/gopherd/core/component"
@@ -19,31 +18,32 @@ import (
 type Service interface {
 	lifecycle.Lifecycle
 
-	// SetupFlags setups the command-line flags for the service.
-	SetupFlags(flagSet *flag.FlagSet)
-
 	// GetComponent returns a component by its UUID.
 	GetComponent(uuid string) component.Component
 }
 
 // BaseService implements the Service interface.
-type BaseService[T Config] struct {
+type BaseService[T any] struct {
 	flags struct {
-		version bool
+		version  bool   // print version information
+		source   string // config source (file path, HTTP URL, or '-' for stdin)
+		output   string // config output (file path or '-' for stdout)
+		test     bool   // test the config for validity
+		template bool   // enable template parsing for components config
 	}
 	versionFunc func()
-	config      atomic.Value
-	components  *component.Group
+
+	config     Config[T]
+	components *component.Group
 }
 
 // NewBaseService creates a new BaseService with the given configuration.
-func NewBaseService[T Config](cfg T) *BaseService[T] {
-	s := &BaseService[T]{
-		components:  component.NewGroup(),
+func NewBaseService[T any](context T) *BaseService[T] {
+	return &BaseService[T]{
 		versionFunc: builder.PrintInfo,
+		config:      Config[T]{Context: context},
+		components:  component.NewGroup(),
 	}
-	s.config.Store(cfg)
-	return s
 }
 
 // SetVersionFunc sets the version function.
@@ -60,18 +60,73 @@ func (s *BaseService[T]) GetComponent(uuid string) component.Component {
 }
 
 // Config returns the current configuration.
-func (s *BaseService[T]) Config() T {
-	return s.config.Load().(T)
+func (s *BaseService[T]) Config() *Config[T] {
+	return &s.config
 }
 
-// SetupFlags implements the Service SetupFlags method.
-func (s *BaseService[T]) SetupFlags(flagSet *flag.FlagSet) {
-	s.Config().SetupFlags(flagSet)
-	flagSet.BoolVar(&s.flags.version, "v", false, "Print version information including build details")
+// setupCommandLineFlags sets command-line arguments for the service.
+func (s *BaseService[T]) setupCommandLineFlags() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s [-v] [-c <path>] [-o <path>] [-t] [T]\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Options:\n")
+		flag.PrintDefaults()
+	}
+
+	flag.BoolVar(&s.flags.version, "v", false, "Print version information including build details")
+	flag.StringVar(&s.flags.source, "c", "", "Specify the config source (file path, HTTP URL, or '-' for stdin)")
+	flag.StringVar(&s.flags.output, "o", "", "Specify the config output (file path or '-' for stdout) and exit")
+	flag.BoolVar(&s.flags.test, "t", false, "Test the config for validity and exit")
+	flag.BoolVar(&s.flags.template, "T", false, "Enable template processing for components config")
+
+	flag.Parse()
+}
+
+func (s *BaseService[T]) processConfig() (err error) {
+	defer func() {
+		if s.flags.test {
+			if err != nil {
+				fmt.Println("Config test failed: ", err)
+			} else {
+				fmt.Println("Config test successful")
+				// Exit after test
+				err = errkit.NewExitError(0)
+			}
+		}
+		if err == nil && s.flags.source == "" {
+			// Config source is required unless testing or outputting
+			fmt.Fprintf(os.Stderr, "No config source specified!\n\n")
+			flag.Usage()
+			err = errkit.NewExitError(2)
+		}
+	}()
+
+	if err = s.config.load(s.flags.source); err != nil {
+		return
+	}
+
+	if s.flags.template {
+		if err = s.config.processTemplate(); err != nil {
+			err = fmt.Errorf("failed to process template: %w", err)
+			return
+		}
+	}
+
+	if s.flags.output != "" {
+		if err = s.config.output(s.flags.output); err != nil {
+			err = fmt.Errorf("failed to output config: %w", err)
+			return
+		}
+		// Exit after output
+		return errkit.NewExitError(0)
+	}
+
+	return nil
 }
 
 // Init implements the Service Init method.
 func (s *BaseService[T]) Init(ctx context.Context) error {
+	s.setupCommandLineFlags()
+
 	if s.flags.version {
 		if s.versionFunc != nil {
 			s.versionFunc()
@@ -79,12 +134,15 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 		return errkit.NewExitError(0)
 	}
 
-	cfg := s.Config()
-	if err := cfg.Load(); err != nil {
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelWarn,
+	})))
+
+	if err := s.processConfig(); err != nil {
 		return err
 	}
 
-	for _, c := range cfg.GetComponents() {
+	for _, c := range s.config.Components {
 		creator := component.Lookup(c.Name)
 		if creator == nil {
 			return fmt.Errorf("unknown component name: %q", c.Name)
@@ -124,14 +182,8 @@ func (s *BaseService[T]) Shutdown(ctx context.Context) error {
 
 // Run is a shortcut for running a service with a default configuration.
 func Run() {
-	var context = make(map[string]any)
-	RunService(NewBaseService(NewBaseConfig(context, nil)))
-}
-
-// RunService starts and manages the lifecycle of the given service.
-// If the service returns an error, the program exits with the error code or 1.
-func RunService(s Service) {
-	if err := RunServiceFlagSet(s, flag.CommandLine); err != nil {
+	type context map[string]any
+	if err := RunService(NewBaseService(Config[context]{Context: context{}})); err != nil {
 		if exitCode, ok := errkit.ExitCode(err); ok {
 			os.Exit(exitCode)
 		}
@@ -139,16 +191,9 @@ func RunService(s Service) {
 	}
 }
 
-// RunServiceFlagSet starts and manages the lifecycle of the given service with the given flag set.
-// It's not recommended to use this function directly unless you need to customize the flag set.
-func RunServiceFlagSet(s Service, flagSet *flag.FlagSet) error {
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelWarn,
-	})))
-
-	s.SetupFlags(flagSet)
-	flagSet.Parse(os.Args[1:])
-
+// RunService starts and manages the lifecycle of the given service.
+// If the service returns an error, the program exits with the error code or 1.
+func RunService(s Service) error {
 	defer func() {
 		slog.Info("uninitializing service")
 		if err := s.Uninit(context.Background()); err != nil {
