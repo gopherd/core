@@ -103,7 +103,7 @@ Run your application with a configuration file:
 ### Command-line Options
 
 - `-v`: Print version information 🏷️
-- `-p`: Print loaded configuration 🖨️
+- `-p`: Print the configuration 🖨️
 - `-t`: Test the configuration for validity ✅
 - `-T`: Enable template processing for component configurations 🧩
 
