@@ -79,7 +79,7 @@ func (s *BaseService[T]) setupCommandLineFlags() error {
 		fmt.Fprintf(os.Stderr, "\nExamples:\n")
 		fmt.Fprintf(os.Stderr, "       %s app.json\n", name)
 		fmt.Fprintf(os.Stderr, "       %s http://example.com/app.json\n", name)
-		fmt.Fprintf(os.Stderr, `       echo '{"Components":[{"Name":"$hello","Options":{"Message":"world"}}]}' | %s -`+"\n", name)
+		fmt.Fprintf(os.Stderr, `       echo '{"Components":[]}' | %s -`+"\n", name)
 		fmt.Fprintf(os.Stderr, "       %s -p app.json\n", name)
 		fmt.Fprintf(os.Stderr, "       %s -t app.json\n", name)
 		fmt.Fprintf(os.Stderr, "       %s -T app.json\n", name)
