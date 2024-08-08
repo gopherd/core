@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"os"
 	"sync/atomic"
-	"time"
 
 	"github.com/gopherd/core/builder"
 	"github.com/gopherd/core/component"
@@ -20,10 +19,7 @@ import (
 type Service interface {
 	lifecycle.Lifecycle
 
-	// IsBusy reports whether the service is busy.
-	IsBusy() bool
-
-	// SetupFlags sets command-line flags for the service.
+	// SetupFlags setups the command-line flags for the service.
 	SetupFlags(flagSet *flag.FlagSet)
 
 	// GetComponent returns a component by its UUID.
@@ -61,11 +57,6 @@ func (s *BaseService[T]) SetVersionFunc(f func()) {
 // GetComponent returns a component by its UUID.
 func (s *BaseService[T]) GetComponent(uuid string) component.Component {
 	return s.components.GetComponent(uuid)
-}
-
-// IsBusy implements the Service IsBusy method.
-func (s *BaseService[T]) IsBusy() bool {
-	return false
 }
 
 // Config returns the current configuration.
@@ -185,23 +176,5 @@ func RunServiceFlagSet(s Service, flagSet *flag.FlagSet) error {
 	if err != nil {
 		slog.Error("failed to start service", slog.Any("error", err))
 	}
-
-	slog.Info("stopping service")
-
-	for i := 0; s.IsBusy() && i < 4; i++ {
-		time.Sleep(time.Millisecond * time.Duration(1<<(i*2)))
-	}
-
-	if s.IsBusy() {
-		slog.Info("waiting for service to stop")
-		ticker := time.NewTicker(time.Millisecond * 100)
-		defer ticker.Stop()
-		for range ticker.C {
-			if !s.IsBusy() {
-				break
-			}
-		}
-	}
-
 	return err
 }

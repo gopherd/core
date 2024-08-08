@@ -20,33 +20,33 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// MockConfig implements config.Config for testing
-type MockConfig struct {
+// mockConfig implements config.Config for testing
+type mockConfig struct {
 	components []component.Config
 }
 
-func (m *MockConfig) SetupFlags(*flag.FlagSet) {}
-func (m *MockConfig) Load() error              { return nil }
-func (m *MockConfig) GetComponents() []component.Config {
+func (m *mockConfig) SetupFlags(*flag.FlagSet) {}
+func (m *mockConfig) Load() error              { return nil }
+func (m *mockConfig) GetComponents() []component.Config {
 	return m.components
 }
 
-// MockComponent implements component.Component for testing
-type MockComponent struct {
+// mockComponent implements component.Component for testing
+type mockComponent struct {
 	uuid   string
 	name   string
 	entity component.Entity
 }
 
-func (m *MockComponent) UUID() string                     { return m.uuid }
-func (m *MockComponent) Name() string                     { return m.name }
-func (m *MockComponent) Entity() component.Entity         { return m.entity }
-func (m *MockComponent) Ctor(component.Config) error      { return nil }
-func (m *MockComponent) Init(context.Context) error       { return nil }
-func (m *MockComponent) Uninit(context.Context) error     { return nil }
-func (m *MockComponent) Start(context.Context) error      { return nil }
-func (m *MockComponent) Shutdown(context.Context) error   { return nil }
-func (m *MockComponent) OnMounted(component.Entity) error { return nil }
+func (m *mockComponent) UUID() string                     { return m.uuid }
+func (m *mockComponent) Name() string                     { return m.name }
+func (m *mockComponent) Entity() component.Entity         { return m.entity }
+func (m *mockComponent) Ctor(component.Config) error      { return nil }
+func (m *mockComponent) Init(context.Context) error       { return nil }
+func (m *mockComponent) Uninit(context.Context) error     { return nil }
+func (m *mockComponent) Start(context.Context) error      { return nil }
+func (m *mockComponent) Shutdown(context.Context) error   { return nil }
+func (m *mockComponent) OnMounted(component.Entity) error { return nil }
 
 // safeRegisterComponent registers a component for testing, ignoring if it's already registered
 func safeRegisterComponent(name string, creator func() component.Component) {
@@ -56,7 +56,7 @@ func safeRegisterComponent(name string, creator func() component.Component) {
 }
 
 func TestNewBaseService(t *testing.T) {
-	cfg := &MockConfig{}
+	cfg := &mockConfig{}
 	s := NewBaseService(cfg)
 	if s == nil {
 		t.Fatal("NewBaseService returned nil")
@@ -64,7 +64,7 @@ func TestNewBaseService(t *testing.T) {
 }
 
 func TestBaseService_GetComponent(t *testing.T) {
-	cfg := &MockConfig{
+	cfg := &mockConfig{
 		components: []component.Config{
 			{UUID: "test-uuid-1", Name: "test-component-1"},
 		},
@@ -72,7 +72,7 @@ func TestBaseService_GetComponent(t *testing.T) {
 	s := NewBaseService(cfg)
 
 	safeRegisterComponent("test-component-1", func() component.Component {
-		return &MockComponent{uuid: "test-uuid-1", name: "test-component-1"}
+		return &mockComponent{uuid: "test-uuid-1", name: "test-component-1"}
 	})
 
 	err := s.Init(context.Background())
@@ -96,7 +96,7 @@ func TestBaseService_GetComponent(t *testing.T) {
 }
 
 func TestBaseService_Lifecycle(t *testing.T) {
-	cfg := &MockConfig{
+	cfg := &mockConfig{
 		components: []component.Config{
 			{UUID: "test-uuid-2", Name: "test-component-2"},
 		},
@@ -104,7 +104,7 @@ func TestBaseService_Lifecycle(t *testing.T) {
 	s := NewBaseService(cfg)
 
 	safeRegisterComponent("test-component-2", func() component.Component {
-		return &MockComponent{uuid: "test-uuid-2", name: "test-component-2"}
+		return &mockComponent{uuid: "test-uuid-2", name: "test-component-2"}
 	})
 
 	ctx := context.Background()
@@ -126,15 +126,8 @@ func TestBaseService_Lifecycle(t *testing.T) {
 	}
 }
 
-func TestBaseService_IsBusy(t *testing.T) {
-	s := NewBaseService(&MockConfig{})
-	if s.IsBusy() {
-		t.Error("New service should not be busy")
-	}
-}
-
 func TestBaseService_SetupFlags(t *testing.T) {
-	s := NewBaseService(&MockConfig{})
+	s := NewBaseService(&mockConfig{})
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	s.SetupFlags(fs)
 
@@ -149,7 +142,7 @@ func TestRun(t *testing.T) {
 	os.Args = []string{"test"}
 
 	s := &MockService{
-		BaseService: NewBaseService(&MockConfig{}),
+		BaseService: NewBaseService(&mockConfig{}),
 	}
 	go func() {
 		time.Sleep(100 * time.Millisecond)
@@ -166,7 +159,7 @@ func TestRun(t *testing.T) {
 
 func TestRun_ExitError(t *testing.T) {
 	s := &MockService{
-		BaseService: NewBaseService(&MockConfig{}),
+		BaseService: NewBaseService(&mockConfig{}),
 		initErr:     errkit.NewExitError(42),
 	}
 	err := runTestService(t, "TestRun_ExitError", s)
@@ -177,7 +170,7 @@ func TestRun_ExitError(t *testing.T) {
 
 func TestRun_OtherError(t *testing.T) {
 	s := &MockService{
-		BaseService: NewBaseService(&MockConfig{}),
+		BaseService: NewBaseService(&mockConfig{}),
 		initErr:     errkit.NewExitError(1),
 	}
 	err := runTestService(t, "TestRun_OtherError", s)
@@ -188,7 +181,7 @@ func TestRun_OtherError(t *testing.T) {
 
 // MockService implements Service for testing
 type MockService struct {
-	*BaseService[*MockConfig]
+	*BaseService[*mockConfig]
 	initialized    bool
 	started        bool
 	shutdownCalled bool
@@ -200,7 +193,7 @@ type MockService struct {
 
 func NewMockService() *MockService {
 	return &MockService{
-		BaseService: NewBaseService(&MockConfig{}),
+		BaseService: NewBaseService(&mockConfig{}),
 	}
 }
 
@@ -222,10 +215,6 @@ func (m *MockService) Shutdown(ctx context.Context) error {
 func (m *MockService) Uninit(ctx context.Context) error {
 	m.uninitialized = true
 	return nil
-}
-
-func (m *MockService) IsBusy() bool {
-	return !m.shutdown.Load()
 }
 
 // runTestService is a helper function to run a service for testing
