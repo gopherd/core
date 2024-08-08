@@ -6,23 +6,23 @@
 [![Build Status](https://github.com/gopherd/core/workflows/Go/badge.svg)](https://github.com/gopherd/core/actions)
 [![License](https://img.shields.io/github/license/gopherd/core.svg)](https://github.com/gopherd/core/blob/main/LICENSE)
 
-`gopherd/core` is a powerful Go library that provides a component-based development framework for building backend services, along with a set of essential utility functions. Let's dive in! 💡
+`gopherd/core` is a Go library that provides a component-based development framework for building backend services, leveraging the power of Go's generics. It's a modern, type-safe approach to creating scalable applications! 🌟
 
 ## 🌟 Overview
 
-This library offers a mechanism for component-based development, enabling Go developers to create highly modular and maintainable backend services. By leveraging `gopherd/core`, developers can:
+This library offers a state-of-the-art mechanism for component-based development, enabling Go developers to create highly modular and maintainable backend services. By harnessing the power of `gopherd/core` and Go's generics, developers can:
 
-- 🧩 Easily create and manage components for various functionalities (e.g., database connections, caching, authentication)
-- 🔌 Implement a plugin-like architecture for extensible services
-- 🛠️ Utilize a set of fundamental helper functions to streamline common tasks
+- 🧩 Easily create and manage type-safe components for various functionalities (e.g., database connections, caching, authentication)
+- 🔌 Implement a plugin-like architecture for extensible services with compile-time type checking
+- 🛠️ Utilize a set of fundamental helper functions to streamline common tasks, all with the benefits of generics
 
-The component-based approach allows for better organization, reusability, and scalability of your Go backend services. It's like LEGO for your code! 🧱
+The component-based approach, combined with Go's generics, allows for better organization, reusability, and scalability of your Go backend services. It's like LEGO for your code, but with perfect fit guaranteed by the type system! 🧱✨
 
 ## 🔥 Key Features
 
-- **Component-based architecture**: Easily create and manage reusable components
-- **Flexible configuration**: Load configurations from files, URLs, or standard input
-- **Template processing**: Use Go templates in your component configurations
+- **Modern, generic-based architecture**: Leverage Go's generics for type-safe component creation and management
+- **Flexible configuration**: Load configurations from files, URLs, or standard input with type safety
+- **Template processing**: Use Go templates in your component configurations for dynamic setups
 
 ## 📦 Installation
 
@@ -34,7 +34,7 @@ go get github.com/gopherd/core
 
 ## ⚡ Quick Start
 
-Here's a simple example of how to use the library:
+Here's a simple example showcasing the power of generics in our library:
 
 ```go
 // demo/main.go
@@ -48,7 +48,7 @@ import (
 	"github.com/gopherd/core/service"
 )
 
-// helloComponent is a simple example of a component.
+// helloComponent demonstrates the use of generics for type-safe options.
 type helloComponent struct {
 	component.BaseComponent[struct {
 		Message string
@@ -69,7 +69,7 @@ func main() {
 }
 ```
 
-Yes, it's that simple! 😮 With just these few lines of code, you can leverage the power of our component-based architecture. The simplicity of this example demonstrates how our library abstracts away the complexities of component management, allowing you to focus on building your application logic. Magic, right? ✨
+Yes, it's that simple and type-safe! 😮 With just these few lines of code, you can leverage the power of our generic-based, component-driven architecture. The simplicity of this example demonstrates how our library abstracts away the complexities of component management while maintaining type safety, allowing you to focus on building your application logic. Modern magic, right? ✨🔮
 
 ### Basic Usage
 
@@ -94,11 +94,10 @@ Run your application with a configuration file:
 }
 ```
 
-
 ### Load Configuration from Different Sources
 
 - From a file: `./demo app.json` 📄
-- From a URL: `./demo http://example.com/app.json` 🌐
+- From a URL: `./demo http://example.com/config/app.json` 🌐
 - From stdin: `echo '{"Components":[...]}' | ./demo -` ⌨️
 
 ### Command-line Options
@@ -179,4 +178,4 @@ If you encounter any problems or have any questions, please open an issue in thi
 
 ---
 
-We hope you find `gopherd/core` valuable for your Go backend projects! Whether you're building a small microservice or a complex distributed system, `gopherd/core` provides the foundation for creating modular, maintainable, and efficient backend services. Happy coding! 🎉
+We hope you find `gopherd/core` valuable for your modern Go backend projects! Whether you're building a small microservice or a complex distributed system, `gopherd/core` provides the foundation for creating modular, maintainable, and efficient backend services with the power of generics. Welcome to the future of Go development! 🚀🎉
