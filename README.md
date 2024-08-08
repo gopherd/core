@@ -90,7 +90,7 @@ Run your application with a configuration file:
 		{
 			"Name": "hello",
 			"Options": {
-				"Msg": "{{.Name}}"
+				"Message": "{{.Name}}"
 			}
 		}
 	]
@@ -114,7 +114,7 @@ Run your application with a configuration file:
 ### Example with Template Processing
 
 ```
-echo '{"Context":{"Name":"world"},"Components":[{"Name":"hello","Options":{"Msg":"{{.Name}}"}}]}' | go run . -T -
+echo '{"Context":{"Name":"world"},"Components":[{"Name":"hello","Options":{"Message":"{{.Name}}"}}]}' | go run . -T -
 ```
 
 This example demonstrates how to use template processing in your component configurations. Cool, huh? 😎
