@@ -22,12 +22,12 @@ func TestMain(m *testing.M) {
 }
 
 type mockEntity struct {
-	*component.Manager
+	*component.Group
 }
 
 func newMockEntity() *mockEntity {
 	return &mockEntity{
-		Manager: component.NewManager(),
+		Group: component.NewGroup(),
 	}
 }
 
@@ -189,7 +189,7 @@ func TestManager(t *testing.T) {
 	})
 
 	t.Run("LifecycleOrder", func(t *testing.T) {
-		manager := component.NewManager()
+		manager := component.NewGroup()
 		comp1 := &mockComponent{}
 		comp2 := &mockComponent{}
 		comp3 := &mockComponent{}
@@ -242,7 +242,7 @@ func TestManager(t *testing.T) {
 	})
 
 	t.Run("FailureHandling", func(t *testing.T) {
-		manager := component.NewManager()
+		manager := component.NewGroup()
 		comp1 := &mockComponent{}
 		comp2 := &mockComponent{shouldFail: true}
 		comp3 := &mockComponent{}

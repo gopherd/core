@@ -1,4 +1,4 @@
-package config_test
+package service_test
 
 import (
 	"bytes"
@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"github.com/gopherd/core/component"
-	"github.com/gopherd/core/config"
 	"github.com/gopherd/core/errkit"
+	"github.com/gopherd/core/service"
 )
 
 func TestNewBaseConfig(t *testing.T) {
@@ -26,7 +26,7 @@ func TestNewBaseConfig(t *testing.T) {
 		Name:    "testapp",
 		ID:      1,
 	}
-	cfg := config.NewBaseConfig(ctx, nil)
+	cfg := service.NewBaseConfig(ctx, nil)
 
 	if cfg == nil {
 		t.Fatal("NewBaseConfig returned nil")
@@ -38,7 +38,7 @@ func TestNewBaseConfig(t *testing.T) {
 }
 
 func TestSetFlags(t *testing.T) {
-	cfg := config.NewBaseConfig(struct{}{}, nil)
+	cfg := service.NewBaseConfig(struct{}{}, nil)
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	cfg.SetupFlags(fs)
 
@@ -137,7 +137,7 @@ func TestLoad(t *testing.T) {
 			cleanup := tt.setupMock()
 			defer cleanup()
 
-			cfg := config.NewBaseConfig(struct{}{}, nil)
+			cfg := service.NewBaseConfig(struct{}{}, nil)
 			fs := flag.NewFlagSet("test", flag.ContinueOnError)
 			cfg.SetupFlags(fs)
 			fs.Parse(os.Args[1:])
@@ -177,7 +177,7 @@ func TestLoadFromHTTPWithRedirects(t *testing.T) {
 	}))
 	defer server.Close()
 
-	cfg := config.NewBaseConfig(struct{}{}, nil)
+	cfg := service.NewBaseConfig(struct{}{}, nil)
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	cfg.SetupFlags(fs)
 	fs.Parse([]string{"-c", server.URL})
@@ -219,7 +219,7 @@ func TestExportConfig(t *testing.T) {
 		{Name: "comp1"},
 	}
 
-	cfg := config.NewBaseConfig(ctx, components)
+	cfg := service.NewBaseConfig(ctx, components)
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	cfg.SetupFlags(fs)
 	fs.Parse([]string{"-o", exportPath})
@@ -291,7 +291,7 @@ func TestLoadConfigWithoutSource(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	cfg := config.NewBaseConfig(struct{}{}, nil)
+	cfg := service.NewBaseConfig(struct{}{}, nil)
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	cfg.SetupFlags(fs)
 

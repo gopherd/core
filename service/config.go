@@ -1,8 +1,4 @@
-// Package config provides functionality for managing application configuration.
-// It includes interfaces and implementations for parsing command-line arguments,
-// loading configuration from various sources (local files or HTTP), and outputting
-// configuration data to JSON format.
-package config
+package service
 
 import (
 	"encoding/json"
