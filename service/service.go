@@ -122,10 +122,10 @@ func (s *BaseService[T]) Shutdown(ctx context.Context) error {
 	return s.components.Shutdown(ctx)
 }
 
-// Run starts and manages the lifecycle of a service with the given context and components.
-// If the service returns an error, the program exits with the error code or 1.
-func Run[T any](context T, components ...component.Config) {
-	RunService(NewBaseService(NewBaseConfig(context, components)))
+// Run is a shortcut for running a service with a default configuration.
+func Run() {
+	var context = make(map[string]any)
+	RunService(NewBaseService(NewBaseConfig(context, nil)))
 }
 
 // RunService starts and manages the lifecycle of the given service.
