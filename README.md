@@ -127,37 +127,6 @@ Run your application with a configuration file:
 
 This example demonstrates how to use template processing in your component configurations. Cool, huh? 😎
 
-### Help
-
-For a full list of options and usage examples, run:
-
-```
-./demo -h
-```
-
-This will display the following help information:
-
-```
-Usage: ./demo [OPTIONS] <config>
-       ./demo <path/to/file>   (Read config from file)
-       ./demo <url>            (Read config from http)
-       ./demo -                (Read config from stdin)
-       ./demo -v               (Print version information)
-       ./demo -p               (Print loaded config)
-       ./demo -t               (Test the config for validity)
-       ./demo -T               (Enable template processing for components config)
-
-Examples:
-       ./demo app.json
-       ./demo http://example.com/app.json
-       echo '{"Components":[{"Name":"$hello","Options":{"Message":"world"}}]}' | ./demo -
-       ./demo -p app.json
-       ./demo -t app.json
-       ./demo -T app.json
-       ./demo -p -T app.json
-       ./demo -t -T app.json
-```
-
 ## 📚 Documentation
 
 For detailed documentation of each package and component, please refer to the GoDoc:
