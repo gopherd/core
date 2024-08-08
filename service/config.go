@@ -1,8 +1,4 @@
-// Package config provides functionality for managing application configuration.
-// It includes interfaces and implementations for parsing command-line arguments,
-// loading configuration from various sources (local files or HTTP), and outputting
-// configuration data to JSON format.
-package config
+package service
 
 import (
 	"encoding/json"
@@ -33,7 +29,7 @@ type Config interface {
 
 // BaseConfig implements the Config interface and provides a generic
 // configuration structure for most applications.
-type BaseConfig[Context any] struct {
+type BaseConfig[T any] struct {
 	flags struct {
 		source   string
 		output   string
@@ -41,31 +37,31 @@ type BaseConfig[Context any] struct {
 		template bool
 	}
 	data struct {
-		Context    Context            `json:",omitempty"`
+		Context    T                  `json:",omitempty"`
 		Components []component.Config `json:",omitempty"`
 	}
 }
 
 // NewBaseConfig creates a new BaseConfig with the given context and components.
-func NewBaseConfig[Context any](context Context, components []component.Config) *BaseConfig[Context] {
-	c := &BaseConfig[Context]{}
+func NewBaseConfig[T any](context T, components []component.Config) *BaseConfig[T] {
+	c := &BaseConfig[T]{}
 	c.data.Context = context
 	c.data.Components = components
 	return c
 }
 
 // GetContext returns the context of the BaseConfig.
-func (c *BaseConfig[Context]) GetContext() Context {
+func (c *BaseConfig[T]) GetContext() T {
 	return c.data.Context
 }
 
 // GetComponents returns the components of the BaseConfig.
-func (c *BaseConfig[Context]) GetComponents() []component.Config {
+func (c *BaseConfig[T]) GetComponents() []component.Config {
 	return c.data.Components
 }
 
 // SetupFlags sets command-line arguments for the BaseConfig.
-func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
+func (c *BaseConfig[T]) SetupFlags(flagSet *flag.FlagSet) {
 	flagSet.StringVar(&c.flags.source, "c", "", "Specify the config source (file path, HTTP URL, or '-' for stdin)")
 	flagSet.StringVar(&c.flags.output, "o", "", "Specify the config output (file path or '-' for stdout) and exit")
 	flagSet.BoolVar(&c.flags.test, "t", false, "Test the config for validity and exit")
@@ -74,7 +70,7 @@ func (c *BaseConfig[Context]) SetupFlags(flagSet *flag.FlagSet) {
 
 // Load processes the configuration based on command-line flags.
 // It returns true if the program should exit after this call, along with any error encountered.
-func (c *BaseConfig[Context]) Load() (err error) {
+func (c *BaseConfig[T]) Load() (err error) {
 	defer func() {
 		if c.flags.test {
 			if err != nil {
@@ -115,7 +111,7 @@ func (c *BaseConfig[Context]) Load() (err error) {
 	return nil
 }
 
-func (c *BaseConfig[Context]) load() error {
+func (c *BaseConfig[T]) load() error {
 	switch c.flags.source {
 	case "":
 	case "-":
@@ -132,7 +128,7 @@ func (c *BaseConfig[Context]) load() error {
 }
 
 // loadFromSource loads the configuration from a file or HTTP service.
-func (c *BaseConfig[Context]) loadFromSource(source string) error {
+func (c *BaseConfig[T]) loadFromSource(source string) error {
 	var r io.ReadCloser
 	var err error
 
@@ -151,13 +147,13 @@ func (c *BaseConfig[Context]) loadFromSource(source string) error {
 }
 
 // loadFromFile loads the configuration from a local file.
-func (c *BaseConfig[Context]) loadFromFile(filename string) (io.ReadCloser, error) {
+func (c *BaseConfig[T]) loadFromFile(filename string) (io.ReadCloser, error) {
 	return os.Open(filename)
 }
 
 // loadFromHTTP loads the configuration from an HTTP source.
 // It handles redirects up to a maximum of 32 times.
-func (c *BaseConfig[Context]) loadFromHTTP(source string) (io.ReadCloser, error) {
+func (c *BaseConfig[T]) loadFromHTTP(source string) (io.ReadCloser, error) {
 	url := source
 	const maxRedirects = 32
 
@@ -185,7 +181,7 @@ func (c *BaseConfig[Context]) loadFromHTTP(source string) (io.ReadCloser, error)
 }
 
 // outputConfig outputs the current configuration to a JSON file.
-func (c *BaseConfig[Context]) outputConfig(path string) error {
+func (c *BaseConfig[T]) outputConfig(path string) error {
 	if path == "-" {
 		return c.encode(os.Stdout)
 	}
@@ -197,26 +193,36 @@ func (c *BaseConfig[Context]) outputConfig(path string) error {
 	return c.encode(f)
 }
 
+// MarshalJSON implements the json.Marshaler interface for BaseConfig.
+func (c BaseConfig[T]) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.data)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface for BaseConfig.
+func (c *BaseConfig[T]) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &c.data)
+}
+
 // encode writes the configuration as JSON to the given writer.
-func (c *BaseConfig[Context]) encode(w io.Writer) error {
+func (c BaseConfig[T]) encode(w io.Writer) error {
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "    ")
 
-	if err := encoder.Encode(c.data); err != nil {
+	if err := encoder.Encode(c); err != nil {
 		return fmt.Errorf("failed to encode config: %w", err)
 	}
 	return nil
 }
 
 // decode reads the configuration from JSON using the given reader.
-func (c *BaseConfig[Context]) decode(r io.Reader) error {
-	return json.NewDecoder(r).Decode(&c.data)
+func (c *BaseConfig[T]) decode(r io.Reader) error {
+	return json.NewDecoder(r).Decode(&c)
 }
 
 // parseComponentTemplates processes the Refs and Options fields of each component.Config
 // as text/template templates, using c.data.Context as the template context.
-func (c *BaseConfig[Context]) parseComponentTemplates() error {
+func (c *BaseConfig[T]) parseComponentTemplates() error {
 	for i := range c.data.Components {
 		com := &c.data.Components[i]
 		if com.UUID != "" {

@@ -157,7 +157,7 @@ func TestRun(t *testing.T) {
 	}()
 
 	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-	run(s, flagSet)
+	RunServiceFlagSet(s, flagSet)
 
 	if !s.initialized || !s.started || !s.shutdownCalled || !s.uninitialized {
 		t.Error("Service lifecycle methods were not called as expected")
@@ -238,7 +238,7 @@ func runTestService(t *testing.T, caseName string, s Service) error {
 			}
 		}()
 		flagSet := flag.NewFlagSet("runTest", flag.ContinueOnError)
-		errCh <- run(s, flagSet)
+		errCh <- RunServiceFlagSet(s, flagSet)
 	}()
 
 	select {

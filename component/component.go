@@ -26,19 +26,19 @@ It's important to note that:
   - If a component has been initialized (Init called), it must be uninitialized (Uninit called).
   - If a component has been started (Start called), it must be shut down (Shutdown called).
 
-# Component Manager
+# Component Group
 
-The Manager struct is responsible for handling multiple components. It ensures that:
+The Group struct is responsible for handling multiple components. It ensures that:
 
  1. Components are initialized, started, shut down, and uninitialized in the correct order.
- 2. Components are initialized and started in the order they were added to the Manager.
+ 2. Components are initialized and started in the order they were added to the Group.
  3. Components are shut down and uninitialized in the reverse order they were added.
 
 This ordering ensures that dependencies between components are respected during the application's lifecycle.
 
 # Usage
 
-Here's a basic example of how to use this package:
+Here's a basic example of how to create a custom component:
 
 	type MyComponent struct {
 		component.BaseComponent[MyOptions]
@@ -62,28 +62,6 @@ Here's a basic example of how to use this package:
 	func (c *MyComponent) Uninit(ctx context.Context) error {
 		// Clean up any resources
 		return nil
-	}
-
-	// In your main application:
-	manager := component.NewManager()
-	myComponent := &MyComponent{}
-	manager.AddComponent(myComponent)
-
-	ctx := context.Background()
-	if err := manager.Init(ctx); err != nil {
-		// Handle initialization error
-	}
-	if err := manager.Start(ctx); err != nil {
-		// Handle start error
-	}
-
-	// Application runs...
-
-	if err := manager.Shutdown(ctx); err != nil {
-		// Handle shutdown error
-	}
-	if err := manager.Uninit(ctx); err != nil {
-		// Handle uninitialization error
 	}
 
 The package also provides a registry for component creators, allowing for dynamic component creation and management.
@@ -327,24 +305,24 @@ func reflectReferenceResolver(field reflect.Value) ReferenceResolver {
 	return nil
 }
 
-// Manager manages a group of components.
-type Manager struct {
+// Group manages a group of components.
+type Group struct {
 	components      []Component
 	uuidToComponent map[string]Component
 	numInitialized  int
 	numStarted      int
 }
 
-// NewManager creates a new Manager instance.
-func NewManager() *Manager {
-	return &Manager{
+// NewGroup creates a new Group instance.
+func NewGroup() *Group {
+	return &Group{
 		uuidToComponent: make(map[string]Component),
 	}
 }
 
-// AddComponent adds a component to the manager.
+// AddComponent adds a component to the group.
 // It returns nil if a component with the same UUID already exists.
-func (m *Manager) AddComponent(com Component) Component {
+func (m *Group) AddComponent(com Component) Component {
 	uuid := com.UUID()
 	if uuid != "" {
 		if _, exists := m.uuidToComponent[uuid]; exists {
@@ -357,12 +335,12 @@ func (m *Manager) AddComponent(com Component) Component {
 }
 
 // GetComponent retrieves a component by its UUID.
-func (m *Manager) GetComponent(uuid string) Component {
+func (m *Group) GetComponent(uuid string) Component {
 	return m.uuidToComponent[uuid]
 }
 
 // OnMounted calls the OnMounted method on all components.
-func (m *Manager) OnMounted(entity Entity) error {
+func (m *Group) OnMounted(entity Entity) error {
 	for i := range m.components {
 		com := m.components[i]
 		if err := com.OnMounted(entity); err != nil {
@@ -372,8 +350,8 @@ func (m *Manager) OnMounted(entity Entity) error {
 	return nil
 }
 
-// Init initializes all components in the manager.
-func (m *Manager) Init(ctx context.Context) error {
+// Init initializes all components in the group.
+func (m *Group) Init(ctx context.Context) error {
 	for i := range m.components {
 		com := m.components[i]
 		slog.Info(
@@ -401,7 +379,7 @@ func (m *Manager) Init(ctx context.Context) error {
 }
 
 // Uninit uninitializes all components in reverse order.
-func (m *Manager) Uninit(ctx context.Context) error {
+func (m *Group) Uninit(ctx context.Context) error {
 	for i := m.numInitialized - 1; i >= 0; i-- {
 		com := m.components[i]
 		slog.Info(
@@ -427,8 +405,8 @@ func (m *Manager) Uninit(ctx context.Context) error {
 	return nil
 }
 
-// Start starts all components in the manager.
-func (m *Manager) Start(ctx context.Context) error {
+// Start starts all components in the group.
+func (m *Group) Start(ctx context.Context) error {
 	for i := range m.components {
 		com := m.components[i]
 		slog.Info(
@@ -456,7 +434,7 @@ func (m *Manager) Start(ctx context.Context) error {
 }
 
 // Shutdown shuts down all components in reverse order.
-func (m *Manager) Shutdown(ctx context.Context) error {
+func (m *Group) Shutdown(ctx context.Context) error {
 	var errs []error
 	for i := m.numStarted - 1; i >= 0; i-- {
 		com := m.components[i]

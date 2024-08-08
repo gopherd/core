@@ -12,7 +12,6 @@ import (
 
 	"github.com/gopherd/core/builder"
 	"github.com/gopherd/core/component"
-	"github.com/gopherd/core/config"
 	"github.com/gopherd/core/errkit"
 	"github.com/gopherd/core/lifecycle"
 )
@@ -32,19 +31,19 @@ type Service interface {
 }
 
 // BaseService implements the Service interface.
-type BaseService[Config config.Config] struct {
+type BaseService[T Config] struct {
 	flags struct {
 		version bool
 	}
 	versionFunc func()
 	config      atomic.Value
-	components  *component.Manager
+	components  *component.Group
 }
 
 // NewBaseService creates a new BaseService with the given configuration.
-func NewBaseService[Config config.Config](cfg Config) *BaseService[Config] {
-	s := &BaseService[Config]{
-		components:  component.NewManager(),
+func NewBaseService[T Config](cfg T) *BaseService[T] {
+	s := &BaseService[T]{
+		components:  component.NewGroup(),
 		versionFunc: builder.PrintInfo,
 	}
 	s.config.Store(cfg)
@@ -55,33 +54,33 @@ func NewBaseService[Config config.Config](cfg Config) *BaseService[Config] {
 // The version function is called when the service is started with the -v flag.
 // If the version function is not set, the default version function is used.
 // And if set to nil, the version function is disabled.
-func (s *BaseService[Config]) SetVersionFunc(f func()) {
+func (s *BaseService[T]) SetVersionFunc(f func()) {
 	s.versionFunc = f
 }
 
 // GetComponent returns a component by its UUID.
-func (s *BaseService[Config]) GetComponent(uuid string) component.Component {
+func (s *BaseService[T]) GetComponent(uuid string) component.Component {
 	return s.components.GetComponent(uuid)
 }
 
 // IsBusy implements the Service IsBusy method.
-func (s *BaseService[Config]) IsBusy() bool {
+func (s *BaseService[T]) IsBusy() bool {
 	return false
 }
 
 // Config returns the current configuration.
-func (s *BaseService[Config]) Config() Config {
-	return s.config.Load().(Config)
+func (s *BaseService[T]) Config() T {
+	return s.config.Load().(T)
 }
 
 // SetupFlags implements the Service SetupFlags method.
-func (s *BaseService[Config]) SetupFlags(flagSet *flag.FlagSet) {
+func (s *BaseService[T]) SetupFlags(flagSet *flag.FlagSet) {
 	s.Config().SetupFlags(flagSet)
 	flagSet.BoolVar(&s.flags.version, "v", false, "Print version information including build details")
 }
 
 // Init implements the Service Init method.
-func (s *BaseService[Config]) Init(ctx context.Context) error {
+func (s *BaseService[T]) Init(ctx context.Context) error {
 	if s.flags.version {
 		if s.versionFunc != nil {
 			s.versionFunc()
@@ -118,23 +117,30 @@ func (s *BaseService[Config]) Init(ctx context.Context) error {
 }
 
 // Uninit implements the Service Uninit method.
-func (s *BaseService[Config]) Uninit(ctx context.Context) error {
+func (s *BaseService[T]) Uninit(ctx context.Context) error {
 	return s.components.Uninit(ctx)
 }
 
 // Start implements the Service Start method.
-func (s *BaseService[Config]) Start(ctx context.Context) error {
+func (s *BaseService[T]) Start(ctx context.Context) error {
 	return s.components.Start(ctx)
 }
 
 // Shutdown implements the Service Shutdown method.
-func (s *BaseService[Config]) Shutdown(ctx context.Context) error {
+func (s *BaseService[T]) Shutdown(ctx context.Context) error {
 	return s.components.Shutdown(ctx)
 }
 
-// Run starts and manages the lifecycle of the given service.
-func Run(s Service) {
-	if err := run(s, flag.CommandLine); err != nil {
+// Run starts and manages the lifecycle of a service with the given context and components.
+// If the service returns an error, the program exits with the error code or 1.
+func Run[T any](context T, components []component.Config) {
+	RunService(NewBaseService(NewBaseConfig(context, components)))
+}
+
+// RunService starts and manages the lifecycle of the given service.
+// If the service returns an error, the program exits with the error code or 1.
+func RunService(s Service) {
+	if err := RunServiceFlagSet(s, flag.CommandLine); err != nil {
 		if exitCode, ok := errkit.ExitCode(err); ok {
 			os.Exit(exitCode)
 		}
@@ -142,7 +148,9 @@ func Run(s Service) {
 	}
 }
 
-func run(s Service, flagSet *flag.FlagSet) error {
+// RunServiceFlagSet starts and manages the lifecycle of the given service with the given flag set.
+// It's not recommended to use this function directly unless you need to customize the flag set.
+func RunServiceFlagSet(s Service, flagSet *flag.FlagSet) error {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: slog.LevelWarn,
 	})))
