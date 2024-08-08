@@ -79,6 +79,25 @@ Run your application with a configuration file:
 ./demo app.json
 ```
 
+> Here's an example `app.json`
+
+```json
+{
+	"Context": {
+		"Name": "world"
+	},
+	"Components": [
+		{
+			"Name": "hello",
+			"Options": {
+				"Msg": "{{.Name}}"
+			}
+		}
+	]
+}
+```
+
+
 ### Load Configuration from Different Sources
 
 - From a file: `./demo app.json` 📄
@@ -129,24 +148,6 @@ Examples:
        ./demo -T app.json
        ./demo -p -T app.json
        ./demo -t -T app.json
-```
-
-Here's an example `app.json`
-
-```json
-{
-	"Context": {
-		"Name": "world"
-	},
-	"Components": [
-		{
-			"Name": "hello",
-			"Options": {
-				"Msg": "{{.Name}}"
-			}
-		}
-	]
-}
 ```
 
 ## 📚 Documentation
