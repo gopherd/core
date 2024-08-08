@@ -31,6 +31,7 @@ type Config interface {
 // configuration structure for most applications.
 type BaseConfig[T any] struct {
 	flags struct {
+		flagSet  *flag.FlagSet
 		source   string
 		output   string
 		test     bool
@@ -62,6 +63,7 @@ func (c *BaseConfig[T]) GetComponents() []component.Config {
 
 // SetupFlags sets command-line arguments for the BaseConfig.
 func (c *BaseConfig[T]) SetupFlags(flagSet *flag.FlagSet) {
+	c.flags.flagSet = flagSet
 	flagSet.StringVar(&c.flags.source, "c", "", "Specify the config source (file path, HTTP URL, or '-' for stdin)")
 	flagSet.StringVar(&c.flags.output, "o", "", "Specify the config output (file path or '-' for stdout) and exit")
 	flagSet.BoolVar(&c.flags.test, "t", false, "Test the config for validity and exit")
@@ -83,7 +85,9 @@ func (c *BaseConfig[T]) Load() (err error) {
 		}
 		if err == nil && c.flags.source == "" {
 			// Config source is required unless testing or outputting
-			err = errors.New("no config source specified")
+			fmt.Fprintln(os.Stderr, "no config source specified")
+			c.flags.flagSet.Usage()
+			err = errkit.NewExitError(2)
 		}
 	}()
 
