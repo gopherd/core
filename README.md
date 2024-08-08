@@ -83,14 +83,11 @@ Run your application with a configuration file:
 
 ```json
 {
-	"Context": {
-		"Name": "world"
-	},
 	"Components": [
 		{
 			"Name": "hello",
 			"Options": {
-				"Message": "{{.Name}}"
+				"Message": "world"
 			}
 		}
 	]
@@ -113,8 +110,20 @@ Run your application with a configuration file:
 
 ### Example with Template Processing
 
-```
-echo '{"Context":{"Name":"world"},"Components":[{"Name":"hello","Options":{"Message":"{{.Name}}"}}]}' | go run . -T -
+```json
+{
+	"Context": {
+		"Name": "world"
+	},
+	"Components": [
+		{
+			"Name": "hello",
+			"Options": {
+				"Message": "{{.Name}}"
+			}
+		}
+	]
+}
 ```
 
 This example demonstrates how to use template processing in your component configurations. Cool, huh? 😎
