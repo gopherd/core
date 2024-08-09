@@ -174,16 +174,16 @@ func (s *BaseService[T]) setupComponents() error {
 	for _, c := range s.config.Components {
 		com, err := component.Create(c.Name)
 		if err != nil {
-			return fmt.Errorf("create component %q error: %w", c.Name, err)
+			return err
 		}
 		if s.components.AddComponent(c.UUID, com) == nil {
-			return fmt.Errorf("duplicate component id: %q", c.UUID)
+			return fmt.Errorf("duplicate component uuid: %q", c.UUID)
 		}
 		components = append(components, pair.New(com, c))
 	}
 	for i := range components {
 		if err := components[i].First.Setup(s, components[i].Second); err != nil {
-			return fmt.Errorf("component %s setup error: %w", components[i].First.String(), err)
+			return fmt.Errorf("component %q setup error: %w", components[i].First.String(), err)
 		}
 	}
 	return nil
