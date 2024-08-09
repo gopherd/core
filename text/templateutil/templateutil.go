@@ -3,10 +3,12 @@ package templateutil
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"math"
 	"reflect"
+	"regexp"
 	"strings"
 )
 
@@ -124,10 +126,24 @@ func Execute(name, text string, data any, options ...string) (string, error) {
 	if t, err := t.Parse(text); err != nil {
 		return "", err
 	} else if err := t.Execute(&buf, data); err != nil {
-		return "", err
+		return "", cleanTemplateError(err)
 	} else {
 		return buf.String(), nil
 	}
+}
+
+func cleanTemplateError(err error) error {
+	if err == nil {
+		return nil
+	}
+	errMsg := err.Error()
+	re := regexp.MustCompile(`template: (.*?):\d+:\d+: executing "(.*?)" at `)
+	matches := re.FindStringSubmatch(errMsg)
+	if len(matches) == 3 && matches[1] == matches[2] {
+		cleaned := strings.Replace(errMsg, matches[0], "template: "+matches[1]+": ", 1)
+		return errors.New(cleaned)
+	}
+	return err
 }
 
 // toFloat64 converts various numeric types to float64.
