@@ -14,25 +14,27 @@ import (
 	"github.com/gopherd/core/text/templateutil"
 )
 
-// Config implements the Config interface and provides a generic
-// configuration structure for most applications.
+// Config represents a generic configuration structure for services.
+// It includes a context of type T and a list of component configurations.
 type Config[T any] struct {
 	Context    T                  `json:",omitempty"`
 	Components []component.Config `json:",omitempty"`
 }
 
-// Load processes the configuration based on command-line flags.
-// It returns true if the program should exit after this call, along with any error encountered.
+// load processes the configuration based on the provided source.
+// It returns an error if the configuration cannot be loaded or decoded.
 func (c *Config[T]) load(source string) error {
+	if source == "" {
+		return nil
+	}
+
 	var r io.ReadCloser
 	var err error
 
 	switch {
-	case source == "":
-		return nil
 	case source == "-":
 		r = os.Stdin
-	case strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://"):
+	case strings.HasPrefix(source, "http://"), strings.HasPrefix(source, "https://"):
 		r, err = c.loadFromHTTP(source)
 		if err == nil {
 			defer r.Close()
@@ -48,7 +50,7 @@ func (c *Config[T]) load(source string) error {
 		return err
 	}
 
-	return json.NewDecoder(r).Decode(&c)
+	return json.NewDecoder(r).Decode(c)
 }
 
 // loadFromHTTP loads the configuration from an HTTP source.
@@ -80,44 +82,52 @@ func (c *Config[T]) loadFromHTTP(source string) (io.ReadCloser, error) {
 	return nil, errors.New("too many redirects")
 }
 
-// processTemplate processes the Refs and Options fields of each component.Config
+// processTemplate processes the UUID, Refs, and Options fields of each component.Config
 // as text/template templates, using c.Context as the template context.
 func (c *Config[T]) processTemplate() error {
 	for i := range c.Components {
 		com := &c.Components[i]
+
 		if com.UUID != "" {
-			if new, err := templateutil.Execute(com.UUID, c.Context); err != nil {
+			new, err := templateutil.Execute(com.UUID, c.Context)
+			if err != nil {
 				return fmt.Errorf("process UUID for component %s: %w", com.UUID, err)
-			} else {
-				com.UUID = new
 			}
+			com.UUID = new
 		}
+
 		if com.Refs.Len() > 0 {
-			if new, err := templateutil.Execute(com.Refs.String(), c.Context); err != nil {
+			new, err := templateutil.Execute(com.Refs.String(), c.Context)
+			if err != nil {
 				return fmt.Errorf("process Refs for component %s: %w", com.UUID, err)
-			} else {
-				com.Refs.SetString(new)
 			}
+			com.Refs.SetString(new)
 		}
+
 		if com.Options.Len() > 0 {
-			if new, err := templateutil.Execute(com.Options.String(), c.Context); err != nil {
+			new, err := templateutil.Execute(com.Options.String(), c.Context)
+			if err != nil {
 				return fmt.Errorf("process Options for component %s: %w", com.UUID, err)
-			} else {
-				com.Options.SetString(new)
 			}
+			com.Options.SetString(new)
 		}
 	}
+
 	return nil
 }
 
+// output encodes the configuration as JSON and writes it to stdout.
+// It uses indentation for better readability.
 func (c Config[T]) output() {
 	var buf bytes.Buffer
 	encoder := json.NewEncoder(&buf)
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "    ")
+
 	if err := encoder.Encode(c); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to encode config: %e\n", err)
+		fmt.Fprintf(os.Stderr, "failed to encode config: %v\n", err)
 		return
 	}
+
 	fmt.Fprint(os.Stdout, buf.String())
 }

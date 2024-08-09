@@ -1,13 +1,12 @@
-package maps_test
+package maputil_test
 
 import (
 	"fmt"
-	"math"
 	"reflect"
 	"sort"
 	"testing"
 
-	"github.com/gopherd/core/container/maps"
+	"github.com/gopherd/core/container/maputil"
 	"github.com/gopherd/core/container/pair"
 )
 
@@ -31,7 +30,7 @@ func TestKeys(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := maps.Keys(tt.m)
+			got := maputil.Keys(tt.m)
 			sort.Strings(got)
 			sort.Strings(tt.want)
 			if !reflect.DeepEqual(got, tt.want) {
@@ -61,7 +60,7 @@ func TestValues(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := maps.Values(tt.m)
+			got := maputil.Values(tt.m)
 			sort.Ints(got)
 			sort.Ints(tt.want)
 			if !reflect.DeepEqual(got, tt.want) {
@@ -75,7 +74,7 @@ func TestMap(t *testing.T) {
 	m := map[string]int{"a": 1, "b": 2, "c": 3}
 	want := []string{"a:1", "b:2", "c:3"}
 
-	got := maps.Map(m, func(k string, v int) string {
+	got := maputil.Map(m, func(k string, v int) string {
 		return fmt.Sprintf("%s:%d", k, v)
 	})
 
@@ -112,7 +111,7 @@ func TestMinKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := maps.MinKey(tt.m); got != tt.want {
+			if got := maputil.MinKey(tt.m); got != tt.want {
 				t.Errorf("MinKey() = %v, want %v", got, tt.want)
 			}
 		})
@@ -144,7 +143,7 @@ func TestMaxKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := maps.MaxKey(tt.m); got != tt.want {
+			if got := maputil.MaxKey(tt.m); got != tt.want {
 				t.Errorf("MaxKey() = %v, want %v", got, tt.want)
 			}
 		})
@@ -180,7 +179,7 @@ func TestMinMaxKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotMin, gotMax := maps.MinMaxKey(tt.m)
+			gotMin, gotMax := maputil.MinMaxKey(tt.m)
 			if gotMin != tt.wantMin || gotMax != tt.wantMax {
 				t.Errorf("MinMaxKey() = (%v, %v), want (%v, %v)", gotMin, gotMax, tt.wantMin, tt.wantMax)
 			}
@@ -213,7 +212,7 @@ func TestMinValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := maps.MinValue(tt.m); !reflect.DeepEqual(got, tt.want) {
+			if got := maputil.MinValue(tt.m); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("MinValue() = %v, want %v", got, tt.want)
 			}
 		})
@@ -245,7 +244,7 @@ func TestMaxValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := maps.MaxValue(tt.m); !reflect.DeepEqual(got, tt.want) {
+			if got := maputil.MaxValue(tt.m); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("MaxValue() = %v, want %v", got, tt.want)
 			}
 		})
@@ -281,7 +280,7 @@ func TestMinMaxValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotMin, gotMax := maps.MinMaxValue(tt.m)
+			gotMin, gotMax := maputil.MinMaxValue(tt.m)
 			if !reflect.DeepEqual(gotMin, tt.wantMin) || !reflect.DeepEqual(gotMax, tt.wantMax) {
 				t.Errorf("MinMaxValue() = (%v, %v), want (%v, %v)", gotMin, gotMax, tt.wantMin, tt.wantMax)
 			}
@@ -293,7 +292,7 @@ func TestMinKeyFunc(t *testing.T) {
 	m := map[string]int{"a": 1, "bb": 2, "ccc": 3}
 	want := 1
 
-	got := maps.MinKeyFunc(m, func(k string, v int) int {
+	got := maputil.MinKeyFunc(m, func(k string, v int) int {
 		return len(k)
 	})
 
@@ -306,7 +305,7 @@ func TestMaxKeyFunc(t *testing.T) {
 	m := map[string]int{"a": 1, "bb": 2, "ccc": 3}
 	want := 3
 
-	got := maps.MaxKeyFunc(m, func(k string, v int) int {
+	got := maputil.MaxKeyFunc(m, func(k string, v int) int {
 		return len(k)
 	})
 
@@ -319,7 +318,7 @@ func TestMinMaxKeyFunc(t *testing.T) {
 	m := map[string]int{"a": 1, "bb": 2, "ccc": 3}
 	wantMin, wantMax := 1, 3
 
-	gotMin, gotMax := maps.MinMaxKeyFunc(m, func(k string, v int) int {
+	gotMin, gotMax := maputil.MinMaxKeyFunc(m, func(k string, v int) int {
 		return len(k)
 	})
 
@@ -332,7 +331,7 @@ func TestMinValueFunc(t *testing.T) {
 	m := map[string]int{"a": 1, "bb": 2, "ccc": 3}
 	want := pair.New("a", 1)
 
-	got := maps.MinValueFunc(m, func(k string, v int) int {
+	got := maputil.MinValueFunc(m, func(k string, v int) int {
 		return v
 	})
 
@@ -345,7 +344,7 @@ func TestMaxValueFunc(t *testing.T) {
 	m := map[string]int{"a": 1, "bb": 2, "ccc": 3}
 	want := pair.New("ccc", 3)
 
-	got := maps.MaxValueFunc(m, func(k string, v int) int {
+	got := maputil.MaxValueFunc(m, func(k string, v int) int {
 		return v
 	})
 
@@ -359,7 +358,7 @@ func TestMinMaxValueFunc(t *testing.T) {
 	wantMin := pair.New("a", 1)
 	wantMax := pair.New("ccc", 3)
 
-	gotMin, gotMax := maps.MinMaxValueFunc(m, func(k string, v int) int {
+	gotMin, gotMax := maputil.MinMaxValueFunc(m, func(k string, v int) int {
 		return v
 	})
 
@@ -373,7 +372,7 @@ func TestCopyFunc(t *testing.T) {
 	dst := make(map[int]string)
 	want := map[int]string{1: "a", 2: "b", 3: "c"}
 
-	got := maps.CopyFunc(dst, src, func(k string, v int) (int, string) {
+	got := maputil.CopyFunc(dst, src, func(k string, v int) (int, string) {
 		return v, k
 	})
 
@@ -407,7 +406,7 @@ func TestSumKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := maps.SumKey(tt.m); got != tt.want {
+			if got := maputil.SumKey(tt.m); got != tt.want {
 				t.Errorf("SumKey() = %v, want %v", got, tt.want)
 			}
 		})
@@ -439,7 +438,7 @@ func TestSumValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := maps.SumValue(tt.m); got != tt.want {
+			if got := maputil.SumValue(tt.m); got != tt.want {
 				t.Errorf("SumValue() = %v, want %v", got, tt.want)
 			}
 		})
@@ -450,7 +449,7 @@ func TestSumFunc(t *testing.T) {
 	m := map[string]int{"a": 1, "bb": 2, "ccc": 3}
 	want := 6
 
-	got := maps.SumFunc(m, func(k string, v int) int {
+	got := maputil.SumFunc(m, func(k string, v int) int {
 		return len(k)
 	})
 
@@ -459,195 +458,11 @@ func TestSumFunc(t *testing.T) {
 	}
 }
 
-func TestClone(t *testing.T) {
-	tests := []struct {
-		name string
-		m    map[string]int
-	}{
-		{
-			name: "nil map",
-			m:    nil,
-		},
-		{
-			name: "empty map",
-			m:    map[string]int{},
-		},
-		{
-			name: "non-empty map",
-			m:    map[string]int{"a": 1, "b": 2, "c": 3},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := maps.Clone(tt.m)
-			if !reflect.DeepEqual(got, tt.m) {
-				t.Errorf("Clone() = %v, want %v", got, tt.m)
-			}
-			if tt.m != nil && &got == &tt.m {
-				t.Errorf("Clone() returned same map address, want different")
-			}
-		})
-	}
-}
-
-func TestCopy(t *testing.T) {
-	tests := []struct {
-		name string
-		src  map[string]int
-		dst  map[string]int
-		want map[string]int
-	}{
-		{
-			name: "empty source",
-			src:  map[string]int{},
-			dst:  map[string]int{"x": 10},
-			want: map[string]int{"x": 10},
-		},
-		{
-			name: "empty destination",
-			src:  map[string]int{"a": 1, "b": 2},
-			dst:  map[string]int{},
-			want: map[string]int{"a": 1, "b": 2},
-		},
-		{
-			name: "overlapping keys",
-			src:  map[string]int{"a": 1, "b": 2, "c": 3},
-			dst:  map[string]int{"b": 20, "c": 30, "d": 40},
-			want: map[string]int{"a": 1, "b": 2, "c": 3, "d": 40},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			maps.Copy(tt.dst, tt.src)
-			if !reflect.DeepEqual(tt.dst, tt.want) {
-				t.Errorf("Copy() result = %v, want %v", tt.dst, tt.want)
-			}
-		})
-	}
-}
-
-func TestEqual(t *testing.T) {
-	tests := []struct {
-		name string
-		m1   map[string]int
-		m2   map[string]int
-		want bool
-	}{
-		{
-			name: "both nil",
-			m1:   nil,
-			m2:   nil,
-			want: true,
-		},
-		{
-			name: "nil and empty",
-			m1:   nil,
-			m2:   map[string]int{},
-			want: true,
-		},
-		{
-			name: "empty and nil",
-			m1:   map[string]int{},
-			m2:   nil,
-			want: true,
-		},
-		{
-			name: "both empty",
-			m1:   map[string]int{},
-			m2:   map[string]int{},
-			want: true,
-		},
-		{
-			name: "same content",
-			m1:   map[string]int{"a": 1, "b": 2},
-			m2:   map[string]int{"b": 2, "a": 1},
-			want: true,
-		},
-		{
-			name: "different content",
-			m1:   map[string]int{"a": 1, "b": 2},
-			m2:   map[string]int{"a": 1, "b": 3},
-			want: false,
-		},
-		{
-			name: "different keys",
-			m1:   map[string]int{"a": 1, "b": 2},
-			m2:   map[string]int{"a": 1, "c": 2},
-			want: false,
-		},
-		{
-			name: "subset",
-			m1:   map[string]int{"a": 1, "b": 2},
-			m2:   map[string]int{"a": 1, "b": 2, "c": 3},
-			want: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := maps.Equal(tt.m1, tt.m2); got != tt.want {
-				t.Errorf("Equal() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestEqualFunc(t *testing.T) {
-	tests := []struct {
-		name string
-		m1   map[string]float64
-		m2   map[string]float64
-		f    func(float64, float64) bool
-		want bool
-	}{
-		{
-			name: "exact equality",
-			m1:   map[string]float64{"a": 1.0, "b": 2.0},
-			m2:   map[string]float64{"a": 1.0, "b": 2.0},
-			f:    func(v1, v2 float64) bool { return v1 == v2 },
-			want: true,
-		},
-		{
-			name: "approximate equality",
-			m1:   map[string]float64{"a": 1.0, "b": 2.0},
-			m2:   map[string]float64{"a": 1.000001, "b": 1.999999},
-			f: func(v1, v2 float64) bool {
-				return math.Abs(v1-v2) < 0.0001
-			},
-			want: true,
-		},
-		{
-			name: "different content",
-			m1:   map[string]float64{"a": 1.0, "b": 2.0},
-			m2:   map[string]float64{"a": 1.0, "b": 3.0},
-			f:    func(v1, v2 float64) bool { return v1 == v2 },
-			want: false,
-		},
-		{
-			name: "different keys",
-			m1:   map[string]float64{"a": 1.0, "b": 2.0},
-			m2:   map[string]float64{"a": 1.0, "c": 2.0},
-			f:    func(v1, v2 float64) bool { return v1 == v2 },
-			want: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := maps.EqualFunc(tt.m1, tt.m2, tt.f); got != tt.want {
-				t.Errorf("EqualFunc() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 // TestEdgeCases tests some edge cases that weren't covered in the main tests
 func TestEdgeCases(t *testing.T) {
 	t.Run("MinMaxKey with negative numbers", func(t *testing.T) {
 		m := map[int]string{-3: "minus three", 0: "zero", 5: "five"}
-		gotMin, gotMax := maps.MinMaxKey(m)
+		gotMin, gotMax := maputil.MinMaxKey(m)
 		if gotMin != -3 || gotMax != 5 {
 			t.Errorf("MinMaxKey() = (%v, %v), want (-3, 5)", gotMin, gotMax)
 		}
@@ -655,62 +470,9 @@ func TestEdgeCases(t *testing.T) {
 
 	t.Run("SumKey with overflow", func(t *testing.T) {
 		m := map[int8]string{127: "max", 1: "one"}
-		sum := maps.SumKey(m)
+		sum := maputil.SumKey(m)
 		if sum != -128 {
 			t.Errorf("SumKey() = %v, want -128 (overflow)", sum)
 		}
 	})
-
-	t.Run("Clone with nested maps", func(t *testing.T) {
-		m := map[string]any{
-			"a": 1,
-			"b": map[string]int{"x": 10, "y": 20},
-		}
-		cloned := maps.Clone(m)
-		if !reflect.DeepEqual(m, cloned) {
-			t.Errorf("Clone() with nested maps failed, got %v, want %v", cloned, m)
-		}
-		// Modify nested map in original
-		m["b"].(map[string]int)["z"] = 30
-		if !reflect.DeepEqual(m, cloned) {
-			t.Errorf("Clone() unexpectedly created a deep copy for nested maps")
-		}
-	})
-}
-
-// Benchmarks for some of the functions
-func BenchmarkKeys(b *testing.B) {
-	m := make(map[string]int)
-	for i := 0; i < 1000; i++ {
-		m[fmt.Sprintf("key%d", i)] = i
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		maps.Keys(m)
-	}
-}
-
-func BenchmarkClone(b *testing.B) {
-	m := make(map[string]int)
-	for i := 0; i < 1000; i++ {
-		m[fmt.Sprintf("key%d", i)] = i
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		maps.Clone(m)
-	}
-}
-
-func BenchmarkEqual(b *testing.B) {
-	m1 := make(map[string]int)
-	m2 := make(map[string]int)
-	for i := 0; i < 1000; i++ {
-		key := fmt.Sprintf("key%d", i)
-		m1[key] = i
-		m2[key] = i
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		maps.Equal(m1, m2)
-	}
 }

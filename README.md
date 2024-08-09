@@ -75,7 +75,7 @@ Yes, it's that simple and type-safe! 😮 With just these few lines of code, you
 
 Run your application with a configuration file:
 
-```
+```sh
 ./demo app.json
 ```
 
@@ -108,6 +108,10 @@ Run your application with a configuration file:
 - `-T`: Enable template processing for component configurations 🧩
 
 ### Example with Template Processing
+
+```sh
+./demo -T app.json
+```
 
 ```json
 {

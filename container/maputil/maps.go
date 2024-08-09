@@ -1,7 +1,9 @@
-// Package maps provides utility functions for working with maps.
-package maps
+// Package maputil provides utility functions for working with maps.
+package maputil
 
 import (
+	"cmp"
+
 	"github.com/gopherd/core/constraints"
 	"github.com/gopherd/core/container/pair"
 )
@@ -25,8 +27,8 @@ func Values[M ~map[K]V, K comparable, V any](m M) []V {
 }
 
 // Map creates a slice by applying function f to each key-value pair in the map.
-func Map[D []T, M ~map[K]V, F ~func(K, V) T, K comparable, V any, T any](m M, f F) D {
-	result := make(D, 0, len(m))
+func Map[S []T, M ~map[K]V, F ~func(K, V) T, K comparable, V any, T any](m M, f F) S {
+	result := make(S, 0, len(m))
 	for k, v := range m {
 		result = append(result, f(k, v))
 	}
@@ -38,7 +40,7 @@ func MinKey[M ~map[K]V, K constraints.Ordered, V any](m M) K {
 	var min K
 	first := true
 	for k := range m {
-		if first || k < min {
+		if first || cmp.Less(k, min) {
 			min = k
 			first = false
 		}
@@ -51,7 +53,7 @@ func MaxKey[M ~map[K]V, K constraints.Ordered, V any](m M) K {
 	var max K
 	first := true
 	for k := range m {
-		if first || k > max {
+		if first || cmp.Less(max, k) {
 			max = k
 			first = false
 		}
@@ -67,9 +69,9 @@ func MinMaxKey[M ~map[K]V, K constraints.Ordered, V any](m M) (min, max K) {
 		if first {
 			min, max = k, k
 			first = false
-		} else if k < min {
+		} else if cmp.Less(k, min) {
 			min = k
-		} else if k > max {
+		} else if cmp.Less(max, k) {
 			max = k
 		}
 	}
@@ -82,7 +84,7 @@ func MinValue[M ~map[K]V, K comparable, V constraints.Ordered](m M) pair.Pair[K,
 	var result pair.Pair[K, V]
 	first := true
 	for k, v := range m {
-		if first || v < result.Second {
+		if first || cmp.Less(v, result.Second) {
 			result = pair.New(k, v)
 			first = false
 		}
@@ -96,7 +98,7 @@ func MaxValue[M ~map[K]V, K comparable, V constraints.Ordered](m M) pair.Pair[K,
 	var result pair.Pair[K, V]
 	first := true
 	for k, v := range m {
-		if first || v > result.Second {
+		if first || cmp.Less(result.Second, v) {
 			result = pair.New(k, v)
 			first = false
 		}
@@ -114,10 +116,10 @@ func MinMaxValue[M ~map[K]V, K comparable, V constraints.Ordered](m M) (min, max
 			max = pair.New(k, v)
 			first = false
 		} else {
-			if v < min.Second {
+			if cmp.Less(v, min.Second) {
 				min = pair.New(k, v)
 			}
-			if v > max.Second {
+			if cmp.Less(max.Second, v) {
 				max = pair.New(k, v)
 			}
 		}
@@ -132,7 +134,7 @@ func MinKeyFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraints.
 	first := true
 	for k, v := range m {
 		t := f(k, v)
-		if first || t < min {
+		if first || cmp.Less(t, min) {
 			min = t
 			first = false
 		}
@@ -147,7 +149,7 @@ func MaxKeyFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraints.
 	first := true
 	for k, v := range m {
 		t := f(k, v)
-		if first || t > max {
+		if first || cmp.Less(max, t) {
 			max = t
 			first = false
 		}
@@ -165,10 +167,10 @@ func MinMaxKeyFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constrain
 			min, max = t, t
 			first = false
 		} else {
-			if t < min {
+			if cmp.Less(t, min) {
 				min = t
 			}
-			if t > max {
+			if cmp.Less(max, t) {
 				max = t
 			}
 		}
@@ -183,7 +185,7 @@ func MinValueFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraint
 	first := true
 	for k, v := range m {
 		t := f(k, v)
-		if first || t < result.Second {
+		if first || cmp.Less(t, result.Second) {
 			result = pair.New(k, t)
 			first = false
 		}
@@ -198,7 +200,7 @@ func MaxValueFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraint
 	first := true
 	for k, v := range m {
 		t := f(k, v)
-		if first || t > result.Second {
+		if first || cmp.Less(result.Second, t) {
 			result = pair.New(k, t)
 			first = false
 		}
@@ -217,10 +219,10 @@ func MinMaxValueFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constra
 			max = pair.New(k, t)
 			first = false
 		} else {
-			if t < min.Second {
+			if cmp.Less(t, min.Second) {
 				min = pair.New(k, t)
 			}
-			if t > max.Second {
+			if cmp.Less(max.Second, t) {
 				max = pair.New(k, t)
 			}
 		}
@@ -262,51 +264,4 @@ func SumFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraints.Num
 		sum += f(k, v)
 	}
 	return sum
-}
-
-// Clone returns a new map with the same key-value pairs as the input map.
-func Clone[M ~map[K]V, K comparable, V any](m M) M {
-	if m == nil {
-		return nil
-	}
-	result := make(M, len(m))
-	for k, v := range m {
-		result[k] = v
-	}
-	return result
-}
-
-// Copy copies all key-value pairs from src to dst.
-func Copy[D, S ~map[K]V, K comparable, V any](dst D, src S) {
-	for k, v := range src {
-		dst[k] = v
-	}
-}
-
-// Equal reports whether two maps contain the same key-value pairs.
-func Equal[D, S ~map[K]V, K, V comparable](dst D, src S) bool {
-	if len(dst) != len(src) {
-		return false
-	}
-	for k, v := range src {
-		if dv, ok := dst[k]; !ok || dv != v {
-			return false
-		}
-	}
-	return true
-}
-
-// EqualFunc reports whether two maps contain the same key-value pairs,
-// using the provided function f to compare values.
-func EqualFunc[D ~map[K]V, S ~map[K]U, F ~func(V, U) bool, K comparable, V any, U any](dst D, src S, f F) bool {
-	if len(dst) != len(src) {
-		return false
-	}
-	for k, u := range src {
-		v, ok := dst[k]
-		if !ok || !f(v, u) {
-			return false
-		}
-	}
-	return true
 }

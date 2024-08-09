@@ -1,4 +1,7 @@
-// Package service provides a framework for creating and managing service processes.
+// Package service provides a framework for creating and managing service processes
+// with support for configuration loading, lifecycle management, and component handling.
+// It offers flexible configuration options, including file-based, HTTP-based, and
+// stdin-based configuration loading, as well as template processing capabilities.
 package service
 
 import (
@@ -10,19 +13,18 @@ import (
 
 	"github.com/gopherd/core/builder"
 	"github.com/gopherd/core/component"
+	"github.com/gopherd/core/container/pair"
 	"github.com/gopherd/core/errkit"
 	"github.com/gopherd/core/lifecycle"
 )
 
-// Service represents a process with lifecycle management and component handling.
+// Service represents a process with lifecycle management and component handling capabilities.
 type Service interface {
 	lifecycle.Lifecycle
-
-	// GetComponent returns a component by its UUID.
-	GetComponent(uuid string) component.Component
+	component.Container
 }
 
-// BaseService implements the Service interface.
+// BaseService implements the Service interface with a generic context type T.
 type BaseService[T any] struct {
 	flags struct {
 		source         string // config source path, URL or "-" for stdin
@@ -46,10 +48,8 @@ func NewBaseService[T any](config Config[T]) *BaseService[T] {
 	}
 }
 
-// SetVersionFunc sets the version function.
-// The version function is called when the service is started with the -v flag.
-// If the version function is not set, the default version function is used.
-// And if set to nil, the version function is disabled.
+// SetVersionFunc sets the version function to be called when the service is started with the -v flag.
+// If set to nil, the version function is disabled.
 func (s *BaseService[T]) SetVersionFunc(f func()) {
 	s.versionFunc = f
 }
@@ -64,7 +64,7 @@ func (s *BaseService[T]) Config() *Config[T] {
 	return &s.config
 }
 
-// setupCommandLineFlags sets command-line arguments for the service.
+// setupCommandLineFlags sets up and processes command-line arguments for the service.
 func (s *BaseService[T]) setupCommandLineFlags() error {
 	flag.Usage = func() {
 		name := os.Args[0]
@@ -95,7 +95,6 @@ func (s *BaseService[T]) setupCommandLineFlags() error {
 	flag.Parse()
 
 	if s.flags.version {
-		// print version information and exit
 		if s.versionFunc != nil {
 			s.versionFunc()
 		}
@@ -117,6 +116,7 @@ func (s *BaseService[T]) setupCommandLineFlags() error {
 	return nil
 }
 
+// processConfig loads and processes the service configuration based on command-line flags.
 func (s *BaseService[T]) processConfig() (err error) {
 	defer func() {
 		if s.flags.testConfig {
@@ -124,7 +124,6 @@ func (s *BaseService[T]) processConfig() (err error) {
 				fmt.Println("Config test failed: ", err)
 			} else {
 				fmt.Println("Config test successful")
-				// Exit after test
 				err = errkit.NewExitError(0)
 			}
 		}
@@ -143,14 +142,13 @@ func (s *BaseService[T]) processConfig() (err error) {
 
 	if s.flags.printConfig {
 		s.config.output()
-		// Exit after output
 		return errkit.NewExitError(0)
 	}
 
 	return nil
 }
 
-// Init implements the Service Init method.
+// Init implements the Service Init method, setting up logging and initializing components.
 func (s *BaseService[T]) Init(ctx context.Context) error {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: slog.LevelWarn,
@@ -164,45 +162,48 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 		return err
 	}
 
+	var components = make([]pair.Pair[component.Component, component.Config], 0, len(s.config.Components))
 	for _, c := range s.config.Components {
-		creator := component.Lookup(c.Name)
-		if creator == nil {
-			return fmt.Errorf("unknown component name: %q", c.Name)
+		com, err := component.Create(c.Name)
+		if err != nil {
+			return fmt.Errorf("create component %q error: %w", c.Name, err)
 		}
-		com := creator()
-		if com == nil {
-			return fmt.Errorf("create component %q error", c.UUID)
-		}
-		if err := com.Ctor(c); err != nil {
-			return fmt.Errorf("create component %q error: %w", c.UUID, err)
-		}
-		if s.components.AddComponent(com) == nil {
+		if s.components.AddComponent(c.UUID, com) == nil {
 			return fmt.Errorf("duplicate component id: %q", c.UUID)
 		}
+		components = append(components, pair.New(com, c))
 	}
-	if err := s.components.OnMounted(s); err != nil {
-		return fmt.Errorf("mount components error: %w", err)
+	for i := range components {
+		if err := components[i].First.Setup(s, components[i].Second); err != nil {
+			return fmt.Errorf("component %s setup error: %w", components[i].First.String(), err)
+		}
 	}
 
 	return s.components.Init(ctx)
 }
 
-// Uninit implements the Service Uninit method.
+// Uninit implements the Service Uninit method, uninitializing all components.
 func (s *BaseService[T]) Uninit(ctx context.Context) error {
 	return s.components.Uninit(ctx)
 }
 
-// Start implements the Service Start method.
+// Start implements the Service Start method, starting all components.
 func (s *BaseService[T]) Start(ctx context.Context) error {
 	return s.components.Start(ctx)
 }
 
-// Shutdown implements the Service Shutdown method.
+// Shutdown implements the Service Shutdown method, shutting down all components.
 func (s *BaseService[T]) Shutdown(ctx context.Context) error {
 	return s.components.Shutdown(ctx)
 }
 
-// Run is a shortcut for running a service with a default configuration.
+// Run is a convenience function for running a service with a default configuration.
+// It creates and runs a BaseService with an empty context.
+// This function always exits the program:
+// - It exits with the error code if an error occurs.
+// - It exits with code 0 if the service runs successfully.
+// It is recommended to use this function unless you need to customize the Service
+// or want to prevent the program from exiting.
 func Run() {
 	type context map[string]any
 	if err := RunService(NewBaseService(Config[context]{Context: context{}})); err != nil {
@@ -211,10 +212,14 @@ func Run() {
 		}
 		os.Exit(1)
 	}
+	os.Exit(0)
 }
 
 // RunService starts and manages the lifecycle of the given service.
-// If the service returns an error, the program exits with the error code or 1.
+// It handles initialization, starting, shutdown, and uninitialization of the service.
+// This function returns any error encountered during the service lifecycle.
+// Use this function if you need to run a custom Service implementation or
+// if you want to handle errors without exiting the program.
 func RunService(s Service) error {
 	defer func() {
 		slog.Info("uninitializing service")
@@ -224,7 +229,6 @@ func RunService(s Service) error {
 		slog.Info("service exited")
 	}()
 	if err := s.Init(context.Background()); err != nil {
-		// If the error is an ExitError, return it directly without logging.
 		if _, ok := errkit.ExitCode(err); ok {
 			return err
 		}
