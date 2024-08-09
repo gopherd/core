@@ -137,10 +137,10 @@ func cleanTemplateError(err error) error {
 		return nil
 	}
 	errMsg := err.Error()
-	re := regexp.MustCompile(`template: (.*?):\d+:\d+: executing "(.*?)" at `)
+	re := regexp.MustCompile(`^(template: .*?:\d+:\d+): executing "(.*?)" at .*?: (.*)$`)
 	matches := re.FindStringSubmatch(errMsg)
-	if len(matches) == 3 && matches[1] == matches[2] {
-		cleaned := strings.Replace(errMsg, matches[0], "template: "+matches[1]+": ", 1)
+	if len(matches) == 4 && strings.Contains(matches[1], matches[2]) {
+		cleaned := matches[1] + ": " + matches[3]
 		return errors.New(cleaned)
 	}
 	return err
