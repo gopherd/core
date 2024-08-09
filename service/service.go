@@ -155,7 +155,7 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 
 	if s.flags.testConfig {
 		if err != nil {
-			fmt.Printf("Config test failed: %e", err)
+			fmt.Printf("Config test failed: %v\n", err)
 			err = errkit.NewExitError(2, err.Error())
 		} else {
 			fmt.Println("Config test successful")

@@ -117,13 +117,13 @@ func DefaultTemplate(name string) *template.Template {
 // Execute executes the default template with the given text and data.
 func Execute(name, text string, data any, options ...string) (string, error) {
 	var buf bytes.Buffer
-	t := DefaultTemplate(name).New("template")
+	t := DefaultTemplate(name)
 	if len(options) > 0 {
 		t = t.Option(options...)
 	}
 	if t, err := t.Parse(text); err != nil {
 		return "", err
-	} else if err := t.Execute(&buf, data); err != nil {
+	} else if err := t.ExecuteTemplate(&buf, "template", data); err != nil {
 		return "", err
 	} else {
 		return buf.String(), nil
