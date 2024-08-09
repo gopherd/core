@@ -134,7 +134,7 @@ func (c Config[T]) output() {
 	encoder.SetIndent("", "    ")
 
 	if err := encoder.Encode(c); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to encode config: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Encode config failed: %v\n", err)
 		return
 	}
 
