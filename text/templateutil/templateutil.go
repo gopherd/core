@@ -115,9 +115,9 @@ func DefaultTemplate(name string) *template.Template {
 }
 
 // Execute executes the default template with the given text and data.
-func Execute(text string, data any, options ...string) (string, error) {
+func Execute(name, text string, data any, options ...string) (string, error) {
 	var buf bytes.Buffer
-	t := DefaultTemplate("default")
+	t := DefaultTemplate(name).New("template")
 	if len(options) > 0 {
 		t = t.Option(options...)
 	}

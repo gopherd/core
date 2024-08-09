@@ -84,31 +84,39 @@ func (c *Config[T]) loadFromHTTP(source string) (io.ReadCloser, error) {
 
 // processTemplate processes the UUID, Refs, and Options fields of each component.Config
 // as text/template templates, using c.Context as the template context.
-func (c *Config[T]) processTemplate() error {
+func (c *Config[T]) processTemplate(source string) error {
+	if source == "-" {
+		source = ""
+	}
 	const option = "missingkey=error"
 	for i := range c.Components {
 		com := &c.Components[i]
 
+		identifier := com.Name
 		if com.UUID != "" {
-			new, err := templateutil.Execute(com.UUID, c.Context, option)
+			identifier += "#" + com.UUID
+		}
+		sourcePrefix := fmt.Sprintf("%s[%s].", source, identifier)
+		if com.UUID != "" {
+			new, err := templateutil.Execute(sourcePrefix+"UUID", com.UUID, c.Context, option)
 			if err != nil {
-				return fmt.Errorf("process UUID for component %s: %w", com.UUID, err)
+				return err
 			}
 			com.UUID = new
 		}
 
 		if com.Refs.Len() > 0 {
-			new, err := templateutil.Execute(com.Refs.String(), c.Context, option)
+			new, err := templateutil.Execute(sourcePrefix+"Refs", com.Refs.String(), c.Context, option)
 			if err != nil {
-				return fmt.Errorf("process Refs for component %s: %w", com.UUID, err)
+				return err
 			}
 			com.Refs.SetString(new)
 		}
 
 		if com.Options.Len() > 0 {
-			new, err := templateutil.Execute(com.Options.String(), c.Context, option)
+			new, err := templateutil.Execute(sourcePrefix+"Options", com.Options.String(), c.Context, option)
 			if err != nil {
-				return fmt.Errorf("process Options for component %s: %w", com.UUID, err)
+				return err
 			}
 			com.Options.SetString(new)
 		}

@@ -122,8 +122,8 @@ func (s *BaseService[T]) setupConfig() error {
 		return err
 	}
 	if s.flags.enableTemplate {
-		if err := s.config.processTemplate(); err != nil {
-			return fmt.Errorf("failed to process template: %w", err)
+		if err := s.config.processTemplate(s.flags.source); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -155,7 +155,7 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 
 	if s.flags.testConfig {
 		if err != nil {
-			fmt.Println("Config test failed: ", err)
+			fmt.Printf("Config test failed: %e", err)
 			err = errkit.NewExitError(2, err.Error())
 		} else {
 			fmt.Println("Config test successful")
