@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/gopherd/core/builder"
 	"github.com/gopherd/core/component"
@@ -68,23 +69,28 @@ func (s *BaseService[T]) Config() *Config[T] {
 func (s *BaseService[T]) setupCommandLineFlags() error {
 	flag.Usage = func() {
 		name := os.Args[0]
-		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] <config>\n", name)
-		fmt.Fprintf(os.Stderr, "       %s <path/to/file>   (Read configuration from file)\n", name)
-		fmt.Fprintf(os.Stderr, "       %s <url>            (Read configuration from http)\n", name)
-		fmt.Fprintf(os.Stderr, "       %s -                (Read configuration from stdin)\n", name)
-		fmt.Fprintf(os.Stderr, "       %s -v               (Print version information)\n", name)
-		fmt.Fprintf(os.Stderr, "       %s -p               (Print the configuration)\n", name)
-		fmt.Fprintf(os.Stderr, "       %s -t               (Test the configuration for validity)\n", name)
-		fmt.Fprintf(os.Stderr, "       %s -T               (Enable template processing for component configurations)\n", name)
-		fmt.Fprintf(os.Stderr, "\nExamples:\n")
-		fmt.Fprintf(os.Stderr, "       %s app.json\n", name)
-		fmt.Fprintf(os.Stderr, "       %s http://example.com/app.json\n", name)
-		fmt.Fprintf(os.Stderr, `       echo '{"Components":[]}' | %s -`+"\n", name)
-		fmt.Fprintf(os.Stderr, "       %s -p app.json\n", name)
-		fmt.Fprintf(os.Stderr, "       %s -t app.json\n", name)
-		fmt.Fprintf(os.Stderr, "       %s -T app.json\n", name)
-		fmt.Fprintf(os.Stderr, "       %s -p -T app.json\n", name)
-		fmt.Fprintf(os.Stderr, "       %s -t -T app.json\n", name)
+		var sb strings.Builder
+		fmt.Fprintf(&sb, "Usage: %s [Options] <Config>\n", name)
+		fmt.Fprintf(&sb, "       %s -h\n", name)
+		fmt.Fprintf(&sb, "       %s -v\n", name)
+		fmt.Fprintf(&sb, "\nConfig:\n")
+		fmt.Fprintf(&sb, "       <path/to/file>   (Read configuration from file)\n")
+		fmt.Fprintf(&sb, "       <url>            (Read configuration from http)\n")
+		fmt.Fprintf(&sb, "       -                (Read configuration from stdin)\n")
+		fmt.Fprintf(&sb, "\nOptions:\n")
+		fmt.Fprintf(&sb, "       -p               (Print the configuration)\n")
+		fmt.Fprintf(&sb, "       -t               (Test the configuration for validity)\n")
+		fmt.Fprintf(&sb, "       -T               (Enable template processing for component configurations)\n")
+		fmt.Fprintf(&sb, "\nExamples:\n")
+		fmt.Fprintf(&sb, "       %s app.json\n", name)
+		fmt.Fprintf(&sb, "       %s http://example.com/app.json\n", name)
+		fmt.Fprintf(&sb, `       echo '{"Components":[]}' | %s -`+"\n", name)
+		fmt.Fprintf(&sb, "       %s -p app.json\n", name)
+		fmt.Fprintf(&sb, "       %s -t app.json\n", name)
+		fmt.Fprintf(&sb, "       %s -T app.json\n", name)
+		fmt.Fprintf(&sb, "       %s -p -T app.json\n", name)
+		fmt.Fprintf(&sb, "       %s -t -T app.json\n", name)
+		fmt.Fprint(os.Stderr, sb.String())
 	}
 
 	flag.BoolVar(&s.flags.version, "v", false, "")

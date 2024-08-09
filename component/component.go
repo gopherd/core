@@ -30,7 +30,7 @@ type Component interface {
 	lifecycle.Lifecycle
 	fmt.Stringer
 
-	// Setup configures the component with the given container and configuration.
+	// Setup sets up the component with the given container and configuration.
 	Setup(Container, Config) error
 }
 
@@ -53,7 +53,6 @@ type BaseComponent[T any] struct {
 	lifecycle.BaseLifecycle
 	options    T
 	identifier string
-	container  Container
 }
 
 // Options returns a pointer to the component's options.
@@ -68,8 +67,6 @@ func (c *BaseComponent[T]) String() string {
 
 // Setup implements the Component Setup method.
 func (c *BaseComponent[T]) Setup(container Container, config Config) error {
-	c.container = container
-
 	if config.UUID != "" {
 		if strings.Contains(config.UUID, config.Name) {
 			c.identifier = "#" + config.UUID
@@ -119,20 +116,15 @@ func (r *Reference[T]) UnmarshalJSON(data []byte) error {
 
 // Resolve resolves the reference for the component.
 func (r *Reference[T]) Resolve(container Container) error {
-	return Resolve(&r.component, container, r.uuid)
-}
-
-// Resolve resolves the target component for the given container and UUID.
-func Resolve[T any](target *T, container Container, uuid string) error {
-	com := container.GetComponent(uuid)
+	com := container.GetComponent(r.uuid)
 	if com == nil {
-		return fmt.Errorf("component %q not found", uuid)
+		return fmt.Errorf("component %q not found", r.uuid)
 	}
 	if c, ok := com.(T); ok {
-		*target = c
+		r.component = c
 		return nil
 	}
-	return fmt.Errorf("component %q type mismatch", uuid)
+	return fmt.Errorf("unexpected component %q type: %T", r.uuid, com)
 }
 
 // BaseComponentWithRefs provides a basic implementation of the Component interface with references.
@@ -187,9 +179,9 @@ func (c *BaseComponentWithRefs[T, R]) recursiveResolveRefs(container Container, 
 		}
 
 		if err := resolver.Resolve(container); err != nil {
-			return fmt.Errorf("failed to resolve reference %s: %w", ft.Name, err)
+			return fmt.Errorf("failed to resolve reference %s to %s: %w", ft.Name, resolver.UUID(), err)
 		}
-		slog.Debug("resolved reference", "reference", ft.Name)
+		slog.Info("resolve referenced component", "current", c.identifier, "ref", resolver.UUID())
 	}
 
 	return nil
