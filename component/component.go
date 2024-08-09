@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/gopherd/core/lifecycle"
 	"github.com/gopherd/core/raw"
@@ -32,18 +33,26 @@ type Component interface {
 
 	// Setup sets up the component with the given container and configuration.
 	Setup(Container, Config) error
+
+	// Logger returns the logger instance for the component.
+	// Logger must be guranteed to return a non-nil logger instance after Setup is called.
+	Logger() *slog.Logger
 }
 
 // Container represents a generic container that can hold components.
 type Container interface {
 	// GetComponent returns a component by its UUID.
 	GetComponent(uuid string) Component
+
+	// Logger returns the logger instance for the container.
+	Logger() *slog.Logger
 }
 
 // Resolver resolves a reference for a component.
 type Resolver interface {
 	// UUID returns the UUID of the referenced component.
 	UUID() string
+
 	// Resolve resolves the reference for the component.
 	Resolve(Container) error
 }
@@ -51,8 +60,11 @@ type Resolver interface {
 // BaseComponent provides a basic implementation of the Component interface.
 type BaseComponent[T any] struct {
 	lifecycle.BaseLifecycle
+
 	options    T
 	identifier string
+	container  Container
+	logger     atomic.Pointer[slog.Logger]
 }
 
 // Options returns a pointer to the component's options.
@@ -65,8 +77,20 @@ func (c *BaseComponent[T]) String() string {
 	return c.identifier
 }
 
+// Logger implements the Component Logger method.
+func (c *BaseComponent[T]) Logger() *slog.Logger {
+	currentLogger := c.logger.Load()
+	latestLogger := c.container.Logger()
+	if currentLogger != latestLogger {
+		currentLogger = latestLogger.With("component", c.identifier)
+		c.logger.Store(currentLogger)
+	}
+	return currentLogger
+}
+
 // Setup implements the Component Setup method.
 func (c *BaseComponent[T]) Setup(container Container, config Config) error {
+	c.container = container
 	if config.UUID != "" {
 		if strings.Contains(config.UUID, config.Name) {
 			c.identifier = "#" + config.UUID
@@ -181,7 +205,7 @@ func (c *BaseComponentWithRefs[T, R]) recursiveResolveRefs(container Container, 
 		if err := resolver.Resolve(container); err != nil {
 			return fmt.Errorf("failed to resolve reference %s to %s: %w", ft.Name, resolver.UUID(), err)
 		}
-		slog.Info("resolve referenced component", "current", c.identifier, "ref", resolver.UUID())
+		c.Logger().Info("resolve referenced component", "current", c.identifier, "ref", resolver.UUID())
 	}
 
 	return nil
@@ -238,12 +262,12 @@ func (g *Group) GetComponent(uuid string) Component {
 func (g *Group) Init(ctx context.Context) error {
 	for i := range g.components {
 		com := g.components[i]
-		slog.Info("initializing component")
+		com.Logger().Info("initializing component")
 		if err := com.Init(ctx); err != nil {
-			slog.Error("failed to initialize component", "error", err)
+			com.Logger().Error("failed to initialize component", "error", err)
 			return err
 		}
-		slog.Info("component initialized")
+		com.Logger().Info("component initialized")
 		g.numInitialized++
 	}
 	return nil
@@ -253,12 +277,12 @@ func (g *Group) Init(ctx context.Context) error {
 func (g *Group) Uninit(ctx context.Context) error {
 	for i := g.numInitialized - 1; i >= 0; i-- {
 		com := g.components[i]
-		slog.Info("uninitializing component")
+		com.Logger().Info("uninitializing component")
 		if err := com.Uninit(ctx); err != nil {
-			slog.Error("failed to uninitialize component", "error", err)
+			com.Logger().Error("failed to uninitialize component", "error", err)
 			return err
 		}
-		slog.Info("component uninitialized")
+		com.Logger().Info("component uninitialized")
 	}
 	return nil
 }
@@ -267,12 +291,12 @@ func (g *Group) Uninit(ctx context.Context) error {
 func (g *Group) Start(ctx context.Context) error {
 	for i := range g.components {
 		com := g.components[i]
-		slog.Info("starting component")
+		com.Logger().Info("starting component")
 		if err := com.Start(ctx); err != nil {
-			slog.Error("failed to start component", "error", err)
+			com.Logger().Error("failed to start component", "error", err)
 			return err
 		}
-		slog.Info("component started")
+		com.Logger().Info("component started")
 		g.numStarted++
 	}
 	return nil
@@ -283,12 +307,12 @@ func (g *Group) Shutdown(ctx context.Context) error {
 	var errs []error
 	for i := g.numStarted - 1; i >= 0; i-- {
 		com := g.components[i]
-		slog.Info("shutting down component")
+		com.Logger().Info("shutting down component")
 		if err := com.Shutdown(ctx); err != nil {
-			slog.Error("failed to shutdown component", "error", err)
+			com.Logger().Error("failed to shutdown component", "error", err)
 			errs = append(errs, err)
 		} else {
-			slog.Info("component shutdown")
+			com.Logger().Info("component shutdown")
 		}
 	}
 	return errors.Join(errs...)

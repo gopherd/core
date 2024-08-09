@@ -23,6 +23,9 @@ import (
 type Service interface {
 	lifecycle.Lifecycle
 	component.Container
+
+	// Logger returns the logger instance for the service.
+	Logger() *slog.Logger
 }
 
 // BaseService implements the Service interface with a generic context type T.
@@ -58,6 +61,11 @@ func (s *BaseService[T]) SetVersionFunc(f func()) {
 // GetComponent returns a component by its UUID.
 func (s *BaseService[T]) GetComponent(uuid string) component.Component {
 	return s.components.GetComponent(uuid)
+}
+
+// Logger returns the logger instance for the service.
+func (s *BaseService[T]) Logger() *slog.Logger {
+	return slog.Default()
 }
 
 // Config returns the current configuration.
