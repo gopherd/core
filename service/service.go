@@ -116,35 +116,16 @@ func (s *BaseService[T]) setupCommandLineFlags() error {
 	return nil
 }
 
-// processConfig loads and processes the service configuration based on command-line flags.
-func (s *BaseService[T]) processConfig() (err error) {
-	defer func() {
-		if s.flags.testConfig {
-			if err != nil {
-				fmt.Println("Config test failed: ", err)
-			} else {
-				fmt.Println("Config test successful")
-				err = errkit.NewExitError(0)
-			}
-		}
-	}()
-
-	if err = s.config.load(s.flags.source); err != nil {
-		return
+// setupConfig loads and sets up the service configuration based on command-line flags.
+func (s *BaseService[T]) setupConfig() error {
+	if err := s.config.load(s.flags.source); err != nil {
+		return err
 	}
-
 	if s.flags.enableTemplate {
-		if err = s.config.processTemplate(); err != nil {
-			err = fmt.Errorf("failed to process template: %w", err)
-			return
+		if err := s.config.processTemplate(); err != nil {
+			return fmt.Errorf("failed to process template: %w", err)
 		}
 	}
-
-	if s.flags.printConfig {
-		s.config.output()
-		return errkit.NewExitError(0)
-	}
-
 	return nil
 }
 
@@ -158,10 +139,36 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 		return err
 	}
 
-	if err := s.processConfig(); err != nil {
+	err := s.setupConfig()
+
+	if s.flags.printConfig {
+		if err != nil {
+			return err
+		}
+		s.config.output()
+		return errkit.NewExitError(0)
+	}
+
+	if err == nil {
+		err = s.setupComponents()
+	}
+
+	if s.flags.testConfig {
+		if err != nil {
+			fmt.Println("Config test failed: ", err)
+		} else {
+			fmt.Println("Config test successful")
+			err = errkit.NewExitError(0)
+		}
+	}
+	if err != nil {
 		return err
 	}
 
+	return s.components.Init(ctx)
+}
+
+func (s *BaseService[T]) setupComponents() error {
 	var components = make([]pair.Pair[component.Component, component.Config], 0, len(s.config.Components))
 	for _, c := range s.config.Components {
 		com, err := component.Create(c.Name)
@@ -178,8 +185,7 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 			return fmt.Errorf("component %s setup error: %w", components[i].First.String(), err)
 		}
 	}
-
-	return s.components.Init(ctx)
+	return nil
 }
 
 // Uninit implements the Service Uninit method, uninitializing all components.
