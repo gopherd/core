@@ -243,30 +243,30 @@ func Run() {
 // if you want to handle errors without exiting the program.
 func RunService(s Service) error {
 	defer func() {
-		slog.Info("uninitializing service")
+		s.Logger().Info("uninitializing service")
 		if err := s.Uninit(context.Background()); err != nil {
-			slog.Error("failed to uninitialize service", slog.Any("error", err))
+			s.Logger().Error("failed to uninitialize service", slog.Any("error", err))
 		}
-		slog.Info("service exited")
+		s.Logger().Info("service exited")
 	}()
 	if err := s.Init(context.Background()); err != nil {
 		if _, ok := errkit.ExitCode(err); ok {
 			return err
 		}
-		slog.Error("failed to initialize service", slog.Any("error", err))
+		s.Logger().Error("failed to initialize service", slog.Any("error", err))
 		return err
 	}
 
-	slog.Info("starting service")
+	s.Logger().Info("starting service")
 	defer func() {
-		slog.Info("shutting down service")
+		s.Logger().Info("shutting down service")
 		if err := s.Shutdown(context.Background()); err != nil {
-			slog.Error("failed to shutdown service", slog.Any("error", err))
+			s.Logger().Error("failed to shutdown service", slog.Any("error", err))
 		}
 	}()
 	err := s.Start(context.Background())
 	if err != nil {
-		slog.Error("failed to start service", slog.Any("error", err))
+		s.Logger().Error("failed to start service", slog.Any("error", err))
 	}
 	return err
 }
