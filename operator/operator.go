@@ -25,6 +25,23 @@ func OrFunc[T comparable](a T, new func() T) T {
 	return a
 }
 
+// SetDefault sets the value of a to b if a is the zero value for T.
+func SetDefault[T comparable](a *T, b T) {
+	var zero T
+	if *a == zero {
+		*a = b
+	}
+}
+
+// SetDefaultFunc sets the value of a to the result of calling new() if a is
+// the zero value for T.
+func SetDefaultFunc[T comparable](a *T, new func() T) {
+	var zero T
+	if *a == zero {
+		*a = new()
+	}
+}
+
 // Ternary returns a if condition is true, otherwise returns b.
 // It provides a generic ternary operation for any type.
 func Ternary[T any](condition bool, a, b T) T {
