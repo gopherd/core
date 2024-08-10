@@ -2,6 +2,7 @@ package builtin
 
 import (
 	"context"
+	"net"
 	"net/http"
 
 	"github.com/gopherd/core/component"
@@ -12,7 +13,8 @@ type HTTPServerComponent interface {
 	Handle(path string, handler http.Handler)
 }
 
-const HTTPServerComponentName = "github.com/gopherd/core/component/httpserver"
+// HTTPServerComponentName is the unique identifier for the HTTPServerComponent.
+const HTTPServerComponentName = "go/httpserver"
 
 func init() {
 	// Register the HTTPServerComponent implementation.
@@ -26,24 +28,42 @@ var _ HTTPServerComponent = (*httpServerComponent)(nil)
 
 type httpServerComponent struct {
 	component.BaseComponent[struct {
-		Addr            string
-		DefaultServeMux bool
+		Addr   string // Addr is the address to listen on.
+		Block  bool   // Block indicates whether the Start method should block.
+		NewMux bool   // NewMux indicates whether to create a new ServeMux.
 	}]
 	mux    *http.ServeMux
 	server *http.Server
 }
 
+// Start implements the component.Component interface.
 func (com *httpServerComponent) Start(ctx context.Context) error {
-	if com.Options().DefaultServeMux {
-		com.mux = http.DefaultServeMux
-	} else {
-		com.mux = http.NewServeMux()
+	addr := com.Options().Addr
+	if addr == "" {
+		addr = ":http"
 	}
-	com.server = &http.Server{Addr: com.Options().Addr, Handler: com.mux}
-	go com.server.ListenAndServe()
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	if com.Options().NewMux {
+		com.mux = http.NewServeMux()
+	} else {
+		com.mux = http.DefaultServeMux
+	}
+	com.server = &http.Server{Addr: addr, Handler: com.mux}
+	if com.Options().Block {
+		com.Logger().Info("http server started", "addr", addr)
+		return com.server.Serve(ln)
+	}
+	go func() {
+		com.Logger().Info("http server started", "addr", addr)
+		com.server.Serve(ln)
+	}()
 	return nil
 }
 
+// Shutdown implements the component.Component interface.
 func (com *httpServerComponent) Shutdown(ctx context.Context) error {
 	return com.server.Shutdown(ctx)
 }

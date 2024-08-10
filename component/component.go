@@ -20,10 +20,29 @@ import (
 
 // Config defines the configuration structure for creating a component.
 type Config struct {
-	Name    string
-	UUID    string     `json:",omitempty"`
-	Refs    raw.Object `json:",omitempty"`
+	// Name is the component name. It's required.
+	Name string
+
+	// UUID is the unique identifier for the component. It can be empty.
+	UUID string `json:",omitempty"`
+
+	// Refs is the references to other components.
+	Refs raw.Object `json:",omitempty"`
+
+	// Options is the configuration options for the component.
 	Options raw.Object `json:",omitempty"`
+
+	// TemplateUUID determines if the UUID should be templated.
+	// If not set, the default value is determined by the service.
+	TemplateUUID *bool `json:",omitempty"`
+
+	// TemplateRefs determines if the Refs should be templated.
+	// If not set, the default value is determined by the service.
+	TemplateRefs *bool `json:",omitempty"`
+
+	// TemplateOptions determines if the Options should be templated.
+	// If not set, the default value is determined by the service.
+	TemplateOptions *bool `json:",omitempty"`
 }
 
 // Component defines the interface for a generic logic component.

@@ -107,30 +107,6 @@ Run your application with a configuration file:
 - `-t`: Test the configuration for validity ✅
 - `-T`: Enable template processing for component configurations 🧩
 
-### Example with Template Processing
-
-```sh
-./demo -T app.json
-```
-
-```json
-{
-	"Context": {
-		"Name": "world"
-	},
-	"Components": [
-		{
-			"Name": "hello",
-			"Options": {
-				"Message": "{{.Name}}"
-			}
-		}
-	]
-}
-```
-
-This example demonstrates how to use template processing in your component configurations. Cool, huh? 😎
-
 ## 📚 Documentation
 
 For detailed documentation of each package and component, please refer to the GoDoc:

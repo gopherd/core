@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gopherd/core/component"
+	"github.com/gopherd/core/operator"
 	"github.com/gopherd/core/text/templateutil"
 )
 
@@ -84,7 +85,7 @@ func (c *Config[T]) loadFromHTTP(source string) (io.ReadCloser, error) {
 
 // processTemplate processes the UUID, Refs, and Options fields of each component.Config
 // as text/template templates, using c.Context as the template context.
-func (c *Config[T]) processTemplate(source string) error {
+func (c *Config[T]) processTemplate(enableTemplate bool, source string) error {
 	if source == "-" {
 		source = ""
 	}
@@ -97,7 +98,7 @@ func (c *Config[T]) processTemplate(source string) error {
 			identifier += "#" + com.UUID
 		}
 		sourcePrefix := fmt.Sprintf("%s[%s].", source, identifier)
-		if com.UUID != "" {
+		if operator.Ternary(com.TemplateUUID == nil, enableTemplate, *com.TemplateUUID) && com.UUID != "" {
 			new, err := templateutil.Execute(sourcePrefix+"UUID", com.UUID, c.Context, option)
 			if err != nil {
 				return err
@@ -105,7 +106,7 @@ func (c *Config[T]) processTemplate(source string) error {
 			com.UUID = new
 		}
 
-		if com.Refs.Len() > 0 {
+		if operator.Ternary(com.TemplateRefs == nil, enableTemplate, *com.TemplateRefs) && com.Refs.Len() > 0 {
 			new, err := templateutil.Execute(sourcePrefix+"Refs", com.Refs.String(), c.Context, option)
 			if err != nil {
 				return err
@@ -113,7 +114,7 @@ func (c *Config[T]) processTemplate(source string) error {
 			com.Refs.SetString(new)
 		}
 
-		if com.Options.Len() > 0 {
+		if operator.Ternary(com.TemplateOptions == nil, enableTemplate, *com.TemplateOptions) && com.Options.Len() > 0 {
 			new, err := templateutil.Execute(sourcePrefix+"Options", com.Options.String(), c.Context, option)
 			if err != nil {
 				return err

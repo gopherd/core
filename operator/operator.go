@@ -15,12 +15,12 @@ func Or[T comparable](a, b T) T {
 	return a
 }
 
-// OrFunc returns the result of calling new() if a is the zero value for T,
+// OrFunc returns the result of calling b() if a is the zero value for T,
 // otherwise returns a. It allows for lazy evaluation of the alternative value.
-func OrFunc[T comparable](a T, new func() T) T {
+func OrFunc[T comparable](a T, b func() T) T {
 	var zero T
 	if a == zero {
-		return new()
+		return b()
 	}
 	return a
 }
@@ -33,12 +33,12 @@ func SetDefault[T comparable](a *T, b T) {
 	}
 }
 
-// SetDefaultFunc sets the value of a to the result of calling new() if a is
+// SetDefaultFunc sets the value of a to the result of calling b() if a is
 // the zero value for T.
-func SetDefaultFunc[T comparable](a *T, new func() T) {
+func SetDefaultFunc[T comparable](a *T, b func() T) {
 	var zero T
 	if *a == zero {
-		*a = new()
+		*a = b()
 	}
 }
 
@@ -51,10 +51,18 @@ func Ternary[T any](condition bool, a, b T) T {
 	return b
 }
 
-// TernaryFunc returns the result of calling a() if condition is true,
+// TernaryFunc returns the a if condition is true, otherwise returns the result of calling b().
+func TernaryFunc[T any](condition bool, a T, b func() T) T {
+	if condition {
+		return a
+	}
+	return b()
+}
+
+// TernaryCall returns the result of calling a() if condition is true,
 // otherwise returns the result of calling b().
 // It allows for lazy evaluation of both alternatives.
-func TernaryFunc[T any](condition bool, a, b func() T) T {
+func TernaryCall[T any](condition bool, a, b func() T) T {
 	if condition {
 		return a()
 	}

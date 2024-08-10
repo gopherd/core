@@ -91,32 +91,6 @@ func TestErrno(t *testing.T) {
 	}
 }
 
-func TestIs(t *testing.T) {
-	tests := []struct {
-		name     string
-		err      error
-		code     int
-		expected bool
-	}{
-		{"nil error", nil, EOK, true},
-		{"matching code", New(42, errors.New("custom error")), 42, true},
-		{"non-matching code", New(42, errors.New("custom error")), 43, false},
-		{"wrapped matching code", fmt.Errorf("wrapped: %w", New(42, errors.New("custom error"))), 42, true},
-		{"non-errno error", errors.New("regular error"), EUnknown, true},
-		{"EOK with nil error", nil, EOK, true},
-		{"EOK with non-nil error", errors.New("some error"), EOK, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := Is(tt.err, tt.code)
-			if result != tt.expected {
-				t.Errorf("Is(%v, %d) = %v, want %v", tt.err, tt.code, result, tt.expected)
-			}
-		})
-	}
-}
-
 func TestErrnoMethods(t *testing.T) {
 	err := New(42, errors.New("test error"))
 

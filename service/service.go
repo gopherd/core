@@ -135,10 +135,8 @@ func (s *BaseService[T]) setupConfig() error {
 	if err := s.config.load(s.flags.source); err != nil {
 		return err
 	}
-	if s.flags.enableTemplate {
-		if err := s.config.processTemplate(s.flags.source); err != nil {
-			return err
-		}
+	if err := s.config.processTemplate(s.flags.enableTemplate, s.flags.source); err != nil {
+		return err
 	}
 	return nil
 }
@@ -157,7 +155,8 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 
 	if s.flags.printConfig {
 		if err != nil {
-			return err
+			fmt.Fprintf(os.Stderr, "Config test failed: %v\n", err)
+			return errkit.NewExitError(2, err.Error())
 		}
 		s.config.output()
 		return errkit.NewExitError(0)

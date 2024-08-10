@@ -83,8 +83,3 @@ func Errno(err error) int {
 	}
 	return EUnknown
 }
-
-// Is reports whether any error in err's chain matches target.
-func Is[T constraints.Integer](err error, code T) bool {
-	return Errno(err) == int(code)
-}

@@ -92,7 +92,7 @@ func TestTernary(t *testing.T) {
 	}
 }
 
-func TestTernaryFunc(t *testing.T) {
+func TestTernaryCall(t *testing.T) {
 	aCounter, bCounter := 0, 0
 	aFunc := func() int {
 		aCounter++
@@ -117,7 +117,7 @@ func TestTernaryFunc(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			aCounter, bCounter = 0, 0
-			if got := operator.TernaryFunc(tt.condition, aFunc, bFunc); got != tt.wantResult {
+			if got := operator.TernaryCall(tt.condition, aFunc, bFunc); got != tt.wantResult {
 				t.Errorf("TernaryFunc(%v, aFunc, bFunc) = %v, want %v", tt.condition, got, tt.wantResult)
 			}
 			if aCounter != tt.wantACalls {
