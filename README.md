@@ -107,6 +107,21 @@ Run your application with a configuration file:
 - `-t`: Test the configuration for validity ✅
 - `-T`: Enable template processing for component configurations 🧩
 
+## 🎓 Example Project
+
+For a more comprehensive example of how to use `gopherd/core` in a real-world scenario, check out our example project:
+
+[https://github.com/gopherd/example](https://github.com/gopherd/example)
+
+This project demonstrates how to build a modular backend service using `gopherd/core`, including:
+
+- Setting up multiple components
+- Configuring dependencies between components
+- Using the event system
+- Implementing authentication and user management
+
+It's a great resource for understanding how all the pieces fit together in a larger application! 🧩
+
 ## 📚 Documentation
 
 For detailed documentation of each package and component, please refer to the GoDoc:
