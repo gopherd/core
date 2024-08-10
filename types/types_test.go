@@ -1,21 +1,21 @@
-package raw_test
+package types_test
 
 import (
 	"encoding/json"
 	"reflect"
 	"testing"
 
-	"github.com/gopherd/core/raw"
+	"github.com/gopherd/core/types"
 )
 
 func TestObjectLen(t *testing.T) {
 	tests := []struct {
 		name string
-		o    raw.Object
+		o    types.Bytes
 		want int
 	}{
-		{"Empty", raw.Object{}, 0},
-		{"NonEmpty", raw.Object(`{"key":"value"}`), 15},
+		{"Empty", types.Bytes{}, 0},
+		{"NonEmpty", types.Bytes(`{"key":"value"}`), 15},
 	}
 
 	for _, tt := range tests {
@@ -29,7 +29,7 @@ func TestObjectLen(t *testing.T) {
 
 func TestString(t *testing.T) {
 	s := `{"test":"value"}`
-	o := raw.String(s)
+	o := types.String(s)
 	if string(o) != s {
 		t.Errorf("String() = %v, want %v", string(o), s)
 	}
@@ -37,21 +37,21 @@ func TestString(t *testing.T) {
 
 func TestBytes(t *testing.T) {
 	b := []byte(`{"test":"value"}`)
-	o := raw.Bytes(b)
+	o := types.Bytes(b)
 	if !reflect.DeepEqual([]byte(o), b) {
 		t.Errorf("Bytes() = %v, want %v", []byte(o), b)
 	}
 }
 
 func TestObjectString(t *testing.T) {
-	o := raw.Object(`{"test":"value"}`)
+	o := types.Bytes(`{"test":"value"}`)
 	if o.String() != `{"test":"value"}` {
 		t.Errorf("Object.String() = %v, want %v", o.String(), `{"test":"value"}`)
 	}
 }
 
 func TestObjectSetString(t *testing.T) {
-	var o raw.Object
+	var o types.Bytes
 	s := `{"test":"value"}`
 	o.SetString(s)
 	if string(o) != s {
@@ -60,7 +60,7 @@ func TestObjectSetString(t *testing.T) {
 }
 
 func TestObjectBytes(t *testing.T) {
-	o := raw.Object(`{"test":"value"}`)
+	o := types.Bytes(`{"test":"value"}`)
 	expected := []byte(`{"test":"value"}`)
 	if !reflect.DeepEqual(o.Bytes(), expected) {
 		t.Errorf("Object.Bytes() = %v, want %v", o.Bytes(), expected)
@@ -68,7 +68,7 @@ func TestObjectBytes(t *testing.T) {
 }
 
 func TestObjectSetBytes(t *testing.T) {
-	var o raw.Object
+	var o types.Bytes
 	b := []byte(`{"test":"value"}`)
 	o.SetBytes(b)
 	if !reflect.DeepEqual([]byte(o), b) {
@@ -77,7 +77,7 @@ func TestObjectSetBytes(t *testing.T) {
 }
 
 func TestObjectMarshalJSON(t *testing.T) {
-	o := raw.Object(`{"test":"value"}`)
+	o := types.Bytes(`{"test":"value"}`)
 	b, err := o.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON() error = %v", err)
@@ -88,7 +88,7 @@ func TestObjectMarshalJSON(t *testing.T) {
 }
 
 func TestObjectUnmarshalJSON(t *testing.T) {
-	var o raw.Object
+	var o types.Bytes
 	err := o.UnmarshalJSON([]byte(`{"test":"value"}`))
 	if err != nil {
 		t.Fatalf("UnmarshalJSON() error = %v", err)
@@ -99,7 +99,7 @@ func TestObjectUnmarshalJSON(t *testing.T) {
 }
 
 func TestObjectDecodeJSON(t *testing.T) {
-	o := raw.Object(`{"test":"value"}`)
+	o := types.Bytes(`{"test":"value"}`)
 	var v map[string]string
 	err := o.DecodeJSON(&v)
 	if err != nil {
@@ -110,7 +110,7 @@ func TestObjectDecodeJSON(t *testing.T) {
 	}
 
 	// Test with nil Object
-	var nilO raw.Object
+	var nilO types.Bytes
 	err = nilO.DecodeJSON(&v)
 	if err != nil {
 		t.Errorf("DecodeJSON() with nil Object should not return error, got %v", err)
@@ -119,7 +119,7 @@ func TestObjectDecodeJSON(t *testing.T) {
 
 func TestMustJSON(t *testing.T) {
 	v := map[string]string{"test": "value"}
-	o := raw.MustJSON(v)
+	o := types.MustJSON(v)
 	var decoded map[string]string
 	err := json.Unmarshal(o, &decoded)
 	if err != nil {
@@ -135,12 +135,12 @@ func TestMustJSON(t *testing.T) {
 			t.Errorf("MustJSON() should panic with un-marshallable value")
 		}
 	}()
-	raw.MustJSON(make(chan int)) // This should panic
+	types.MustJSON(make(chan int)) // This should panic
 }
 
 func TestJSON(t *testing.T) {
 	v := map[string]string{"test": "value"}
-	o, err := raw.JSON(v)
+	o, err := types.JSON(v)
 	if err != nil {
 		t.Fatalf("JSON() error = %v", err)
 	}
@@ -154,7 +154,7 @@ func TestJSON(t *testing.T) {
 	}
 
 	// Test error scenario
-	_, err = raw.JSON(make(chan int))
+	_, err = types.JSON(make(chan int))
 	if err == nil {
 		t.Errorf("JSON() should return error with un-marshallable value")
 	}

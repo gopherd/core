@@ -15,7 +15,7 @@ import (
 	"sync/atomic"
 
 	"github.com/gopherd/core/lifecycle"
-	"github.com/gopherd/core/raw"
+	"github.com/gopherd/core/types"
 )
 
 // Config defines the configuration structure for creating a component.
@@ -27,22 +27,22 @@ type Config struct {
 	UUID string `json:",omitempty"`
 
 	// Refs is the references to other components.
-	Refs raw.Object `json:",omitempty"`
+	Refs types.Bytes `json:",omitempty"`
 
 	// Options is the configuration options for the component.
-	Options raw.Object `json:",omitempty"`
+	Options types.Bytes `json:",omitempty"`
 
 	// TemplateUUID determines if the UUID should be templated.
 	// If not set, the default value is determined by the service.
-	TemplateUUID *bool `json:",omitempty"`
+	TemplateUUID *types.Bool `json:",omitempty"`
 
 	// TemplateRefs determines if the Refs should be templated.
 	// If not set, the default value is determined by the service.
-	TemplateRefs *bool `json:",omitempty"`
+	TemplateRefs *types.Bool `json:",omitempty"`
 
 	// TemplateOptions determines if the Options should be templated.
 	// If not set, the default value is determined by the service.
-	TemplateOptions *bool `json:",omitempty"`
+	TemplateOptions *types.Bool `json:",omitempty"`
 }
 
 // Component defines the interface for a generic logic component.

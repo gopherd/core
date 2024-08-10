@@ -98,7 +98,7 @@ func (c *Config[T]) processTemplate(enableTemplate bool, source string) error {
 			identifier += "#" + com.UUID
 		}
 		sourcePrefix := fmt.Sprintf("%s[%s].", source, identifier)
-		if operator.Ternary(com.TemplateUUID == nil, enableTemplate, *com.TemplateUUID) && com.UUID != "" {
+		if operator.TernaryFunc(com.TemplateUUID == nil, enableTemplate, com.TemplateUUID.Deref) && com.UUID != "" {
 			new, err := templateutil.Execute(sourcePrefix+"UUID", com.UUID, c.Context, option)
 			if err != nil {
 				return err
@@ -106,7 +106,7 @@ func (c *Config[T]) processTemplate(enableTemplate bool, source string) error {
 			com.UUID = new
 		}
 
-		if operator.Ternary(com.TemplateRefs == nil, enableTemplate, *com.TemplateRefs) && com.Refs.Len() > 0 {
+		if operator.TernaryFunc(com.TemplateRefs == nil, enableTemplate, com.TemplateRefs.Deref) && com.Refs.Len() > 0 {
 			new, err := templateutil.Execute(sourcePrefix+"Refs", com.Refs.String(), c.Context, option)
 			if err != nil {
 				return err
@@ -114,7 +114,7 @@ func (c *Config[T]) processTemplate(enableTemplate bool, source string) error {
 			com.Refs.SetString(new)
 		}
 
-		if operator.Ternary(com.TemplateOptions == nil, enableTemplate, *com.TemplateOptions) && com.Options.Len() > 0 {
+		if operator.TernaryFunc(com.TemplateOptions == nil, enableTemplate, com.TemplateOptions.Deref) && com.Options.Len() > 0 {
 			new, err := templateutil.Execute(sourcePrefix+"Options", com.Options.String(), c.Context, option)
 			if err != nil {
 				return err
