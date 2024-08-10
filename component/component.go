@@ -130,17 +130,11 @@ func (c *BaseComponent[T]) Setup(container Container, config Config) error {
 type Reference[T any] struct {
 	component T
 	uuid      string
-	optional  bool
 }
 
 // Ref creates a reference to a component with the given UUID.
 func Ref[T any](uuid string) Reference[T] {
 	return Reference[T]{uuid: uuid}
-}
-
-// OptionalRef creates an optional reference to a component with the given UUID.
-func OptionalRef[T any](uuid string) Reference[T] {
-	return Reference[T]{uuid: uuid, optional: true}
 }
 
 // UUID returns the UUID of the referenced component.
@@ -149,7 +143,6 @@ func (r Reference[T]) UUID() string {
 }
 
 // Component returns the referenced component.
-// If optional is true and the uuid is empty, it returns nil.
 func (r Reference[T]) Component() T {
 	return r.component
 }
@@ -166,9 +159,6 @@ func (r *Reference[T]) UnmarshalJSON(data []byte) error {
 
 // Resolve resolves the reference for the component.
 func (r *Reference[T]) Resolve(container Container) error {
-	if r.optional && r.uuid == "" {
-		return nil
-	}
 	com := container.GetComponent(r.uuid)
 	if com == nil {
 		return fmt.Errorf("component %q not found", r.uuid)
@@ -178,6 +168,27 @@ func (r *Reference[T]) Resolve(container Container) error {
 		return nil
 	}
 	return fmt.Errorf("unexpected component %q type: %T", r.uuid, com)
+}
+
+// OptionalReference represents an optional reference to another component.
+// If the UUID is empty, the reference is ignored, and Component returns nil.
+type OptionalReference[T any] struct {
+	Reference[T]
+}
+
+// OptionalRef creates an optional reference to a component with the given UUID.
+func OptionalRef[T any](uuid string) OptionalReference[T] {
+	return OptionalReference[T]{
+		Reference: Reference[T]{uuid: uuid},
+	}
+}
+
+// Resolve resolves the reference for the component.
+func (r *OptionalReference[T]) Resolve(container Container) error {
+	if r.uuid == "" {
+		return nil
+	}
+	return r.Reference.Resolve(container)
 }
 
 // BaseComponentWithRefs provides a basic implementation of the Component interface with references.
