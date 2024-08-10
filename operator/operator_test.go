@@ -7,35 +7,6 @@ import (
 	"github.com/gopherd/core/operator"
 )
 
-func TestOr(t *testing.T) {
-	tests := []struct {
-		name       string
-		a, b, want int
-	}{
-		{"both non-zero", 1, 2, 1},
-		{"a zero", 0, 2, 2},
-		{"b zero", 1, 0, 1},
-		{"both zero", 0, 0, 0},
-		{"negative values", -1, -2, -1},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := operator.Or(tt.a, tt.b); got != tt.want {
-				t.Errorf("Or(%v, %v) = %v, want %v", tt.a, tt.b, got, tt.want)
-			}
-		})
-	}
-
-	// Test with string type
-	if got := operator.Or("", "default"); got != "default" {
-		t.Errorf(`Or("", "default") = %q, want "default"`, got)
-	}
-	if got := operator.Or("value", "default"); got != "value" {
-		t.Errorf(`Or("value", "default") = %q, want "value"`, got)
-	}
-}
-
 func TestOrFunc(t *testing.T) {
 	counter := 0
 	newFunc := func() int {

@@ -109,14 +109,14 @@ var defaultOptions = &Options{
 
 // Fix ensures all options have valid values, using defaults where necessary.
 func (options *Options) Fix() {
-	options.Parent = operator.Or(options.Parent, defaultOptions.Parent)
+	operator.SetDefault(&options.Parent, defaultOptions.Parent)
 	if options.Branch == "" {
 		options.Branch = defaultOptions.Branch
-		options.LastBranch = operator.Or(options.LastBranch, defaultOptions.LastBranch)
+		operator.SetDefault(&options.LastBranch, defaultOptions.LastBranch)
 	} else if options.LastBranch == "" {
 		options.LastBranch = options.Branch
 	}
-	options.Space = operator.Or(options.Space, defaultOptions.Space)
+	operator.SetDefault(&options.Space, defaultOptions.Space)
 }
 
 // Stringify converts a node to a string representation.

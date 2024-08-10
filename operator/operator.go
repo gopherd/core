@@ -5,16 +5,6 @@ package operator
 
 import "github.com/gopherd/core/constraints"
 
-// Or returns b if a is the zero value for T, otherwise returns a.
-// It provides a generic "or" operation for any comparable type.
-func Or[T comparable](a, b T) T {
-	var zero T
-	if a == zero {
-		return b
-	}
-	return a
-}
-
 // OrFunc returns the result of calling b() if a is the zero value for T,
 // otherwise returns a. It allows for lazy evaluation of the alternative value.
 func OrFunc[T comparable](a T, b func() T) T {
