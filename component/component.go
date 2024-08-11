@@ -123,6 +123,13 @@ func (c *BaseComponent[T]) Setup(container Container, config Config) error {
 	if err := config.Options.DecodeJSON(&c.options); err != nil {
 		return fmt.Errorf("failed to unmarshal options: %w", err)
 	}
+	if loaded, ok := any(&c.options).(interface {
+		OnLoaded() error
+	}); ok {
+		if err := loaded.OnLoaded(); err != nil {
+			return fmt.Errorf("failed to load options: %w", err)
+		}
+	}
 	return nil
 }
 
