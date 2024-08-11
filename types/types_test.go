@@ -101,7 +101,7 @@ func TestObjectUnmarshalJSON(t *testing.T) {
 func TestObjectDecodeJSON(t *testing.T) {
 	o := types.RawObject(`{"test":"value"}`)
 	var v map[string]string
-	err := o.DecodeJSON(&v)
+	err := o.Decode(json.Unmarshal, &v)
 	if err != nil {
 		t.Fatalf("DecodeJSON() error = %v", err)
 	}
@@ -111,51 +111,8 @@ func TestObjectDecodeJSON(t *testing.T) {
 
 	// Test with nil Object
 	var nilO types.RawObject
-	err = nilO.DecodeJSON(&v)
+	err = nilO.Decode(json.Unmarshal, &v)
 	if err != nil {
 		t.Errorf("DecodeJSON() with nil Object should not return error, got %v", err)
-	}
-}
-
-func TestMustJSON(t *testing.T) {
-	v := map[string]string{"test": "value"}
-	o := types.MustJSON(v)
-	var decoded map[string]string
-	err := json.Unmarshal(o, &decoded)
-	if err != nil {
-		t.Fatalf("Error decoding MustJSON result: %v", err)
-	}
-	if !reflect.DeepEqual(v, decoded) {
-		t.Errorf("MustJSON() result = %v, want %v", decoded, v)
-	}
-
-	// Test panic scenario
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("MustJSON() should panic with un-marshallable value")
-		}
-	}()
-	types.MustJSON(make(chan int)) // This should panic
-}
-
-func TestJSON(t *testing.T) {
-	v := map[string]string{"test": "value"}
-	o, err := types.JSON(v)
-	if err != nil {
-		t.Fatalf("JSON() error = %v", err)
-	}
-	var decoded map[string]string
-	err = json.Unmarshal(o, &decoded)
-	if err != nil {
-		t.Fatalf("Error decoding JSON result: %v", err)
-	}
-	if !reflect.DeepEqual(v, decoded) {
-		t.Errorf("JSON() result = %v, want %v", decoded, v)
-	}
-
-	// Test error scenario
-	_, err = types.JSON(make(chan int))
-	if err == nil {
-		t.Errorf("JSON() should return error with un-marshallable value")
 	}
 }

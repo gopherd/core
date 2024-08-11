@@ -92,6 +92,10 @@ func (c *mockContainer) GetComponent(uuid string) component.Component {
 	return c.components[uuid]
 }
 
+func (c *mockContainer) Decoder() types.Decoder {
+	return json.Unmarshal
+}
+
 func (c *mockContainer) Logger() *slog.Logger {
 	return c.logger
 }

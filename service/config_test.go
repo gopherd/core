@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gopherd/core/component"
+	"github.com/gopherd/core/op"
 	"github.com/gopherd/core/types"
 )
 
@@ -82,7 +84,7 @@ func TestConfig_Load(t *testing.T) {
 			}
 
 			c := &Config[TestContext]{}
-			err := c.load(tt.source)
+			err := c.load(json.Unmarshal, tt.source, true)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("load() error = %v, wantErr %v", err, tt.wantErr)
@@ -199,14 +201,14 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 					{
 						Name: "Component1",
 						UUID: "{{.Name}}-UUID",
-						Refs: types.MustJSON(refs{
+						Refs: types.RawObject(op.MustValue(json.Marshal(refs{
 							A: "{{.Name}}-A",
 							B: "B",
-						}),
-						Options: types.MustJSON(options{
+						}))),
+						Options: types.RawObject(op.MustValue(json.Marshal(options{
 							C: "C",
 							D: "{{.Name}}-D",
-						}),
+						}))),
 					},
 				},
 			},
@@ -219,14 +221,14 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 					{
 						Name: "Component1",
 						UUID: "TestName-UUID",
-						Refs: types.MustJSON(refs{
+						Refs: types.RawObject(op.MustValue(json.Marshal(refs{
 							A: "TestName-A",
 							B: "B",
-						}),
-						Options: types.MustJSON(options{
+						}))),
+						Options: types.RawObject(op.MustValue(json.Marshal(options{
 							C: "C",
 							D: "TestName-D",
-						}),
+						}))),
 					},
 				},
 			},
@@ -277,10 +279,10 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 				Components: []component.Config{
 					{
 						Name: "Component1",
-						Refs: types.MustJSON(map[string]string{
+						Refs: types.RawObject(op.MustValue(json.Marshal(map[string]string{
 							"A": "{{.NameXXX}}-A",
 							"B": "B",
-						}),
+						}))),
 					},
 				},
 			},
@@ -295,10 +297,10 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 				Components: []component.Config{
 					{
 						Name: "Component1",
-						Options: types.MustJSON(map[string]string{
+						Options: types.RawObject(op.MustValue(json.Marshal(map[string]string{
 							"A": "{{.NameXXX}}-A",
 							"B": "B",
-						}),
+						}))),
 					},
 				},
 			},
@@ -339,7 +341,7 @@ func TestConfig_Output(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	config.output()
+	config.output(jsonIdentEncoder)
 
 	w.Close()
 	os.Stdout = oldStdout
@@ -376,7 +378,7 @@ func ExampleConfig_output() {
 		},
 	}
 
-	config.output()
+	config.output(jsonIdentEncoder)
 	// Output:
 	// {
 	//     "Context": {

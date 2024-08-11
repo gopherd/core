@@ -126,3 +126,19 @@ func DerefOrFunc[T any](p *T, x func() T) T {
 func Addr[T any](x T) *T {
 	return &x
 }
+
+// Must panics if err is not nil.
+func Must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+// MustValue panics if err is not nil, otherwise it returns value.
+// It is a convenient way to handle errors in a single line.
+func MustValue[T any](value T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return value
+}

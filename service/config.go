@@ -15,18 +15,19 @@ import (
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/op"
 	"github.com/gopherd/core/text/templateutil"
+	"github.com/gopherd/core/types"
 )
 
 // Config represents a generic configuration structure for services.
 // It includes a context of type T and a list of component configurations.
 type Config[T any] struct {
-	Context    T                  `json:",omitempty"`
-	Components []component.Config `json:",omitempty"`
+	Context    T                  `json:",omitempty" toml:",omitempty" yaml:",omitempty"`
+	Components []component.Config `json:",omitempty" toml:",omitempty" yaml:",omitempty"`
 }
 
 // load processes the configuration based on the provided source.
 // It returns an error if the configuration cannot be loaded or decoded.
-func (c *Config[T]) load(source string) error {
+func (c *Config[T]) load(decoder types.Decoder, source string, isJSONC bool) error {
 	if source == "" {
 		return nil
 	}
@@ -53,11 +54,19 @@ func (c *Config[T]) load(source string) error {
 		return err
 	}
 
-	if data, err := stripJSONComments(r); err != nil {
-		return err
+	var data []byte
+	if isJSONC {
+		data, err = stripJSONComments(r)
+		if err != nil {
+			return err
+		}
 	} else {
-		return json.Unmarshal(data, c)
+		data, err = io.ReadAll(r)
+		if err != nil {
+			return fmt.Errorf("read config data failed: %w", err)
+		}
 	}
+	return decoder(data, c)
 }
 
 // loadFromHTTP loads the configuration from an HTTP source.
@@ -128,20 +137,14 @@ func (c *Config[T]) processTemplate(enableTemplate bool, source string) error {
 	return nil
 }
 
-// output encodes the configuration as JSON and writes it to stdout.
+// output encodes the configuration with the encoder and writes it to stdout.
 // It uses indentation for better readability.
-func (c Config[T]) output() {
-	var buf bytes.Buffer
-	encoder := json.NewEncoder(&buf)
-	encoder.SetEscapeHTML(false)
-	encoder.SetIndent("", "    ")
-
-	if err := encoder.Encode(c); err != nil {
+func (c Config[T]) output(encoder types.Encoder) {
+	if data, err := encoder(c); err != nil {
 		fmt.Fprintf(os.Stderr, "Encode config failed: %v\n", err)
-		return
+	} else {
+		fmt.Fprint(os.Stdout, string(data))
 	}
-
-	fmt.Fprint(os.Stdout, buf.String())
 }
 
 func stripJSONComments(r io.Reader) ([]byte, error) {
@@ -170,4 +173,17 @@ func stripJSONComments(r io.Reader) ([]byte, error) {
 		bytes = bytes[:len(bytes)-1]
 	}
 	return bytes, nil
+}
+
+func jsonIdentEncoder(v any) ([]byte, error) {
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "    ")
+
+	if err := encoder.Encode(v); err != nil {
+		fmt.Fprintf(os.Stderr, "Encode config failed: %v\n", err)
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }

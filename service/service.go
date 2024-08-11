@@ -6,6 +6,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 	"github.com/gopherd/core/container/pair"
 	"github.com/gopherd/core/errkit"
 	"github.com/gopherd/core/lifecycle"
+	"github.com/gopherd/core/types"
 )
 
 // Service represents a process with lifecycle management and component handling capabilities.
@@ -40,6 +42,9 @@ type BaseService[T any] struct {
 	}
 	versionFunc func()
 	stderr      io.Writer
+	encoder     types.Encoder
+	decoder     types.Decoder
+	isJSONC     bool
 
 	config     Config[T]
 	components *component.Group
@@ -49,9 +54,12 @@ type BaseService[T any] struct {
 func NewBaseService[T any](config Config[T]) *BaseService[T] {
 	return &BaseService[T]{
 		versionFunc: builder.PrintInfo,
+		stderr:      os.Stderr,
+		encoder:     json.Marshal,
+		decoder:     json.Unmarshal,
+		isJSONC:     true,
 		config:      config,
 		components:  component.NewGroup(),
-		stderr:      os.Stderr,
 	}
 }
 
@@ -64,6 +72,23 @@ func (s *BaseService[T]) SetVersionFunc(f func()) {
 // GetComponent returns a component by its UUID.
 func (s *BaseService[T]) GetComponent(uuid string) component.Component {
 	return s.components.GetComponent(uuid)
+}
+
+// Encoder returns the encoder function for the service.
+func (s *BaseService[T]) Encoder() types.Encoder {
+	return s.encoder
+}
+
+// Decoder returns the decoder function for the service.
+func (s *BaseService[T]) Decoder() types.Decoder {
+	return s.decoder
+}
+
+// SetEncoderDecoder sets the encoder and decoder functions for the service.
+func (s *BaseService[T]) SetEncoderDecoder(encoder types.Encoder, decoder types.Decoder) {
+	s.encoder = encoder
+	s.decoder = decoder
+	s.isJSONC = false
 }
 
 // Logger returns the logger instance for the service.
@@ -135,7 +160,7 @@ func (s *BaseService[T]) setupCommandLineFlags() error {
 
 // setupConfig loads and sets up the service configuration based on command-line flags.
 func (s *BaseService[T]) setupConfig() error {
-	if err := s.config.load(s.flags.source); err != nil {
+	if err := s.config.load(s.decoder, s.flags.source, s.isJSONC); err != nil {
 		return err
 	}
 	if err := s.config.processTemplate(s.flags.enableTemplate, s.flags.source); err != nil {
@@ -161,7 +186,7 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 			fmt.Fprintf(s.stderr, "Config test failed: %v\n", err)
 			return errkit.NewExitError(2, err.Error())
 		}
-		s.config.output()
+		s.config.output(s.encoder)
 		return errkit.NewExitError(0)
 	}
 

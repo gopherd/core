@@ -4,12 +4,14 @@
 package component
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -24,25 +26,25 @@ type Config struct {
 	Name string
 
 	// UUID is the unique identifier for the component. It can be empty.
-	UUID string `json:",omitempty"`
+	UUID string `json:",omitempty" toml:",omitempty" yaml:",omitempty"`
 
 	// Refs is the references to other components.
-	Refs types.RawObject `json:",omitempty"`
+	Refs types.RawObject `json:",omitempty" toml:",omitempty" yaml:",omitempty"`
 
 	// Options is the configuration options for the component.
-	Options types.RawObject `json:",omitempty"`
+	Options types.RawObject `json:",omitempty" toml:",omitempty" yaml:",omitempty"`
 
 	// TemplateUUID determines if the UUID should be templated.
 	// If not set, the default value is determined by the service.
-	TemplateUUID *types.Bool `json:",omitempty"`
+	TemplateUUID *types.Bool `json:",omitempty" toml:",omitempty" yaml:",omitempty"`
 
 	// TemplateRefs determines if the Refs should be templated.
 	// If not set, the default value is determined by the service.
-	TemplateRefs *types.Bool `json:",omitempty"`
+	TemplateRefs *types.Bool `json:",omitempty" toml:",omitempty" yaml:",omitempty"`
 
 	// TemplateOptions determines if the Options should be templated.
 	// If not set, the default value is determined by the service.
-	TemplateOptions *types.Bool `json:",omitempty"`
+	TemplateOptions *types.Bool `json:",omitempty" toml:",omitempty" yaml:",omitempty"`
 }
 
 // Component defines the interface for a generic logic component.
@@ -62,6 +64,9 @@ type Component interface {
 type Container interface {
 	// GetComponent returns a component by its UUID.
 	GetComponent(uuid string) Component
+
+	// Decoder returns the decoder for decoding component configurations.
+	Decoder() types.Decoder
 
 	// Logger returns the logger instance for the container.
 	Logger() *slog.Logger
@@ -120,7 +125,7 @@ func (c *BaseComponent[T]) Setup(container Container, config Config) error {
 		c.identifier = config.Name
 	}
 
-	if err := config.Options.DecodeJSON(&c.options); err != nil {
+	if err := config.Options.Decode(c.container.Decoder(), &c.options); err != nil {
 		return fmt.Errorf("failed to unmarshal options: %w", err)
 	}
 	if loaded, ok := any(&c.options).(interface {
@@ -162,6 +167,50 @@ func (r Reference[T]) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals the referenced component UUID from JSON.
 func (r *Reference[T]) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &r.uuid)
+}
+
+// MarshalTOML marshals the referenced component UUID to TOML.
+func (r Reference[T]) MarshalTOML() ([]byte, error) {
+	// Use strconv.Quote to properly escape the string
+	return []byte(strconv.Quote(r.uuid)), nil
+}
+
+// UnmarshalTOML unmarshals the referenced component UUID from TOML.
+func (r *Reference[T]) UnmarshalTOML(data []byte) error {
+	// Trim leading and trailing whitespace
+	data = bytes.TrimSpace(data)
+
+	if len(data) < 2 {
+		return errors.New("invalid TOML string: too short")
+	}
+
+	switch data[0] {
+	case '"':
+		// Basic string (double-quoted)
+		if data[len(data)-1] != '"' {
+			return errors.New("invalid TOML string: mismatched quotes")
+		}
+		s, err := strconv.Unquote(string(data))
+		if err != nil {
+			return err
+		}
+		r.uuid = s
+	case '\'':
+		// Literal string (single-quoted)
+		if data[len(data)-1] != '\'' {
+			return errors.New("invalid TOML string: mismatched quotes")
+		}
+		uuid := string(data[1 : len(data)-1])
+		// Check for illegal newlines in literal string
+		if strings.Contains(uuid, "\n") {
+			return errors.New("invalid TOML string: newlines not allowed in literal string")
+		}
+		r.uuid = uuid
+	default:
+		return errors.New("invalid TOML string: must start with ' or \"")
+	}
+
+	return nil
 }
 
 // Resolve resolves the reference for the component.
@@ -214,7 +263,7 @@ func (c *BaseComponentWithRefs[T, R]) Setup(container Container, config Config) 
 	if err := c.BaseComponent.Setup(container, config); err != nil {
 		return err
 	}
-	if err := config.Refs.DecodeJSON(&c.refs); err != nil {
+	if err := config.Refs.Decode(c.container.Decoder(), &c.refs); err != nil {
 		return fmt.Errorf("failed to unmarshal refs: %w", err)
 	}
 	return c.resolveRefs(container)

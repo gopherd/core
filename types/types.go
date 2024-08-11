@@ -2,8 +2,7 @@
 package types
 
 import (
-	"bytes"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 )
@@ -39,45 +38,56 @@ func (o *RawObject) SetBytes(b []byte) {
 // MarshalJSON implements the json.Marshaler interface.
 // It returns the raw JSON encoding of the Object.
 func (o RawObject) MarshalJSON() ([]byte, error) {
-	return json.RawMessage(o).MarshalJSON()
+	if o == nil {
+		return []byte("null"), nil
+	}
+	return o, nil
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 // It sets the Object's data to a copy of the input JSON data.
 func (o *RawObject) UnmarshalJSON(data []byte) error {
-	return (*json.RawMessage)(o).UnmarshalJSON(data)
+	if o == nil {
+		return errors.New("types.RawObject: UnmarshalTOML on nil pointer")
+	}
+	*o = append((*o)[0:0], data...)
+	return nil
 }
 
-// DecodeJSON decodes the Object's JSON data into the provided value.
+// MarshalTOML implements the toml.Marshaler interface.
+// It returns the stored raw TOML data.
+func (o RawObject) MarshalTOML() ([]byte, error) {
+	if o == nil {
+		// For TOML, we might want to return an empty table instead of null
+		return []byte("{}"), nil
+	}
+	return o, nil
+}
+
+// UnmarshalTOML implements the toml.Unmarshaler interface.
+// It stores the raw TOML data without parsing it.
+func (o *RawObject) UnmarshalTOML(data []byte) error {
+	if o == nil {
+		return errors.New("types.RawObject: UnmarshalTOML on nil pointer")
+	}
+	*o = append((*o)[0:0], data...)
+	return nil
+}
+
+// Decode decodes the Object's JSON data into the provided value.
 // It does nothing and returns nil if the Object is empty.
-func (o RawObject) DecodeJSON(v any) error {
+func (o RawObject) Decode(decoder Decoder, v any) error {
 	if o == nil {
 		return nil
 	}
-	return json.Unmarshal(o, v)
+	return decoder(o, v)
 }
 
-// MustJSON returns a new Object containing the MustJSON encoding of v.
-// It panics if the encoding fails.
-func MustJSON(v any) RawObject {
-	o, err := JSON(v)
-	if err != nil {
-		panic(err)
-	}
-	return o
-}
+// Encoder encodes the input value into bytes.
+type Encoder func(any) ([]byte, error)
 
-// JSON returns a new Object containing the JSON encoding of v.
-func JSON(v any) (RawObject, error) {
-	var buf bytes.Buffer
-	encoder := json.NewEncoder(&buf)
-	encoder.SetEscapeHTML(false)
-	encoder.SetIndent("", "    ")
-	if err := encoder.Encode(v); err != nil {
-		return RawObject{}, err
-	}
-	return RawObject(buf.Bytes()), nil
-}
+// Decoder decodes the input bytes into the provided value.
+type Decoder func([]byte, any) error
 
 // Bool wraps a boolean value.
 type Bool bool
