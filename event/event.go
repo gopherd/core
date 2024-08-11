@@ -3,8 +3,10 @@ package event
 
 import (
 	"context"
+	"encoding/gob"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/gopherd/core/container/pair"
 )
@@ -139,4 +141,49 @@ func (d *dispatcher[T]) DispatchEvent(ctx context.Context, event Event[T]) error
 		errs = append(errs, listeners[i].Second.HandleEvent(ctx, event))
 	}
 	return errors.Join(errs...)
+}
+
+// Register registers an event type for encoding and decoding.
+func Register[T comparable](event Event[T]) {
+	gob.Register(event)
+}
+
+// Encoder encodes events to a writer.
+type Encoder struct {
+	encoder *gob.Encoder
+}
+
+// NewEncoder creates a new Encoder instance.
+func NewEncoder(w io.Writer) *Encoder {
+	return &Encoder{gob.NewEncoder(w)}
+}
+
+// Encode encodes an event to the given encoder.
+func Encode[T comparable](enc *Encoder, event Event[T]) error {
+	return enc.encoder.Encode(event)
+}
+
+// EncodeTo encodes an event to the given writer.
+func EncodeTo[T comparable](w io.Writer, event Event[T]) error {
+	return Encode(NewEncoder(w), event)
+}
+
+// Decoder decodes events from a reader.
+type Decoder struct {
+	decoder *gob.Decoder
+}
+
+// NewDecoder creates a new Decoder instance.
+func NewDecoder(r io.Reader) *Decoder {
+	return &Decoder{gob.NewDecoder(r)}
+}
+
+// Decode decodes an event from the given reader.
+func Decode[T comparable](dec *Decoder, event Event[T]) error {
+	return dec.decoder.Decode(event)
+}
+
+// DecodeFrom decodes an event from the given reader.
+func DecodeFrom[T comparable](r io.Reader, event Event[T]) error {
+	return Decode(NewDecoder(r), event)
 }
