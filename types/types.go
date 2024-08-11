@@ -2,7 +2,6 @@
 package types
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -54,7 +53,7 @@ func (o RawObject) MarshalJSON() ([]byte, error) {
 // It sets the Object's data to a copy of the input JSON data.
 func (o *RawObject) UnmarshalJSON(data []byte) error {
 	if o == nil {
-		return errors.New("types.RawObject: UnmarshalTOML on nil pointer")
+		return errors.New("types.RawObject: UnmarshalJSON on nil pointer")
 	}
 	*o = append((*o)[0:0], data...)
 	return nil
@@ -70,18 +69,11 @@ func (o RawObject) MarshalTOML() ([]byte, error) {
 	return o, nil
 }
 
-// UnmarshalTOML implements the toml.Unmarshaler interface.
+// UnmarshalText implements the toml.Unmarshaler interface.
 // It stores the raw TOML data without parsing it.
-func (o *RawObject) UnmarshalTOML(v any) error {
+func (o *RawObject) UnmarshalText(data []byte) error {
 	if o == nil {
-		return errors.New("types.RawObject: UnmarshalTOML on nil pointer")
-	}
-	if v == nil {
-		return nil
-	}
-	data, err := json.Marshal(v)
-	if err != nil {
-		return err
+		return errors.New("types.RawObject: UnmarshalText on nil pointer")
 	}
 	*o = append((*o)[0:0], data...)
 	return nil
