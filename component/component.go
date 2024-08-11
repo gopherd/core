@@ -175,8 +175,8 @@ func (r Reference[T]) MarshalText() ([]byte, error) {
 	return []byte(strconv.Quote(r.uuid)), nil
 }
 
-// UnmarshalText unmarshals the referenced component UUID from text.
-func (r *Reference[T]) UnmarshalText(data []byte) error {
+// UnmarshalTOML unmarshals the referenced component UUID from TOML.
+func (r *Reference[T]) UnmarshalTOML(data []byte) error {
 	// Trim leading and trailing whitespace
 	data = bytes.TrimSpace(data)
 
