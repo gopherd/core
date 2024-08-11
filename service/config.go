@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -52,7 +53,11 @@ func (c *Config[T]) load(source string) error {
 		return err
 	}
 
-	return json.NewDecoder(r).Decode(c)
+	if data, err := stripJSONComments(r); err != nil {
+		return err
+	} else {
+		return json.Unmarshal(data, c)
+	}
 }
 
 // loadFromHTTP loads the configuration from an HTTP source.
@@ -137,4 +142,32 @@ func (c Config[T]) output() {
 	}
 
 	fmt.Fprint(os.Stdout, buf.String())
+}
+
+func stripJSONComments(r io.Reader) ([]byte, error) {
+	var buf bytes.Buffer
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		trimmed := bytes.TrimSpace(line)
+		if !bytes.HasPrefix(trimmed, []byte("//")) {
+			_, err := buf.Write(line)
+			if err != nil {
+				return nil, err
+			}
+			err = buf.WriteByte('\n')
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	// Remove the last newline if it exists
+	bytes := buf.Bytes()
+	if len(bytes) > 0 && bytes[len(bytes)-1] == '\n' {
+		bytes = bytes[:len(bytes)-1]
+	}
+	return bytes, nil
 }

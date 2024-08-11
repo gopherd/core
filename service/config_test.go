@@ -390,3 +390,119 @@ func ExampleConfig_output() {
 	//     ]
 	// }
 }
+
+func TestStripJSONComments(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		wantErr  bool
+	}{
+		{
+			name: "Basic comment removal",
+			input: `{
+    // This is a comment
+    "name": "John",
+    "age": 30 // This is an inline comment
+}`,
+			expected: `{
+    "name": "John",
+    "age": 30 // This is an inline comment
+}`,
+			wantErr: false,
+		},
+		{
+			name: "Multiple comments",
+			input: `{
+    // Comment 1
+    "a": 1,
+    // Comment 2
+    "b": 2,
+    // Comment 3
+    "c": 3
+}`,
+			expected: `{
+    "a": 1,
+    "b": 2,
+    "c": 3
+}`,
+			wantErr: false,
+		},
+		{
+			name:     "Empty input",
+			input:    "",
+			expected: "",
+			wantErr:  false,
+		},
+		{
+			name: "Only comments",
+			input: `// Comment 1
+// Comment 2
+// Comment 3`,
+			expected: "",
+			wantErr:  false,
+		},
+		{
+			name: "Comments with varying indentation",
+			input: `{
+    "a": 1,
+  // Indented comment
+        // More indented comment
+    "b": 2
+}`,
+			expected: `{
+    "a": 1,
+    "b": 2
+}`,
+			wantErr: false,
+		},
+		{
+			name: "Preserve strings with //",
+			input: `{
+    "url": "https://example.com",
+    "comment": "This string contains // which is not a comment"
+}`,
+			expected: `{
+    "url": "https://example.com",
+    "comment": "This string contains // which is not a comment"
+}`,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := stripJSONComments(reader)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("stripJSONComments() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if string(result) != tt.expected {
+				t.Errorf("stripJSONComments() = %v, want %v", string(result), tt.expected)
+			}
+		})
+	}
+}
+
+// TestStripJSONCommentsError tests the error handling of stripJSONComments
+func TestStripJSONCommentsError(t *testing.T) {
+	// Create a reader that always returns an error
+	errReader := &rrrorReader{Err: io.ErrUnexpectedEOF}
+
+	_, err := stripJSONComments(errReader)
+	if err == nil {
+		t.Errorf("stripJSONComments() error = nil, wantErr = true")
+	}
+}
+
+// rrrorReader is a custom io.Reader that always returns an error
+type rrrorReader struct {
+	Err error
+}
+
+func (er *rrrorReader) Read(p []byte) (n int, err error) {
+	return 0, er.Err
+}

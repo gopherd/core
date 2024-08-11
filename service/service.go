@@ -8,6 +8,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"strings"
@@ -38,6 +39,7 @@ type BaseService[T any] struct {
 		enableTemplate bool   // enable template parsing for components config
 	}
 	versionFunc func()
+	stderr      io.Writer
 
 	config     Config[T]
 	components *component.Group
@@ -49,6 +51,7 @@ func NewBaseService[T any](config Config[T]) *BaseService[T] {
 		versionFunc: builder.PrintInfo,
 		config:      config,
 		components:  component.NewGroup(),
+		stderr:      os.Stderr,
 	}
 }
 
@@ -98,7 +101,7 @@ func (s *BaseService[T]) setupCommandLineFlags() error {
 		fmt.Fprintf(&sb, "       %s -T app.json\n", name)
 		fmt.Fprintf(&sb, "       %s -p -T app.json\n", name)
 		fmt.Fprintf(&sb, "       %s -t -T app.json\n", name)
-		fmt.Fprint(os.Stderr, sb.String())
+		fmt.Fprint(s.stderr, sb.String())
 	}
 
 	flag.BoolVar(&s.flags.version, "v", false, "")
@@ -116,12 +119,12 @@ func (s *BaseService[T]) setupCommandLineFlags() error {
 	}
 
 	if flag.NArg() == 0 || flag.Arg(0) == "" {
-		fmt.Fprintf(os.Stderr, "No config source specified!\n\n")
+		fmt.Fprintf(s.stderr, "No config source specified!\n\n")
 		flag.Usage()
 		return errkit.NewExitError(2)
 	}
 	if flag.NArg() > 1 {
-		fmt.Fprintf(os.Stderr, "Too many arguments!\n\n")
+		fmt.Fprintf(s.stderr, "Too many arguments!\n\n")
 		flag.Usage()
 		return errkit.NewExitError(2)
 	}
@@ -143,7 +146,7 @@ func (s *BaseService[T]) setupConfig() error {
 
 // Init implements the Service Init method, setting up logging and initializing components.
 func (s *BaseService[T]) Init(ctx context.Context) error {
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+	slog.SetDefault(slog.New(slog.NewTextHandler(s.stderr, &slog.HandlerOptions{
 		Level: slog.LevelWarn,
 	})))
 
@@ -155,7 +158,7 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 
 	if s.flags.printConfig {
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Config test failed: %v\n", err)
+			fmt.Fprintf(s.stderr, "Config test failed: %v\n", err)
 			return errkit.NewExitError(2, err.Error())
 		}
 		s.config.output()
@@ -168,7 +171,7 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 
 	if s.flags.testConfig {
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Config test failed: %v\n", err)
+			fmt.Fprintf(s.stderr, "Config test failed: %v\n", err)
 			err = errkit.NewExitError(2, err.Error())
 		} else {
 			fmt.Fprintln(os.Stdout, "Config test successful")
