@@ -84,9 +84,13 @@ func (s *BaseService[T]) Decoder() types.Decoder {
 	return s.decoder
 }
 
-// SetEncoderDecoder sets the encoder and decoder functions for the service.
-func (s *BaseService[T]) SetEncoderDecoder(encoder types.Encoder, decoder types.Decoder) {
+// SetEncoder sets the encoder functions for the service.
+func (s *BaseService[T]) SetEncoder(encoder types.Encoder) {
 	s.encoder = encoder
+}
+
+// SetDecoder sets the decoder functions for the service.
+func (s *BaseService[T]) SetDecoder(decoder types.Decoder) {
 	s.decoder = decoder
 	s.isJSONC = false
 }
@@ -245,6 +249,35 @@ func (s *BaseService[T]) Shutdown(ctx context.Context) error {
 	return s.components.Shutdown(ctx)
 }
 
+type runOptions struct {
+	encoder types.Encoder
+	decoder types.Decoder
+}
+
+// apply applies the options to the given options.
+func (o *runOptions) apply(opts []RunOption) {
+	for _, opt := range opts {
+		opt(o)
+	}
+}
+
+// RunOption is a functional option for configuring the Run function.
+type RunOption func(*runOptions)
+
+// WithEncoder sets the encoder function for the Run function.
+func WithEncoder(encoder types.Encoder) RunOption {
+	return func(o *runOptions) {
+		o.encoder = encoder
+	}
+}
+
+// WithDecoder sets the decoder function for the Run function.
+func WithDecoder(decoder types.Decoder) RunOption {
+	return func(o *runOptions) {
+		o.decoder = decoder
+	}
+}
+
 // Run is a convenience function for running a service with a default configuration.
 // It creates and runs a BaseService with an empty context.
 // This function always exits the program:
@@ -252,9 +285,18 @@ func (s *BaseService[T]) Shutdown(ctx context.Context) error {
 // - It exits with code 0 if the service runs successfully.
 // It is recommended to use this function unless you need to customize the Service
 // or want to prevent the program from exiting.
-func Run() {
+func Run(opts ...RunOption) {
 	type context map[string]any
-	if err := RunService(NewBaseService(Config[context]{Context: context{}})); err != nil {
+	var o runOptions
+	o.apply(opts)
+	s := NewBaseService(Config[context]{Context: context{}})
+	if o.encoder != nil {
+		s.SetEncoder(o.encoder)
+	}
+	if o.decoder != nil {
+		s.SetDecoder(o.decoder)
+	}
+	if err := RunService(s); err != nil {
 		if exitCode, ok := errkit.ExitCode(err); ok {
 			os.Exit(exitCode)
 		}
