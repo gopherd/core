@@ -27,10 +27,10 @@ type Config struct {
 	UUID string `json:",omitempty"`
 
 	// Refs is the references to other components.
-	Refs types.Bytes `json:",omitempty"`
+	Refs types.RawObject `json:",omitempty"`
 
 	// Options is the configuration options for the component.
-	Options types.Bytes `json:",omitempty"`
+	Options types.RawObject `json:",omitempty"`
 
 	// TemplateUUID determines if the UUID should be templated.
 	// If not set, the default value is determined by the service.

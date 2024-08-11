@@ -11,11 +11,11 @@ import (
 func TestObjectLen(t *testing.T) {
 	tests := []struct {
 		name string
-		o    types.Bytes
+		o    types.RawObject
 		want int
 	}{
-		{"Empty", types.Bytes{}, 0},
-		{"NonEmpty", types.Bytes(`{"key":"value"}`), 15},
+		{"Empty", types.RawObject{}, 0},
+		{"NonEmpty", types.RawObject(`{"key":"value"}`), 15},
 	}
 
 	for _, tt := range tests {
@@ -37,21 +37,21 @@ func TestString(t *testing.T) {
 
 func TestBytes(t *testing.T) {
 	b := []byte(`{"test":"value"}`)
-	o := types.Bytes(b)
+	o := types.RawObject(b)
 	if !reflect.DeepEqual([]byte(o), b) {
 		t.Errorf("Bytes() = %v, want %v", []byte(o), b)
 	}
 }
 
 func TestObjectString(t *testing.T) {
-	o := types.Bytes(`{"test":"value"}`)
+	o := types.RawObject(`{"test":"value"}`)
 	if o.String() != `{"test":"value"}` {
 		t.Errorf("Object.String() = %v, want %v", o.String(), `{"test":"value"}`)
 	}
 }
 
 func TestObjectSetString(t *testing.T) {
-	var o types.Bytes
+	var o types.RawObject
 	s := `{"test":"value"}`
 	o.SetString(s)
 	if string(o) != s {
@@ -60,7 +60,7 @@ func TestObjectSetString(t *testing.T) {
 }
 
 func TestObjectBytes(t *testing.T) {
-	o := types.Bytes(`{"test":"value"}`)
+	o := types.RawObject(`{"test":"value"}`)
 	expected := []byte(`{"test":"value"}`)
 	if !reflect.DeepEqual(o.Bytes(), expected) {
 		t.Errorf("Object.Bytes() = %v, want %v", o.Bytes(), expected)
@@ -68,7 +68,7 @@ func TestObjectBytes(t *testing.T) {
 }
 
 func TestObjectSetBytes(t *testing.T) {
-	var o types.Bytes
+	var o types.RawObject
 	b := []byte(`{"test":"value"}`)
 	o.SetBytes(b)
 	if !reflect.DeepEqual([]byte(o), b) {
@@ -77,7 +77,7 @@ func TestObjectSetBytes(t *testing.T) {
 }
 
 func TestObjectMarshalJSON(t *testing.T) {
-	o := types.Bytes(`{"test":"value"}`)
+	o := types.RawObject(`{"test":"value"}`)
 	b, err := o.MarshalJSON()
 	if err != nil {
 		t.Fatalf("MarshalJSON() error = %v", err)
@@ -88,7 +88,7 @@ func TestObjectMarshalJSON(t *testing.T) {
 }
 
 func TestObjectUnmarshalJSON(t *testing.T) {
-	var o types.Bytes
+	var o types.RawObject
 	err := o.UnmarshalJSON([]byte(`{"test":"value"}`))
 	if err != nil {
 		t.Fatalf("UnmarshalJSON() error = %v", err)
@@ -99,7 +99,7 @@ func TestObjectUnmarshalJSON(t *testing.T) {
 }
 
 func TestObjectDecodeJSON(t *testing.T) {
-	o := types.Bytes(`{"test":"value"}`)
+	o := types.RawObject(`{"test":"value"}`)
 	var v map[string]string
 	err := o.DecodeJSON(&v)
 	if err != nil {
@@ -110,7 +110,7 @@ func TestObjectDecodeJSON(t *testing.T) {
 	}
 
 	// Test with nil Object
-	var nilO types.Bytes
+	var nilO types.RawObject
 	err = nilO.DecodeJSON(&v)
 	if err != nil {
 		t.Errorf("DecodeJSON() with nil Object should not return error, got %v", err)

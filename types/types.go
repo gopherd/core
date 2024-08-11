@@ -8,49 +8,49 @@ import (
 	"strconv"
 )
 
-// Bytes represents a raw object for delayed JSON decoding.
-type Bytes []byte
+// RawObject represents a raw object for delayed JSON decoding.
+type RawObject []byte
 
 // Len returns the length of the Object's data.
-func (o Bytes) Len() int {
+func (o RawObject) Len() int {
 	return len(o)
 }
 
 // String returns the string representation of the Object.
-func (o Bytes) String() string {
+func (o RawObject) String() string {
 	return string(o)
 }
 
 // SetString sets the string representation of the Object.
-func (o *Bytes) SetString(s string) {
-	*o = Bytes(s)
+func (o *RawObject) SetString(s string) {
+	*o = RawObject(s)
 }
 
 // Bytes returns the raw byte slice of the Object.
-func (o Bytes) Bytes() []byte {
+func (o RawObject) Bytes() []byte {
 	return o
 }
 
 // SetBytes sets the raw byte slice of the Object.
-func (o *Bytes) SetBytes(b []byte) {
-	*o = Bytes(b)
+func (o *RawObject) SetBytes(b []byte) {
+	*o = RawObject(b)
 }
 
 // MarshalJSON implements the json.Marshaler interface.
 // It returns the raw JSON encoding of the Object.
-func (o Bytes) MarshalJSON() ([]byte, error) {
+func (o RawObject) MarshalJSON() ([]byte, error) {
 	return json.RawMessage(o).MarshalJSON()
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 // It sets the Object's data to a copy of the input JSON data.
-func (o *Bytes) UnmarshalJSON(data []byte) error {
+func (o *RawObject) UnmarshalJSON(data []byte) error {
 	return (*json.RawMessage)(o).UnmarshalJSON(data)
 }
 
 // DecodeJSON decodes the Object's JSON data into the provided value.
 // It does nothing and returns nil if the Object is empty.
-func (o Bytes) DecodeJSON(v any) error {
+func (o RawObject) DecodeJSON(v any) error {
 	if o == nil {
 		return nil
 	}
@@ -59,7 +59,7 @@ func (o Bytes) DecodeJSON(v any) error {
 
 // MustJSON returns a new Object containing the MustJSON encoding of v.
 // It panics if the encoding fails.
-func MustJSON(v any) Bytes {
+func MustJSON(v any) RawObject {
 	o, err := JSON(v)
 	if err != nil {
 		panic(err)
@@ -68,15 +68,15 @@ func MustJSON(v any) Bytes {
 }
 
 // JSON returns a new Object containing the JSON encoding of v.
-func JSON(v any) (Bytes, error) {
+func JSON(v any) (RawObject, error) {
 	var buf bytes.Buffer
 	encoder := json.NewEncoder(&buf)
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "    ")
 	if err := encoder.Encode(v); err != nil {
-		return Bytes{}, err
+		return RawObject{}, err
 	}
-	return Bytes(buf.Bytes()), nil
+	return RawObject(buf.Bytes()), nil
 }
 
 // Bool wraps a boolean value.

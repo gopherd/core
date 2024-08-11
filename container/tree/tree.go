@@ -9,7 +9,7 @@ import (
 	"io"
 
 	"github.com/gopherd/core/container/pair"
-	"github.com/gopherd/core/operator"
+	"github.com/gopherd/core/op"
 )
 
 // Node represents a generic printable node in a tree structure.
@@ -109,14 +109,14 @@ var defaultOptions = &Options{
 
 // Fix ensures all options have valid values, using defaults where necessary.
 func (options *Options) Fix() {
-	operator.SetDefault(&options.Parent, defaultOptions.Parent)
+	op.SetOr(&options.Parent, defaultOptions.Parent)
 	if options.Branch == "" {
 		options.Branch = defaultOptions.Branch
-		operator.SetDefault(&options.LastBranch, defaultOptions.LastBranch)
+		op.SetOr(&options.LastBranch, defaultOptions.LastBranch)
 	} else if options.LastBranch == "" {
 		options.LastBranch = options.Branch
 	}
-	operator.SetDefault(&options.Space, defaultOptions.Space)
+	op.SetOr(&options.Space, defaultOptions.Space)
 }
 
 // Stringify converts a node to a string representation.
@@ -173,7 +173,7 @@ func recursivelyPrintNode[T comparable](
 	n := node.NumChild()
 	for i := 0; i < n; i++ {
 		isLast := i+1 == n
-		appended := operator.Ternary(isLast, options.LastBranch, options.Branch)
+		appended := op.If(isLast, options.LastBranch, options.Branch)
 		child := node.GetChildByIndex(i)
 		if child == zero {
 			continue
