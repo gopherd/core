@@ -59,9 +59,9 @@ func (o *RawObject) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MarshalTOML implements the toml.Marshaler interface.
-// It returns the stored raw TOML data.
-func (o RawObject) MarshalTOML() ([]byte, error) {
+// MarshalText implements the toml.Marshaler interface.
+// It returns the stored raw data.
+func (o RawObject) MarshalText() ([]byte, error) {
 	if o == nil {
 		// For TOML, we might want to return an empty table instead of null
 		return []byte("{}"), nil
@@ -69,11 +69,11 @@ func (o RawObject) MarshalTOML() ([]byte, error) {
 	return o, nil
 }
 
-// UnmarshalTOML implements the toml.Unmarshaler interface.
-// It stores the raw TOML data without parsing it.
-func (o *RawObject) UnmarshalTOML(data []byte) error {
+// UnmarshalText implements the toml.Unmarshaler interface.
+// It stores the raw data without parsing it.
+func (o *RawObject) UnmarshalText(data []byte) error {
 	if o == nil {
-		return errors.New("types.RawObject: UnmarshalTOML on nil pointer")
+		return errors.New("types.RawObject: UnmarshalText on nil pointer")
 	}
 	*o = append((*o)[0:0], data...)
 	return nil

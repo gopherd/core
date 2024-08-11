@@ -169,26 +169,26 @@ func (r *Reference[T]) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &r.uuid)
 }
 
-// MarshalText marshals the referenced component UUID to Text.
+// MarshalText marshals the referenced component UUID to text.
 func (r Reference[T]) MarshalText() ([]byte, error) {
 	// Use strconv.Quote to properly escape the string
 	return []byte(strconv.Quote(r.uuid)), nil
 }
 
-// UnmarshalTOML unmarshals the referenced component UUID from TOML.
-func (r *Reference[T]) UnmarshalTOML(data []byte) error {
+// UnmarshalText unmarshals the referenced component UUID from text.
+func (r *Reference[T]) UnmarshalText(data []byte) error {
 	// Trim leading and trailing whitespace
 	data = bytes.TrimSpace(data)
 
 	if len(data) < 2 {
-		return errors.New("invalid TOML string: too short")
+		return errors.New("invalid string: too short")
 	}
 
 	switch data[0] {
 	case '"':
 		// Basic string (double-quoted)
 		if data[len(data)-1] != '"' {
-			return errors.New("invalid TOML string: mismatched quotes")
+			return errors.New("invalid string: mismatched quotes")
 		}
 		s, err := strconv.Unquote(string(data))
 		if err != nil {
@@ -198,16 +198,16 @@ func (r *Reference[T]) UnmarshalTOML(data []byte) error {
 	case '\'':
 		// Literal string (single-quoted)
 		if data[len(data)-1] != '\'' {
-			return errors.New("invalid TOML string: mismatched quotes")
+			return errors.New("invalid string: mismatched quotes")
 		}
 		uuid := string(data[1 : len(data)-1])
 		// Check for illegal newlines in literal string
 		if strings.Contains(uuid, "\n") {
-			return errors.New("invalid TOML string: newlines not allowed in literal string")
+			return errors.New("invalid string: newlines not allowed in literal string")
 		}
 		r.uuid = uuid
 	default:
-		return errors.New("invalid TOML string: must start with ' or \"")
+		return errors.New("invalid string: must start with ' or \"")
 	}
 
 	return nil
