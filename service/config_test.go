@@ -201,11 +201,11 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 					{
 						Name: "Component1",
 						UUID: "{{.Name}}-UUID",
-						Refs: types.RawObject(op.MustValue(json.Marshal(refs{
+						Refs: types.NewRawObject(op.MustValue(json.Marshal(refs{
 							A: "{{.Name}}-A",
 							B: "B",
 						}))),
-						Options: types.RawObject(op.MustValue(json.Marshal(options{
+						Options: types.NewRawObject(op.MustValue(json.Marshal(options{
 							C: "C",
 							D: "{{.Name}}-D",
 						}))),
@@ -221,11 +221,11 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 					{
 						Name: "Component1",
 						UUID: "TestName-UUID",
-						Refs: types.RawObject(op.MustValue(json.Marshal(refs{
+						Refs: types.NewRawObject(op.MustValue(json.Marshal(refs{
 							A: "TestName-A",
 							B: "B",
 						}))),
-						Options: types.RawObject(op.MustValue(json.Marshal(options{
+						Options: types.NewRawObject(op.MustValue(json.Marshal(options{
 							C: "C",
 							D: "TestName-D",
 						}))),
@@ -279,7 +279,7 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 				Components: []component.Config{
 					{
 						Name: "Component1",
-						Refs: types.RawObject(op.MustValue(json.Marshal(map[string]string{
+						Refs: types.NewRawObject(op.MustValue(json.Marshal(map[string]string{
 							"A": "{{.NameXXX}}-A",
 							"B": "B",
 						}))),
@@ -297,7 +297,7 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 				Components: []component.Config{
 					{
 						Name: "Component1",
-						Options: types.RawObject(op.MustValue(json.Marshal(map[string]string{
+						Options: types.NewRawObject(op.MustValue(json.Marshal(map[string]string{
 							"A": "{{.NameXXX}}-A",
 							"B": "B",
 						}))),

@@ -2,6 +2,7 @@
 package types
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -9,6 +10,11 @@ import (
 
 // RawObject represents a raw object for delayed JSON decoding.
 type RawObject []byte
+
+// NewRawObject creates a new RawObject with the provided data.
+func NewRawObject[T ~string | ~[]byte](v T) RawObject {
+	return RawObject(v)
+}
 
 // Len returns the length of the Object's data.
 func (o RawObject) Len() int {
@@ -66,9 +72,16 @@ func (o RawObject) MarshalTOML() ([]byte, error) {
 
 // UnmarshalTOML implements the toml.Unmarshaler interface.
 // It stores the raw TOML data without parsing it.
-func (o *RawObject) UnmarshalTOML(data []byte) error {
+func (o *RawObject) UnmarshalTOML(v any) error {
 	if o == nil {
 		return errors.New("types.RawObject: UnmarshalTOML on nil pointer")
+	}
+	if v == nil {
+		return nil
+	}
+	data, err := json.Marshal(v)
+	if err != nil {
+		return err
 	}
 	*o = append((*o)[0:0], data...)
 	return nil
