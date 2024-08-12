@@ -43,15 +43,16 @@ func (o *RawObject) SetBytes(b []byte) {
 	*o = RawObject(b)
 }
 
-// Marshal implements the encoding.Marshaler interface.
-func (o RawObject) Marshal() ([]byte, error) {
+func (o RawObject) marshal(nilValue []byte) ([]byte, error) {
+	if o == nil {
+		return nilValue, nil
+	}
 	return o, nil
 }
 
-// Unmarshal implements the encoding.RawUnmarshaler interface.
-func (o *RawObject) Unmarshal(data []byte) error {
+func (o *RawObject) unmarshal(name string, data []byte) error {
 	if o == nil {
-		return errors.New("types.RawObject: UnmarshalRaw on nil pointer")
+		return fmt.Errorf("types.RawObject: %s on nil pointer", name)
 	}
 	*o = append((*o)[0:0], data...)
 	return nil
@@ -60,20 +61,33 @@ func (o *RawObject) Unmarshal(data []byte) error {
 // MarshalJSON implements the json.Marshaler interface.
 // It returns the raw JSON encoding of the Object.
 func (o RawObject) MarshalJSON() ([]byte, error) {
-	if o == nil {
-		return []byte("null"), nil
-	}
-	return o, nil
+	return o.marshal([]byte("null"))
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 // It sets the Object's data to a copy of the input JSON data.
 func (o *RawObject) UnmarshalJSON(data []byte) error {
-	if o == nil {
-		return errors.New("types.RawObject: UnmarshalJSON on nil pointer")
-	}
-	*o = append((*o)[0:0], data...)
-	return nil
+	return o.unmarshal("UnmarshalJSON", data)
+}
+
+// MarshalTOML implements the encoding.TOMLMarshaler interface.
+func (o RawObject) MarshalTOML() ([]byte, error) {
+	return o.marshal([]byte("{}"))
+}
+
+// UnmarshalTOML implements the encoding.TOMLUnmarshaler interface.
+func (o *RawObject) UnmarshalTOML(data []byte) error {
+	return o.unmarshal("UnmarshalTOML", data)
+}
+
+// MarshalYAML implements the encoding.YAMLMarshaler interface.
+func (o RawObject) MarshalYAML() ([]byte, error) {
+	return o.marshal([]byte("null"))
+}
+
+// UnmarshalYAML implements the encoding.YAMLUnmarshaler interface.
+func (o *RawObject) UnmarshalYAML(data []byte) error {
+	return o.unmarshal("UnmarshalYAML", data)
 }
 
 // MarshalText implements the encoding.TextMarshaler interface.
@@ -100,12 +114,12 @@ func (o *RawObject) UnmarshalText(data []byte) error {
 
 // MarshalBinary implements the encoding.BinaryMarshaler interface.
 func (o RawObject) MarshalBinary() ([]byte, error) {
-	return o.Marshal()
+	return o.marshal(nil)
 }
 
 // UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
 func (o *RawObject) UnmarshalBinary(data []byte) error {
-	return o.Unmarshal(data)
+	return o.unmarshal("UnmarshalBinary", data)
 }
 
 // Decode decodes the Object's data using the provided decoder.

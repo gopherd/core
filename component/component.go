@@ -173,6 +173,26 @@ func (r *Reference[T]) UnmarshalJSON(data []byte) error {
 	return r.validate()
 }
 
+// MarshalTOML marshals the referenced component UUID to TOML.
+func (r Reference[T]) MarshalTOML() ([]byte, error) {
+	return r.Marshal()
+}
+
+// UnmarshalTOML unmarshals the referenced component UUID from TOML.
+func (r *Reference[T]) UnmarshalTOML(data []byte) error {
+	return r.Unmarshal(data)
+}
+
+// MarshalYAML marshals the referenced component UUID to YAML.
+func (r Reference[T]) MarshalYAML() ([]byte, error) {
+	return r.Marshal()
+}
+
+// UnmarshalYAML unmarshals the referenced component UUID from YAML.
+func (r *Reference[T]) UnmarshalYAML(data []byte) error {
+	return r.Unmarshal(data)
+}
+
 // Marshal marshals the referenced component UUID to quoted bytes.
 func (r Reference[T]) Marshal() ([]byte, error) {
 	var buf = make([]byte, 0, len(r.uuid)+len(`""`))

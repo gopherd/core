@@ -18,14 +18,34 @@ type Encoder func(any) ([]byte, error)
 // Decoder is a function type that decodes bytes into a provided value.
 type Decoder func([]byte, any) error
 
-// Marshaler is an interface for types that can marshal themselves into bytes.
-type Marshaler interface {
-	Marshal() ([]byte, error)
+// JSONMarshaler is an interface for types that can marshal themselves to JSON.
+type JSONMarshaler interface {
+	MarshalJSON() ([]byte, error)
 }
 
-// Unmarshaler is an interface for types that can unmarshal bytes into themselves.
-type Unmarshaler interface {
-	Unmarshal([]byte) error
+// JSONUnmarshaler is an interface for types that can unmarshal themselves from JSON.
+type JSONUnmarshaler interface {
+	UnmarshalJSON([]byte) error
+}
+
+// TOMLMarshaler is an interface for types that can marshal themselves to TOML.
+type TOMLMarshaler interface {
+	MarshalTOML() ([]byte, error)
+}
+
+// TOMLUnmarshaler is an interface for types that can unmarshal themselves from TOML.
+type TOMLUnmarshaler interface {
+	UnmarshalTOML([]byte) error
+}
+
+// YAMLMarshaler is an interface for types that can marshal themselves to YAML.
+type YAMLMarshaler interface {
+	MarshalYAML() ([]byte, error)
+}
+
+// YAMLUnmarshaler is an interface for types that can unmarshal themselves from YAML.
+type YAMLUnmarshaler interface {
+	UnmarshalYAML([]byte) error
 }
 
 // UnmarshalString decodes a string from byte slice data.
