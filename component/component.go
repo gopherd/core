@@ -180,14 +180,13 @@ func (r Reference[T]) Marshal() ([]byte, error) {
 }
 
 // Unmarshal unmarshals the referenced component UUID from quoted bytes.
-func (r *Reference[T]) Unmarshal(data any) error {
-	switch v := data.(type) {
-	case string:
-		r.uuid = v
-		return r.validate()
-	default:
-		return fmt.Errorf("unexpected type %T for reference UUID", data)
+func (r *Reference[T]) Unmarshal(data []byte) error {
+	s, err := encoding.UnmarshalString(data, '\'', false)
+	if err != nil {
+		return err
 	}
+	r.uuid = s
+	return r.validate()
 }
 
 func (r Reference[T]) validate() error {
