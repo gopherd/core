@@ -521,6 +521,14 @@ func (d Duration) MarshalJSON() ([]byte, error) {
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) error {
+	if len(data) > 0 && data[0] != '"' {
+		i, err := strconv.ParseInt(string(data), 10, 64)
+		if err != nil {
+			return err
+		}
+		*d = Duration(time.Duration(i))
+		return nil
+	}
 	s, err := strconv.Unquote(string(data))
 	if err != nil {
 		return err
