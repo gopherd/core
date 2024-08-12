@@ -2,6 +2,7 @@
 package mathutil
 
 import (
+	"cmp"
 	"math"
 
 	"github.com/gopherd/core/constraints"
@@ -24,11 +25,11 @@ func Predict[T constraints.Integer | constraints.Float](ok bool) T {
 }
 
 // Clamp restricts x to the range [min, max].
-func Clamp[T constraints.Ordered](x, min, max T) T {
-	if x < min {
+func Clamp[T cmp.Ordered](x, min, max T) T {
+	if cmp.Less(x, min) {
 		return min
 	}
-	if x > max {
+	if cmp.Less(max, x) {
 		return max
 	}
 	return x

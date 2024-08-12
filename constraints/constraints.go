@@ -31,11 +31,6 @@ type Complex interface {
 	~complex64 | ~complex128
 }
 
-// Ordered is a constraint that permits any ordered type: integers, floats, or strings.
-type Ordered interface {
-	Integer | Float | ~string
-}
-
 // SignedReal is a constraint that permits any signed real number type.
 type SignedReal interface {
 	Signed | Float

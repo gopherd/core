@@ -2,10 +2,18 @@
 package sliceutil
 
 import (
+	"cmp"
 	"math/rand"
+	"slices"
 
 	"github.com/gopherd/core/constraints"
 )
+
+// Sort sorts a slice of any ordered type in ascending order and returns the sorted slice.
+func Sort[S ~[]E, E cmp.Ordered](x S) S {
+	slices.Sort(x)
+	return x
+}
 
 // Map returns a new slice containing the results of applying the given function to each element of the original slice.
 func Map[S ~[]T, F ~func(T) U, T any, U any](s S, f F) []U {

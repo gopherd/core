@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gopherd/core/container/maputil"
+	"github.com/gopherd/core/container/sliceutil"
 	"github.com/gopherd/core/encoding"
 )
 
@@ -221,7 +222,7 @@ func ExampleTransform() {
 			return nil, fmt.Errorf("expected map[string]string, got %T", v)
 		}
 		var result strings.Builder
-		for _, k := range maputil.Keys(m) {
+		for _, k := range sliceutil.Sort(maputil.Keys(m)) {
 			result.WriteString(fmt.Sprintf("%s = %s\n", k, m[k]))
 		}
 		return []byte(result.String()), nil
@@ -235,7 +236,7 @@ func ExampleTransform() {
 
 	fmt.Print(string(result))
 	// Output:
-	// name = John Doe
 	// age = 30
 	// city = New York
+	// name = John Doe
 }

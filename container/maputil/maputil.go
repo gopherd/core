@@ -36,7 +36,7 @@ func Map[S []T, M ~map[K]V, F ~func(K, V) T, K comparable, V any, T any](m M, f 
 }
 
 // MinKey returns the minimum key in the map. If the map is empty, it returns the zero value of K.
-func MinKey[M ~map[K]V, K constraints.Ordered, V any](m M) K {
+func MinKey[M ~map[K]V, K cmp.Ordered, V any](m M) K {
 	var min K
 	first := true
 	for k := range m {
@@ -49,7 +49,7 @@ func MinKey[M ~map[K]V, K constraints.Ordered, V any](m M) K {
 }
 
 // MaxKey returns the maximum key in the map. If the map is empty, it returns the zero value of K.
-func MaxKey[M ~map[K]V, K constraints.Ordered, V any](m M) K {
+func MaxKey[M ~map[K]V, K cmp.Ordered, V any](m M) K {
 	var max K
 	first := true
 	for k := range m {
@@ -63,7 +63,7 @@ func MaxKey[M ~map[K]V, K constraints.Ordered, V any](m M) K {
 
 // MinMaxKey returns the minimum and maximum keys in the map.
 // If the map is empty, it returns zero values for both min and max.
-func MinMaxKey[M ~map[K]V, K constraints.Ordered, V any](m M) (min, max K) {
+func MinMaxKey[M ~map[K]V, K cmp.Ordered, V any](m M) (min, max K) {
 	first := true
 	for k := range m {
 		if first {
@@ -80,7 +80,7 @@ func MinMaxKey[M ~map[K]V, K constraints.Ordered, V any](m M) (min, max K) {
 
 // MinValue returns the key-value pair with the minimum value in the map.
 // If the map is empty, it returns zero values for both key and value.
-func MinValue[M ~map[K]V, K comparable, V constraints.Ordered](m M) pair.Pair[K, V] {
+func MinValue[M ~map[K]V, K comparable, V cmp.Ordered](m M) pair.Pair[K, V] {
 	var result pair.Pair[K, V]
 	first := true
 	for k, v := range m {
@@ -94,7 +94,7 @@ func MinValue[M ~map[K]V, K comparable, V constraints.Ordered](m M) pair.Pair[K,
 
 // MaxValue returns the key-value pair with the maximum value in the map.
 // If the map is empty, it returns zero values for both key and value.
-func MaxValue[M ~map[K]V, K comparable, V constraints.Ordered](m M) pair.Pair[K, V] {
+func MaxValue[M ~map[K]V, K comparable, V cmp.Ordered](m M) pair.Pair[K, V] {
 	var result pair.Pair[K, V]
 	first := true
 	for k, v := range m {
@@ -108,7 +108,7 @@ func MaxValue[M ~map[K]V, K comparable, V constraints.Ordered](m M) pair.Pair[K,
 
 // MinMaxValue returns the key-value pairs with the minimum and maximum values in the map.
 // If the map is empty, it returns zero values for both pairs.
-func MinMaxValue[M ~map[K]V, K comparable, V constraints.Ordered](m M) (min, max pair.Pair[K, V]) {
+func MinMaxValue[M ~map[K]V, K comparable, V cmp.Ordered](m M) (min, max pair.Pair[K, V]) {
 	first := true
 	for k, v := range m {
 		if first {
@@ -129,7 +129,7 @@ func MinMaxValue[M ~map[K]V, K comparable, V constraints.Ordered](m M) (min, max
 
 // MinKeyFunc returns the minimum value obtained by applying function f to each key-value pair.
 // If the map is empty, it returns the zero value of T.
-func MinKeyFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraints.Ordered](m M, f F) T {
+func MinKeyFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T cmp.Ordered](m M, f F) T {
 	var min T
 	first := true
 	for k, v := range m {
@@ -144,7 +144,7 @@ func MinKeyFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraints.
 
 // MaxKeyFunc returns the maximum value obtained by applying function f to each key-value pair.
 // If the map is empty, it returns the zero value of T.
-func MaxKeyFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraints.Ordered](m M, f F) T {
+func MaxKeyFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T cmp.Ordered](m M, f F) T {
 	var max T
 	first := true
 	for k, v := range m {
@@ -159,7 +159,7 @@ func MaxKeyFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraints.
 
 // MinMaxKeyFunc returns the minimum and maximum values obtained by applying function f to each key-value pair.
 // If the map is empty, it returns zero values for both min and max.
-func MinMaxKeyFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraints.Ordered](m M, f F) (min, max T) {
+func MinMaxKeyFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T cmp.Ordered](m M, f F) (min, max T) {
 	first := true
 	for k, v := range m {
 		t := f(k, v)
@@ -180,7 +180,7 @@ func MinMaxKeyFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constrain
 
 // MinValueFunc returns the key and minimum value obtained by applying function f to each key-value pair.
 // If the map is empty, it returns zero values for both key and result.
-func MinValueFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraints.Ordered](m M, f F) pair.Pair[K, T] {
+func MinValueFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T cmp.Ordered](m M, f F) pair.Pair[K, T] {
 	var result pair.Pair[K, T]
 	first := true
 	for k, v := range m {
@@ -195,7 +195,7 @@ func MinValueFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraint
 
 // MaxValueFunc returns the key and maximum value obtained by applying function f to each key-value pair.
 // If the map is empty, it returns zero values for both key and result.
-func MaxValueFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraints.Ordered](m M, f F) pair.Pair[K, T] {
+func MaxValueFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T cmp.Ordered](m M, f F) pair.Pair[K, T] {
 	var result pair.Pair[K, T]
 	first := true
 	for k, v := range m {
@@ -210,7 +210,7 @@ func MaxValueFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraint
 
 // MinMaxValueFunc returns the keys and values with the minimum and maximum results obtained by applying function f to each key-value pair.
 // If the map is empty, it returns zero values for both pairs.
-func MinMaxValueFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T constraints.Ordered](m M, f F) (min, max pair.Pair[K, T]) {
+func MinMaxValueFunc[M ~map[K]V, F ~func(K, V) T, K comparable, V any, T cmp.Ordered](m M, f F) (min, max pair.Pair[K, T]) {
 	first := true
 	for k, v := range m {
 		t := f(k, v)

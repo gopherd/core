@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/gopherd/core/encoding"
 )
@@ -488,5 +489,70 @@ func (c *Complex128) Set(v string) error {
 		return fmt.Errorf("parse complex128: %w", err)
 	}
 	*c = Complex128(x)
+	return nil
+}
+
+// Duration wraps a time.Duration value.
+type Duration time.Duration
+
+func (d Duration) Value() time.Duration {
+	return time.Duration(d)
+}
+
+func (d *Duration) SetValue(v time.Duration) {
+	*d = Duration(v)
+}
+
+func (d *Duration) Deref() time.Duration {
+	return time.Duration(*d)
+}
+
+func (d *Duration) Set(v string) error {
+	x, err := time.ParseDuration(v)
+	if err != nil {
+		return fmt.Errorf("parse duration: %w", err)
+	}
+	*d = Duration(x)
+	return nil
+}
+
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(time.Duration(d).String())), nil
+}
+
+func (d *Duration) UnmarshalJSON(data []byte) error {
+	s, err := strconv.Unquote(string(data))
+	if err != nil {
+		return err
+	}
+	x, err := time.ParseDuration(s)
+	if err != nil {
+		return err
+	}
+	*d = Duration(x)
+	return nil
+}
+
+// Time wraps a time.Time value.
+type Time time.Time
+
+func (t Time) Value() time.Time {
+	return time.Time(t)
+}
+
+func (t *Time) SetValue(v time.Time) {
+	*t = Time(v)
+}
+
+func (t *Time) Deref() time.Time {
+	return time.Time(*t)
+}
+
+func (t *Time) Set(v string) error {
+	x, err := time.Parse(time.RFC3339Nano, v)
+	if err != nil {
+		return fmt.Errorf("parse time: %w", err)
+	}
+	*t = Time(x)
 	return nil
 }
