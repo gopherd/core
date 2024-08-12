@@ -21,8 +21,8 @@ import (
 // Config represents a generic configuration structure for services.
 // It includes a context of type T and a list of component configurations.
 type Config[T any] struct {
-	Context    T                  `json:",omitempty" toml:",omitempty" yaml:",omitempty"`
-	Components []component.Config `json:",omitempty" toml:",omitempty" yaml:",omitempty"`
+	Context    T                  `json:",omitempty" toml:",omitempty"`
+	Components []component.Config `json:",omitempty" toml:",omitempty"`
 }
 
 // load processes the configuration based on the provided source.
