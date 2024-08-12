@@ -84,7 +84,7 @@ func TestConfig_Load(t *testing.T) {
 			}
 
 			c := &Config[TestContext]{}
-			err := c.load(json.Unmarshal, tt.source, true)
+			err := c.load(json.Unmarshal, tt.source)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("load() error = %v, wantErr %v", err, tt.wantErr)
@@ -341,7 +341,7 @@ func TestConfig_Output(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	config.output(jsonIdentEncoder)
+	config.output(nil)
 
 	w.Close()
 	os.Stdout = oldStdout
@@ -378,7 +378,7 @@ func ExampleConfig_output() {
 		},
 	}
 
-	config.output(jsonIdentEncoder)
+	config.output(nil)
 	// Output:
 	// {
 	//     "Context": {

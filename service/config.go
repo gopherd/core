@@ -27,7 +27,7 @@ type Config[T any] struct {
 
 // load processes the configuration based on the provided source.
 // It returns an error if the configuration cannot be loaded or decoded.
-func (c *Config[T]) load(decoder encoding.Decoder, source string, isJSONC bool) error {
+func (c *Config[T]) load(decoder encoding.Decoder, source string) error {
 	if source == "" {
 		return nil
 	}
@@ -55,7 +55,7 @@ func (c *Config[T]) load(decoder encoding.Decoder, source string, isJSONC bool) 
 	}
 
 	var data []byte
-	if isJSONC {
+	if decoder == nil {
 		data, err = stripJSONComments(r)
 		if err != nil {
 			return err
@@ -65,8 +65,17 @@ func (c *Config[T]) load(decoder encoding.Decoder, source string, isJSONC bool) 
 		if err != nil {
 			return fmt.Errorf("read config data failed: %w", err)
 		}
+		data, err = encoding.Transform(data, json.Marshal, decoder)
+		if err != nil {
+			return fmt.Errorf("decode config failed: %w", err)
+		}
 	}
-	return decoder(data, c)
+
+	if err := json.Unmarshal(data, c); err != nil {
+		return fmt.Errorf("unmarshal config failed: %w", err)
+	}
+
+	return nil
 }
 
 // loadFromHTTP loads the configuration from an HTTP source.
@@ -140,7 +149,18 @@ func (c *Config[T]) processTemplate(enableTemplate bool, source string) error {
 // output encodes the configuration with the encoder and writes it to stdout.
 // It uses indentation for better readability.
 func (c Config[T]) output(encoder encoding.Encoder) {
-	if data, err := encoder(c); err != nil {
+	if encoder == nil {
+		if data, err := jsonIdentEncoder(c); err != nil {
+			fmt.Fprintf(os.Stderr, "Encode config failed: %v\n", err)
+		} else {
+			fmt.Fprint(os.Stdout, string(data))
+		}
+		return
+	}
+
+	if data, err := json.Marshal(c); err != nil {
+		fmt.Fprintf(os.Stderr, "Encode config failed: %v\n", err)
+	} else if data, err = encoding.Transform(data, encoder, json.Unmarshal); err != nil {
 		fmt.Fprintf(os.Stderr, "Encode config failed: %v\n", err)
 	} else {
 		fmt.Fprint(os.Stdout, string(data))

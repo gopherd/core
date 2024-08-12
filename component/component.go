@@ -10,13 +10,11 @@ import (
 	"fmt"
 	"log/slog"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"unicode"
 
-	"github.com/gopherd/core/encoding"
 	"github.com/gopherd/core/lifecycle"
 	"github.com/gopherd/core/types"
 )
@@ -65,9 +63,6 @@ type Component interface {
 type Container interface {
 	// GetComponent returns a component by its UUID.
 	GetComponent(uuid string) Component
-
-	// Decoder returns the decoder for decoding component configurations.
-	Decoder() encoding.Decoder
 
 	// Logger returns the logger instance for the container.
 	Logger() *slog.Logger
@@ -126,7 +121,7 @@ func (c *BaseComponent[T]) Setup(container Container, config Config) error {
 		c.identifier = config.Name
 	}
 
-	if err := config.Options.Decode(c.container.Decoder(), &c.options); err != nil {
+	if err := config.Options.Decode(json.Unmarshal, &c.options); err != nil {
 		return fmt.Errorf("failed to unmarshal options: %w", err)
 	}
 	if loaded, ok := any(&c.options).(interface {
@@ -170,42 +165,6 @@ func (r *Reference[T]) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &r.uuid); err != nil {
 		return err
 	}
-	return r.validate()
-}
-
-// MarshalTOML marshals the referenced component UUID to TOML.
-func (r Reference[T]) MarshalTOML() ([]byte, error) {
-	return r.Marshal()
-}
-
-// UnmarshalTOML unmarshals the referenced component UUID from TOML.
-func (r *Reference[T]) UnmarshalTOML(data []byte) error {
-	return r.Unmarshal(data)
-}
-
-// MarshalYAML marshals the referenced component UUID to YAML.
-func (r Reference[T]) MarshalYAML() ([]byte, error) {
-	return r.Marshal()
-}
-
-// UnmarshalYAML unmarshals the referenced component UUID from YAML.
-func (r *Reference[T]) UnmarshalYAML(data []byte) error {
-	return r.Unmarshal(data)
-}
-
-// Marshal marshals the referenced component UUID to quoted bytes.
-func (r Reference[T]) Marshal() ([]byte, error) {
-	var buf = make([]byte, 0, len(r.uuid)+len(`""`))
-	return strconv.AppendQuote(buf, r.uuid), nil
-}
-
-// Unmarshal unmarshals the referenced component UUID from quoted bytes.
-func (r *Reference[T]) Unmarshal(data []byte) error {
-	s, err := encoding.UnmarshalString(data, '\'', false)
-	if err != nil {
-		return err
-	}
-	r.uuid = s
 	return r.validate()
 }
 
@@ -266,7 +225,7 @@ func (c *BaseComponentWithRefs[T, R]) Setup(container Container, config Config) 
 	if err := c.BaseComponent.Setup(container, config); err != nil {
 		return err
 	}
-	if err := config.Refs.Decode(c.container.Decoder(), &c.refs); err != nil {
+	if err := config.Refs.Decode(json.Unmarshal, &c.refs); err != nil {
 		return fmt.Errorf("failed to unmarshal refs: %w", err)
 	}
 	return c.resolveRefs(container)

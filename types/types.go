@@ -70,26 +70,6 @@ func (o *RawObject) UnmarshalJSON(data []byte) error {
 	return o.unmarshal("UnmarshalJSON", data)
 }
 
-// MarshalTOML implements the encoding.TOMLMarshaler interface.
-func (o RawObject) MarshalTOML() ([]byte, error) {
-	return o.marshal([]byte("{}"))
-}
-
-// UnmarshalTOML implements the encoding.TOMLUnmarshaler interface.
-func (o *RawObject) UnmarshalTOML(data []byte) error {
-	return o.unmarshal("UnmarshalTOML", data)
-}
-
-// MarshalYAML implements the encoding.YAMLMarshaler interface.
-func (o RawObject) MarshalYAML() ([]byte, error) {
-	return o.marshal([]byte("null"))
-}
-
-// UnmarshalYAML implements the encoding.YAMLUnmarshaler interface.
-func (o *RawObject) UnmarshalYAML(data []byte) error {
-	return o.unmarshal("UnmarshalYAML", data)
-}
-
 // MarshalText implements the encoding.TextMarshaler interface.
 // It returns the base64 encoding of the Object's data.
 func (o RawObject) MarshalText() ([]byte, error) {

@@ -6,7 +6,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -44,7 +43,6 @@ type BaseService[T any] struct {
 	stderr      io.Writer
 	encoder     encoding.Encoder
 	decoder     encoding.Decoder
-	isJSONC     bool
 
 	config     Config[T]
 	components *component.Group
@@ -55,9 +53,6 @@ func NewBaseService[T any](config Config[T]) *BaseService[T] {
 	return &BaseService[T]{
 		versionFunc: builder.PrintInfo,
 		stderr:      os.Stderr,
-		encoder:     json.Marshal,
-		decoder:     json.Unmarshal,
-		isJSONC:     true,
 		config:      config,
 		components:  component.NewGroup(),
 	}
@@ -72,27 +67,6 @@ func (s *BaseService[T]) SetVersionFunc(f func()) {
 // GetComponent returns a component by its UUID.
 func (s *BaseService[T]) GetComponent(uuid string) component.Component {
 	return s.components.GetComponent(uuid)
-}
-
-// Encoder returns the encoder function for the service.
-func (s *BaseService[T]) Encoder() encoding.Encoder {
-	return s.encoder
-}
-
-// Decoder returns the decoder function for the service.
-func (s *BaseService[T]) Decoder() encoding.Decoder {
-	return s.decoder
-}
-
-// SetEncoder sets the encoder functions for the service.
-func (s *BaseService[T]) SetEncoder(encoder encoding.Encoder) {
-	s.encoder = encoder
-}
-
-// SetDecoder sets the decoder functions for the service.
-func (s *BaseService[T]) SetDecoder(decoder encoding.Decoder) {
-	s.decoder = decoder
-	s.isJSONC = false
 }
 
 // Logger returns the logger instance for the service.
@@ -164,7 +138,7 @@ func (s *BaseService[T]) setupCommandLineFlags() error {
 
 // setupConfig loads and sets up the service configuration based on command-line flags.
 func (s *BaseService[T]) setupConfig() error {
-	if err := s.config.load(s.decoder, s.flags.source, s.isJSONC); err != nil {
+	if err := s.config.load(s.decoder, s.flags.source); err != nil {
 		return err
 	}
 	if err := s.config.processTemplate(s.flags.enableTemplate, s.flags.source); err != nil {
@@ -290,12 +264,8 @@ func Run(opts ...RunOption) {
 	var o runOptions
 	o.apply(opts)
 	s := NewBaseService(Config[context]{Context: context{}})
-	if o.encoder != nil {
-		s.SetEncoder(o.encoder)
-	}
-	if o.decoder != nil {
-		s.SetDecoder(o.decoder)
-	}
+	s.encoder = o.encoder
+	s.decoder = o.decoder
 	if err := RunService(s); err != nil {
 		if exitCode, ok := errkit.ExitCode(err); ok {
 			os.Exit(exitCode)
