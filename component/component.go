@@ -4,7 +4,6 @@
 package component
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,7 +14,9 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"unicode"
 
+	"github.com/gopherd/core/encoding"
 	"github.com/gopherd/core/lifecycle"
 	"github.com/gopherd/core/types"
 )
@@ -66,7 +67,7 @@ type Container interface {
 	GetComponent(uuid string) Component
 
 	// Decoder returns the decoder for decoding component configurations.
-	Decoder() types.Decoder
+	Decoder() encoding.Decoder
 
 	// Logger returns the logger instance for the container.
 	Logger() *slog.Logger
@@ -166,50 +167,33 @@ func (r Reference[T]) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON unmarshals the referenced component UUID from JSON.
 func (r *Reference[T]) UnmarshalJSON(data []byte) error {
-	return json.Unmarshal(data, &r.uuid)
-}
-
-// MarshalText marshals the referenced component UUID to text.
-func (r Reference[T]) MarshalText() ([]byte, error) {
-	// Use strconv.Quote to properly escape the string
-	return []byte(strconv.Quote(r.uuid)), nil
-}
-
-// UnmarshalText unmarshals the referenced component UUID from text.
-func (r *Reference[T]) UnmarshalText(data []byte) error {
-	// Trim leading and trailing whitespace
-	data = bytes.TrimSpace(data)
-
-	if len(data) < 2 {
-		return errors.New("invalid string: too short")
+	if err := json.Unmarshal(data, &r.uuid); err != nil {
+		return err
 	}
+	return r.validate()
+}
 
-	switch data[0] {
-	case '"':
-		// Basic string (double-quoted)
-		if data[len(data)-1] != '"' {
-			return errors.New("invalid string: mismatched quotes")
-		}
-		s, err := strconv.Unquote(string(data))
-		if err != nil {
-			return err
-		}
-		r.uuid = s
-	case '\'':
-		// Literal string (single-quoted)
-		if data[len(data)-1] != '\'' {
-			return errors.New("invalid string: mismatched quotes")
-		}
-		uuid := string(data[1 : len(data)-1])
-		// Check for illegal newlines in literal string
-		if strings.Contains(uuid, "\n") {
-			return errors.New("invalid string: newlines not allowed in literal string")
-		}
-		r.uuid = uuid
+// Marshal marshals the referenced component UUID to quoted bytes.
+func (r Reference[T]) Marshal() ([]byte, error) {
+	var buf = make([]byte, 0, len(r.uuid)+len(`""`))
+	return strconv.AppendQuote(buf, r.uuid), nil
+}
+
+// Unmarshal unmarshals the referenced component UUID from quoted bytes.
+func (r *Reference[T]) Unmarshal(data any) error {
+	switch v := data.(type) {
+	case string:
+		r.uuid = v
+		return r.validate()
 	default:
-		return errors.New("invalid string: must start with ' or \"")
+		return fmt.Errorf("unexpected type %T for reference UUID", data)
 	}
+}
 
+func (r Reference[T]) validate() error {
+	if strings.ContainsFunc(r.uuid, unicode.IsSpace) {
+		return fmt.Errorf("unexpected whitespace in reference UUID: %q", r.uuid)
+	}
 	return nil
 }
 

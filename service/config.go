@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/gopherd/core/component"
+	"github.com/gopherd/core/encoding"
 	"github.com/gopherd/core/op"
 	"github.com/gopherd/core/text/templateutil"
-	"github.com/gopherd/core/types"
 )
 
 // Config represents a generic configuration structure for services.
@@ -27,7 +27,7 @@ type Config[T any] struct {
 
 // load processes the configuration based on the provided source.
 // It returns an error if the configuration cannot be loaded or decoded.
-func (c *Config[T]) load(decoder types.Decoder, source string, isJSONC bool) error {
+func (c *Config[T]) load(decoder encoding.Decoder, source string, isJSONC bool) error {
 	if source == "" {
 		return nil
 	}
@@ -139,7 +139,7 @@ func (c *Config[T]) processTemplate(enableTemplate bool, source string) error {
 
 // output encodes the configuration with the encoder and writes it to stdout.
 // It uses indentation for better readability.
-func (c Config[T]) output(encoder types.Encoder) {
+func (c Config[T]) output(encoder encoding.Encoder) {
 	if data, err := encoder(c); err != nil {
 		fmt.Fprintf(os.Stderr, "Encode config failed: %v\n", err)
 	} else {

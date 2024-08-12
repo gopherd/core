@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/gopherd/core/component"
+	"github.com/gopherd/core/encoding"
 	"github.com/gopherd/core/op"
 	"github.com/gopherd/core/types"
 )
@@ -92,7 +93,7 @@ func (c *mockContainer) GetComponent(uuid string) component.Component {
 	return c.components[uuid]
 }
 
-func (c *mockContainer) Decoder() types.Decoder {
+func (c *mockContainer) Decoder() encoding.Decoder {
 	return json.Unmarshal
 }
 

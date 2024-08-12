@@ -2,9 +2,12 @@
 package types
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"strconv"
+
+	"github.com/gopherd/core/encoding"
 )
 
 // RawObject represents a raw object for delayed JSON decoding.
@@ -40,6 +43,20 @@ func (o *RawObject) SetBytes(b []byte) {
 	*o = RawObject(b)
 }
 
+// Marshal implements the encoding.Marshaler interface.
+func (o RawObject) Marshal() ([]byte, error) {
+	return o, nil
+}
+
+// Unmarshal implements the encoding.RawUnmarshaler interface.
+func (o *RawObject) Unmarshal(data []byte) error {
+	if o == nil {
+		return errors.New("types.RawObject: UnmarshalRaw on nil pointer")
+	}
+	*o = append((*o)[0:0], data...)
+	return nil
+}
+
 // MarshalJSON implements the json.Marshaler interface.
 // It returns the raw JSON encoding of the Object.
 func (o RawObject) MarshalJSON() ([]byte, error) {
@@ -59,40 +76,46 @@ func (o *RawObject) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MarshalText implements the toml.Marshaler interface.
-// It returns the stored raw data.
+// MarshalText implements the encoding.TextMarshaler interface.
+// It returns the base64 encoding of the Object's data.
 func (o RawObject) MarshalText() ([]byte, error) {
-	if o == nil {
-		// For TOML, we might want to return an empty table instead of null
-		return []byte("{}"), nil
-	}
-	return o, nil
+	enc := base64.StdEncoding
+	buf := make([]byte, enc.EncodedLen(len(o)))
+	enc.Encode(buf, o)
+	return buf, nil
 }
 
-// UnmarshalText implements the toml.Unmarshaler interface.
-// It stores the raw data without parsing it.
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+// It decodes the input text as base64 and sets the Object's data to the result.
 func (o *RawObject) UnmarshalText(data []byte) error {
 	if o == nil {
 		return errors.New("types.RawObject: UnmarshalText on nil pointer")
 	}
-	*o = append((*o)[0:0], data...)
-	return nil
+	enc := base64.StdEncoding
+	dbuf := make([]byte, enc.DecodedLen(len(data)))
+	n, err := enc.Decode(dbuf, []byte(data))
+	*o = dbuf[:n]
+	return err
 }
 
-// Decode decodes the Object's JSON data into the provided value.
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+func (o RawObject) MarshalBinary() ([]byte, error) {
+	return o.Marshal()
+}
+
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+func (o *RawObject) UnmarshalBinary(data []byte) error {
+	return o.Unmarshal(data)
+}
+
+// Decode decodes the Object's data using the provided decoder.
 // It does nothing and returns nil if the Object is empty.
-func (o RawObject) Decode(decoder Decoder, v any) error {
+func (o RawObject) Decode(decoder encoding.Decoder, v any) error {
 	if o == nil {
 		return nil
 	}
 	return decoder(o, v)
 }
-
-// Encoder encodes the input value into bytes.
-type Encoder func(any) ([]byte, error)
-
-// Decoder decodes the input bytes into the provided value.
-type Decoder func([]byte, any) error
 
 // Bool wraps a boolean value.
 type Bool bool

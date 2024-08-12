@@ -17,9 +17,9 @@ import (
 	"github.com/gopherd/core/builder"
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/container/pair"
+	"github.com/gopherd/core/encoding"
 	"github.com/gopherd/core/errkit"
 	"github.com/gopherd/core/lifecycle"
-	"github.com/gopherd/core/types"
 )
 
 // Service represents a process with lifecycle management and component handling capabilities.
@@ -42,8 +42,8 @@ type BaseService[T any] struct {
 	}
 	versionFunc func()
 	stderr      io.Writer
-	encoder     types.Encoder
-	decoder     types.Decoder
+	encoder     encoding.Encoder
+	decoder     encoding.Decoder
 	isJSONC     bool
 
 	config     Config[T]
@@ -75,22 +75,22 @@ func (s *BaseService[T]) GetComponent(uuid string) component.Component {
 }
 
 // Encoder returns the encoder function for the service.
-func (s *BaseService[T]) Encoder() types.Encoder {
+func (s *BaseService[T]) Encoder() encoding.Encoder {
 	return s.encoder
 }
 
 // Decoder returns the decoder function for the service.
-func (s *BaseService[T]) Decoder() types.Decoder {
+func (s *BaseService[T]) Decoder() encoding.Decoder {
 	return s.decoder
 }
 
 // SetEncoder sets the encoder functions for the service.
-func (s *BaseService[T]) SetEncoder(encoder types.Encoder) {
+func (s *BaseService[T]) SetEncoder(encoder encoding.Encoder) {
 	s.encoder = encoder
 }
 
 // SetDecoder sets the decoder functions for the service.
-func (s *BaseService[T]) SetDecoder(decoder types.Decoder) {
+func (s *BaseService[T]) SetDecoder(decoder encoding.Decoder) {
 	s.decoder = decoder
 	s.isJSONC = false
 }
@@ -250,8 +250,8 @@ func (s *BaseService[T]) Shutdown(ctx context.Context) error {
 }
 
 type runOptions struct {
-	encoder types.Encoder
-	decoder types.Decoder
+	encoder encoding.Encoder
+	decoder encoding.Decoder
 }
 
 // apply applies the options to the given options.
@@ -265,14 +265,14 @@ func (o *runOptions) apply(opts []RunOption) {
 type RunOption func(*runOptions)
 
 // WithEncoder sets the encoder function for the Run function.
-func WithEncoder(encoder types.Encoder) RunOption {
+func WithEncoder(encoder encoding.Encoder) RunOption {
 	return func(o *runOptions) {
 		o.encoder = encoder
 	}
 }
 
 // WithDecoder sets the decoder function for the Run function.
-func WithDecoder(decoder types.Decoder) RunOption {
+func WithDecoder(decoder encoding.Decoder) RunOption {
 	return func(o *runOptions) {
 		o.decoder = decoder
 	}
