@@ -23,6 +23,8 @@ The component-based approach, combined with Go's generics, allows for better org
 - **Modern, generic-based architecture**: Leverage Go's generics for type-safe component creation and management
 - **Flexible configuration**: Load configurations from files, URLs, or standard input with type safety
 - **Template processing**: Use Go templates in your component configurations for dynamic setups
+- **Multiple format support**: Handle JSON, TOML, YAML, and other arbitrary configuration formats through encoders and decoders
+- **Automatic dependency injection**: Simplify component integration with built-in dependency resolution and injection
 
 ## 📦 Installation
 

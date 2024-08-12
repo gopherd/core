@@ -1,4 +1,4 @@
-package encoding
+package encoding_test
 
 import (
 	"encoding/json"
@@ -7,14 +7,17 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/gopherd/core/container/maputil"
+	"github.com/gopherd/core/encoding"
 )
 
 func TestTransform(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       []byte
-		encoder     Encoder
-		decoder     Decoder
+		encoder     encoding.Encoder
+		decoder     encoding.Decoder
 		expected    []byte
 		expectError bool
 	}{
@@ -175,7 +178,7 @@ func TestTransform(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := Transform(tt.input, tt.encoder, tt.decoder)
+			result, err := encoding.Transform(tt.input, tt.encoder, tt.decoder)
 
 			if tt.expectError {
 				if err == nil {
@@ -218,13 +221,13 @@ func ExampleTransform() {
 			return nil, fmt.Errorf("expected map[string]string, got %T", v)
 		}
 		var result strings.Builder
-		for k, v := range m {
-			result.WriteString(fmt.Sprintf("%s = %s\n", k, v))
+		for _, k := range maputil.Keys(m) {
+			result.WriteString(fmt.Sprintf("%s = %s\n", k, m[k]))
 		}
 		return []byte(result.String()), nil
 	}
 
-	result, err := Transform(input, encoder, decoder)
+	result, err := encoding.Transform(input, encoder, decoder)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
