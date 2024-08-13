@@ -127,8 +127,8 @@ func TestTransform(t *testing.T) {
 			encoder: func(v any) ([]byte, error) {
 				m := v.(map[string]string)
 				var result string
-				for k, v := range m {
-					result += fmt.Sprintf("%s=%s;", k, v)
+				for _, k := range sliceutil.Sort(maputil.Keys(m)) {
+					result += fmt.Sprintf("%s=%s;", k, m[k])
 				}
 				return []byte(result), nil
 			},
