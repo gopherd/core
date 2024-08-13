@@ -13,7 +13,7 @@ type exitError struct {
 }
 
 func (e *exitError) Error() string {
-	return fmt.Sprintf("(exit %d) %s", e.code, e.message)
+	return fmt.Sprintf("(exit status %d) %s", e.code, e.message)
 }
 
 // NewExitError creates a new exit error with the given exit code.

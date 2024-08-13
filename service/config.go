@@ -27,27 +27,31 @@ type Config[T any] struct {
 
 // load processes the configuration based on the provided source.
 // It returns an error if the configuration cannot be loaded or decoded.
-func (c *Config[T]) load(decoder encoding.Decoder, source string) error {
+func (c *Config[T]) load(stdin io.Reader, decoder encoding.Decoder, source string) error {
 	if source == "" {
 		return nil
 	}
 
-	var r io.ReadCloser
+	var r io.Reader
 	var err error
 
 	switch {
 	case source == "-":
-		r = os.Stdin
+		r = stdin
 	case strings.HasPrefix(source, "http://"), strings.HasPrefix(source, "https://"):
-		r, err = c.loadFromHTTP(source)
+		var b io.ReadCloser
+		b, err = c.loadFromHTTP(source, time.Second*10)
 		if err == nil {
-			defer r.Close()
+			defer b.Close()
 		}
+		r = b
 	default:
-		r, err = os.Open(source)
+		var f io.ReadCloser
+		f, err = os.Open(source)
 		if err == nil {
-			defer r.Close()
+			defer f.Close()
 		}
+		r = f
 	}
 
 	if err != nil {
@@ -80,11 +84,11 @@ func (c *Config[T]) load(decoder encoding.Decoder, source string) error {
 
 // loadFromHTTP loads the configuration from an HTTP source.
 // It handles redirects up to a maximum of 32 times.
-func (c *Config[T]) loadFromHTTP(source string) (io.ReadCloser, error) {
+func (c *Config[T]) loadFromHTTP(source string, timeout time.Duration) (io.ReadCloser, error) {
 	const maxRedirects = 32
 
 	client := &http.Client{
-		Timeout: time.Second * 10,
+		Timeout: timeout,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= maxRedirects {
 				return errors.New("too many redirects")
@@ -148,22 +152,22 @@ func (c *Config[T]) processTemplate(enableTemplate bool, source string) error {
 
 // output encodes the configuration with the encoder and writes it to stdout.
 // It uses indentation for better readability.
-func (c Config[T]) output(encoder encoding.Encoder) {
+func (c Config[T]) output(stdout, stderr io.Writer, encoder encoding.Encoder) {
 	if encoder == nil {
 		if data, err := jsonIdentEncoder(c); err != nil {
-			fmt.Fprintf(os.Stderr, "Encode config failed: %v\n", err)
+			fmt.Fprintf(stderr, "Encode config failed: %v\n", err)
 		} else {
-			fmt.Fprint(os.Stdout, string(data))
+			fmt.Fprint(stdout, string(data))
 		}
 		return
 	}
 
 	if data, err := json.Marshal(c); err != nil {
-		fmt.Fprintf(os.Stderr, "Encode config failed: %v\n", err)
+		fmt.Fprintf(stderr, "Encode config failed: %v\n", err)
 	} else if data, err = encoding.Transform(data, encoder, json.Unmarshal); err != nil {
-		fmt.Fprintf(os.Stderr, "Encode config failed: %v\n", err)
+		fmt.Fprintf(stderr, "Encode config failed: %v\n", err)
 	} else {
-		fmt.Fprint(os.Stdout, string(data))
+		fmt.Fprint(stdout, string(data))
 	}
 }
 
@@ -202,7 +206,6 @@ func jsonIdentEncoder(v any) ([]byte, error) {
 	encoder.SetIndent("", "    ")
 
 	if err := encoder.Encode(v); err != nil {
-		fmt.Fprintf(os.Stderr, "Encode config failed: %v\n", err)
 		return nil, err
 	}
 	return buf.Bytes(), nil

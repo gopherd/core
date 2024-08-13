@@ -1,118 +1,314 @@
-package types_test
+package types
 
 import (
+	"encoding/base64"
 	"encoding/json"
-	"reflect"
+	"fmt"
 	"testing"
-
-	"github.com/gopherd/core/types"
+	"time"
 )
 
-func TestObjectLen(t *testing.T) {
-	tests := []struct {
-		name string
-		o    types.RawObject
-		want int
-	}{
-		{"Empty", types.RawObject{}, 0},
-		{"NonEmpty", types.NewRawObject(`{"key":"value"}`), 15},
-	}
+// ValueType is an interface that describes the common methods of our value types
+type ValueType[T any] interface {
+	Value() T
+	SetValue(T)
+	Deref() T
+	Set(string) error
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.o.Len(); got != tt.want {
-				t.Errorf("Object.Len() = %v, want %v", got, tt.want)
+// testValueType is a generic function to test Value, SetValue, Deref, and Set methods
+func testValueType[T ValueType[V], V comparable](t *testing.T, name string, zero, nonZero V, str string, newFunc func() T) {
+	t.Run(name, func(t *testing.T) {
+		v := newFunc()
+
+		t.Run("Value", func(t *testing.T) {
+			if v.Value() != zero {
+				t.Errorf("Value() = %v, want %v", v.Value(), zero)
 			}
 		})
-	}
+
+		t.Run("SetValue", func(t *testing.T) {
+			v.SetValue(nonZero)
+			if v.Value() != nonZero {
+				t.Errorf("After SetValue(%v), got %v, want %v", nonZero, v.Value(), nonZero)
+			}
+		})
+
+		t.Run("Deref", func(t *testing.T) {
+			if v.Deref() != nonZero {
+				t.Errorf("Deref() = %v, want %v", v.Deref(), nonZero)
+			}
+		})
+
+		t.Run("Set", func(t *testing.T) {
+			v = newFunc() // Reset to zero value
+			err := v.Set(str)
+			if err != nil {
+				t.Fatalf("Set() error = %v", err)
+			}
+			if v.Value() != nonZero {
+				t.Errorf("After Set(%q), got %v, want %v", str, v.Value(), nonZero)
+			}
+
+			if name != "String" { // String type doesn't return an error for invalid input
+				err = v.Set("invalid")
+				if err == nil {
+					t.Errorf("Set(\"invalid\") should return error")
+				}
+			}
+		})
+	})
 }
 
-func TestString(t *testing.T) {
-	s := `{"test":"value"}`
-	o := types.String(s)
-	if string(o) != s {
-		t.Errorf("String() = %v, want %v", string(o), s)
-	}
+func TestValueTypes(t *testing.T) {
+	testValueType[*Bool](t, "Bool", false, true, "true", func() *Bool { return new(Bool) })
+	testValueType[*Int](t, "Int", 0, 42, "42", func() *Int { return new(Int) })
+	testValueType[*Int8](t, "Int8", int8(0), int8(42), "42", func() *Int8 { return new(Int8) })
+	testValueType[*Int16](t, "Int16", int16(0), int16(42), "42", func() *Int16 { return new(Int16) })
+	testValueType[*Int32](t, "Int32", int32(0), int32(42), "42", func() *Int32 { return new(Int32) })
+	testValueType[*Int64](t, "Int64", int64(0), int64(42), "42", func() *Int64 { return new(Int64) })
+	testValueType[*Uint](t, "Uint", uint(0), uint(42), "42", func() *Uint { return new(Uint) })
+	testValueType[*Uint8](t, "Uint8", uint8(0), uint8(42), "42", func() *Uint8 { return new(Uint8) })
+	testValueType[*Uint16](t, "Uint16", uint16(0), uint16(42), "42", func() *Uint16 { return new(Uint16) })
+	testValueType[*Uint32](t, "Uint32", uint32(0), uint32(42), "42", func() *Uint32 { return new(Uint32) })
+	testValueType[*Uint64](t, "Uint64", uint64(0), uint64(42), "42", func() *Uint64 { return new(Uint64) })
+	testValueType[*Float32](t, "Float32", float32(0), float32(3.14), "3.14", func() *Float32 { return new(Float32) })
+	testValueType[*Float64](t, "Float64", float64(0), float64(3.14), "3.14", func() *Float64 { return new(Float64) })
+	testValueType[*String](t, "String", "", "hello", "hello", func() *String { return new(String) })
+	testValueType[*Complex64](t, "Complex64", complex64(0), complex64(1+2i), "(1+2i)", func() *Complex64 { return new(Complex64) })
+	testValueType[*Complex128](t, "Complex128", complex128(0), complex128(1+2i), "(1+2i)", func() *Complex128 { return new(Complex128) })
+	testValueType[*Duration](t, "Duration", time.Duration(0), 5*time.Second, "5s", func() *Duration { return new(Duration) })
 }
 
-func TestBytes(t *testing.T) {
-	b := []byte(`{"test":"value"}`)
-	o := types.NewRawObject(b)
-	if !reflect.DeepEqual(o.Bytes(), b) {
-		t.Errorf("Bytes() = %v, want %v", o.Bytes(), b)
-	}
+func TestTime(t *testing.T) {
+	now := time.Now().Round(0) // Round to remove monotonic clock reading
+	nowStr := now.Format(time.RFC3339Nano)
+
+	testValueType[*Time](t, "Time", time.Time{}, now, nowStr, func() *Time { return new(Time) })
 }
 
-func TestObjectString(t *testing.T) {
-	o := types.NewRawObject(`{"test":"value"}`)
-	if o.String() != `{"test":"value"}` {
-		t.Errorf("Object.String() = %v, want %v", o.String(), `{"test":"value"}`)
-	}
+func TestRawObject(t *testing.T) {
+	t.Run("RawObject", func(t *testing.T) {
+		data := []byte(`{"key":"value"}`)
+		ro := NewRawObject(data)
+
+		t.Run("NewRawObject", func(t *testing.T) {
+			if string(ro) != string(data) {
+				t.Errorf("NewRawObject() = %v, want %v", ro, data)
+			}
+		})
+
+		t.Run("Len", func(t *testing.T) {
+			if ro.Len() != len(data) {
+				t.Errorf("Len() = %d, want %d", ro.Len(), len(data))
+			}
+		})
+
+		t.Run("String", func(t *testing.T) {
+			if ro.String() != string(data) {
+				t.Errorf("String() = %s, want %s", ro.String(), string(data))
+			}
+		})
+
+		t.Run("SetString", func(t *testing.T) {
+			newData := `{"new":"data"}`
+			ro.SetString(newData)
+			if string(ro) != newData {
+				t.Errorf("After SetString(), got %s, want %s", string(ro), newData)
+			}
+		})
+
+		t.Run("Bytes", func(t *testing.T) {
+			if string(ro.Bytes()) != string(ro) {
+				t.Errorf("Bytes() = %v, want %v", ro.Bytes(), []byte(ro))
+			}
+		})
+
+		t.Run("SetBytes", func(t *testing.T) {
+			newData := []byte(`{"new":"bytes"}`)
+			ro.SetBytes(newData)
+			if string(ro) != string(newData) {
+				t.Errorf("After SetBytes(), got %v, want %v", ro, newData)
+			}
+		})
+
+		testMarshalUnmarshal := func(t *testing.T, marshal func(RawObject) ([]byte, error), unmarshal func(*RawObject, []byte) error, isText bool) {
+			t.Run("Marshal", func(t *testing.T) {
+				encoded, err := marshal(ro)
+				if err != nil {
+					t.Fatalf("Marshal error: %v", err)
+				}
+				if isText {
+					decoded, err := base64.StdEncoding.DecodeString(string(encoded))
+					if err != nil {
+						t.Fatalf("base64 decode error: %v", err)
+					}
+					if string(decoded) != string(ro) {
+						t.Errorf("Marshal() (decoded) = %v, want %v", string(decoded), string(ro))
+					}
+				} else {
+					if string(encoded) != string(ro) {
+						t.Errorf("Marshal() = %v, want %v", string(encoded), string(ro))
+					}
+				}
+			})
+
+			t.Run("Unmarshal", func(t *testing.T) {
+				var decoded RawObject
+				var input []byte
+				if isText {
+					input = []byte(base64.StdEncoding.EncodeToString(ro))
+				} else {
+					input = ro
+				}
+				err := unmarshal(&decoded, input)
+				if err != nil {
+					t.Fatalf("Unmarshal error: %v", err)
+				}
+				if string(decoded) != string(ro) {
+					t.Errorf("Unmarshal() = %v, want %v", string(decoded), string(ro))
+				}
+			})
+
+			t.Run("UnmarshalNilPointer", func(t *testing.T) {
+				var nilRO *RawObject
+				err := unmarshal(nilRO, ro)
+				if err == nil {
+					t.Error("Unmarshal to nil pointer should return error")
+				}
+			})
+		}
+
+		t.Run("JSON", func(t *testing.T) {
+			testMarshalUnmarshal(t,
+				func(ro RawObject) ([]byte, error) { return ro.MarshalJSON() },
+				func(ro *RawObject, data []byte) error { return ro.UnmarshalJSON(data) },
+				false)
+		})
+
+		t.Run("Text", func(t *testing.T) {
+			testMarshalUnmarshal(t,
+				func(ro RawObject) ([]byte, error) { return ro.MarshalText() },
+				func(ro *RawObject, data []byte) error { return ro.UnmarshalText(data) },
+				true)
+		})
+
+		t.Run("Binary", func(t *testing.T) {
+			testMarshalUnmarshal(t,
+				func(ro RawObject) ([]byte, error) { return ro.MarshalBinary() },
+				func(ro *RawObject, data []byte) error { return ro.UnmarshalBinary(data) },
+				false)
+		})
+
+		t.Run("Decode", func(t *testing.T) {
+			var result map[string]string
+			err := ro.Decode(json.Unmarshal, &result)
+			if err != nil {
+				t.Fatalf("Decode() error = %v", err)
+			}
+			expected := map[string]string{"new": "bytes"}
+			if result["key"] != expected["key"] {
+				t.Errorf("Decode() = %v, want %v", result, expected)
+			}
+
+			var nilRO RawObject
+			err = nilRO.Decode(json.Unmarshal, &result)
+			if err != nil {
+				t.Errorf("Decode() on nil RawObject should not return error, got %v", err)
+			}
+		})
+	})
 }
 
-func TestObjectSetString(t *testing.T) {
-	var o types.RawObject
-	s := `{"test":"value"}`
-	o.SetString(s)
-	if o.String() != s {
-		t.Errorf("After SetString(), Object = %v, want %v", o.String(), s)
-	}
+func TestDuration(t *testing.T) {
+	t.Run("MarshalJSON", func(t *testing.T) {
+		d := Duration(5 * time.Second)
+		data, err := d.MarshalJSON()
+		if err != nil {
+			t.Fatalf("MarshalJSON() error = %v", err)
+		}
+		if string(data) != `"5s"` {
+			t.Errorf("MarshalJSON() = %s, want \"5s\"", data)
+		}
+	})
+
+	t.Run("UnmarshalJSON", func(t *testing.T) {
+		var d Duration
+		err := d.UnmarshalJSON([]byte(`"5s"`))
+		if err != nil {
+			t.Fatalf("UnmarshalJSON() error = %v", err)
+		}
+		if d != Duration(5*time.Second) {
+			t.Errorf("After UnmarshalJSON(), got %v, want 5s", d)
+		}
+
+		err = d.UnmarshalJSON([]byte(`5000000000`))
+		if err != nil {
+			t.Fatalf("UnmarshalJSON() error = %v", err)
+		}
+		if d != Duration(5*time.Second) {
+			t.Errorf("After UnmarshalJSON(), got %v, want 5s", d)
+		}
+
+		err = d.UnmarshalJSON([]byte(`"invalid"`))
+		if err == nil {
+			t.Errorf("UnmarshalJSON(\"invalid\") should return error")
+		}
+	})
 }
 
-func TestObjectBytes(t *testing.T) {
-	o := types.NewRawObject(`{"test":"value"}`)
-	expected := []byte(`{"test":"value"}`)
-	if !reflect.DeepEqual(o.Bytes(), expected) {
-		t.Errorf("Object.Bytes() = %v, want %v", o.Bytes(), expected)
-	}
-}
+func ExampleRawObject() {
+	ro := NewRawObject(`{"name":"John","age":30}`)
+	fmt.Println("Raw JSON:", ro)
 
-func TestObjectSetBytes(t *testing.T) {
-	var o types.RawObject
-	b := []byte(`{"test":"value"}`)
-	o.SetBytes(b)
-	if !reflect.DeepEqual(o.Bytes(), b) {
-		t.Errorf("After SetBytes(), Object = %v, want %v", o.Bytes(), b)
+	var person struct {
+		Name string `json:"name"`
+		Age  int    `json:"age"`
 	}
-}
-
-func TestObjectMarshalJSON(t *testing.T) {
-	o := types.NewRawObject(`{"test":"value"}`)
-	b, err := o.MarshalJSON()
+	err := ro.Decode(json.Unmarshal, &person)
 	if err != nil {
-		t.Fatalf("MarshalJSON() error = %v", err)
+		fmt.Println("Error:", err)
+		return
 	}
-	if string(b) != `{"test":"value"}` {
-		t.Errorf("MarshalJSON() = %v, want %v", string(b), `{"test":"value"}`)
+	fmt.Printf("Decoded: Name=%s, Age=%d\n", person.Name, person.Age)
+
+	// Output:
+	// Raw JSON: {"name":"John","age":30}
+	// Decoded: Name=John, Age=30
+}
+
+func ExampleDuration() {
+	d := Duration(5 * time.Second)
+	fmt.Println("Duration:", d.Value())
+
+	jsonData, _ := json.Marshal(d)
+	fmt.Println("JSON:", string(jsonData))
+
+	var parsed Duration
+	_ = parsed.Set("10m")
+	fmt.Println("Parsed:", parsed.Deref())
+
+	// Output:
+	// Duration: 5s
+	// JSON: "5s"
+	// Parsed: 10m0s
+}
+
+func BenchmarkRawObjectDecode(b *testing.B) {
+	ro := NewRawObject(`{"name":"John","age":30,"city":"New York"}`)
+	var result map[string]interface{}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = ro.Decode(json.Unmarshal, &result)
 	}
 }
 
-func TestObjectUnmarshalJSON(t *testing.T) {
-	var o types.RawObject
-	err := o.UnmarshalJSON([]byte(`{"test":"value"}`))
-	if err != nil {
-		t.Fatalf("UnmarshalJSON() error = %v", err)
-	}
-	if o.String() != `{"test":"value"}` {
-		t.Errorf("After UnmarshalJSON(), Object = %v, want %v", o.Bytes(), `{"test":"value"}`)
-	}
-}
+func BenchmarkDurationMarshalJSON(b *testing.B) {
+	d := Duration(5 * time.Second)
 
-func TestObjectDecodeJSON(t *testing.T) {
-	o := types.NewRawObject(`{"test":"value"}`)
-	var v map[string]string
-	err := o.Decode(json.Unmarshal, &v)
-	if err != nil {
-		t.Fatalf("DecodeJSON() error = %v", err)
-	}
-	if v["test"] != "value" {
-		t.Errorf("DecodeJSON() result = %v, want map with 'test':'value'", v)
-	}
-
-	// Test with nil Object
-	var nilO types.RawObject
-	err = nilO.Decode(json.Unmarshal, &v)
-	if err != nil {
-		t.Errorf("DecodeJSON() with nil Object should not return error, got %v", err)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = d.MarshalJSON()
 	}
 }

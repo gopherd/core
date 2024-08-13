@@ -40,6 +40,9 @@ type BaseService[T any] struct {
 		enableTemplate bool   // enable template parsing for components config
 	}
 	versionFunc func()
+	flagSet     *flag.FlagSet
+	stdin       io.Reader
+	stdout      io.Writer
 	stderr      io.Writer
 	encoder     encoding.Encoder
 	decoder     encoding.Decoder
@@ -52,6 +55,9 @@ type BaseService[T any] struct {
 func NewBaseService[T any](config Config[T]) *BaseService[T] {
 	return &BaseService[T]{
 		versionFunc: builder.PrintInfo,
+		flagSet:     flag.CommandLine,
+		stdin:       os.Stdin,
+		stdout:      os.Stdout,
 		stderr:      os.Stderr,
 		config:      config,
 		components:  component.NewGroup(),
@@ -81,7 +87,7 @@ func (s *BaseService[T]) Config() *Config[T] {
 
 // setupCommandLineFlags sets up and processes command-line arguments for the service.
 func (s *BaseService[T]) setupCommandLineFlags() error {
-	flag.Usage = func() {
+	s.flagSet.Usage = func() {
 		name := os.Args[0]
 		var sb strings.Builder
 		fmt.Fprintf(&sb, "Usage: %s [Options] <Config>\n", name)
@@ -107,12 +113,14 @@ func (s *BaseService[T]) setupCommandLineFlags() error {
 		fmt.Fprint(s.stderr, sb.String())
 	}
 
-	flag.BoolVar(&s.flags.version, "v", false, "")
-	flag.BoolVar(&s.flags.printConfig, "p", false, "")
-	flag.BoolVar(&s.flags.testConfig, "t", false, "")
-	flag.BoolVar(&s.flags.enableTemplate, "T", false, "")
+	s.flagSet.BoolVar(&s.flags.version, "v", false, "")
+	s.flagSet.BoolVar(&s.flags.printConfig, "p", false, "")
+	s.flagSet.BoolVar(&s.flags.testConfig, "t", false, "")
+	s.flagSet.BoolVar(&s.flags.enableTemplate, "T", false, "")
 
-	flag.Parse()
+	if err := s.flagSet.Parse(os.Args[1:]); err != nil {
+		return errkit.NewExitError(2, err.Error())
+	}
 
 	if s.flags.version {
 		if s.versionFunc != nil {
@@ -121,24 +129,24 @@ func (s *BaseService[T]) setupCommandLineFlags() error {
 		return errkit.NewExitError(0)
 	}
 
-	if flag.NArg() == 0 || flag.Arg(0) == "" {
+	if s.flagSet.NArg() == 0 || s.flagSet.Arg(0) == "" {
 		fmt.Fprintf(s.stderr, "No config source specified!\n\n")
-		flag.Usage()
+		s.flagSet.Usage()
 		return errkit.NewExitError(2)
 	}
-	if flag.NArg() > 1 {
+	if s.flagSet.NArg() > 1 {
 		fmt.Fprintf(s.stderr, "Too many arguments!\n\n")
-		flag.Usage()
+		s.flagSet.Usage()
 		return errkit.NewExitError(2)
 	}
-	s.flags.source = flag.Arg(0)
+	s.flags.source = s.flagSet.Arg(0)
 
 	return nil
 }
 
 // setupConfig loads and sets up the service configuration based on command-line flags.
 func (s *BaseService[T]) setupConfig() error {
-	if err := s.config.load(s.decoder, s.flags.source); err != nil {
+	if err := s.config.load(s.stdin, s.decoder, s.flags.source); err != nil {
 		return err
 	}
 	if err := s.config.processTemplate(s.flags.enableTemplate, s.flags.source); err != nil {
@@ -164,7 +172,7 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 			fmt.Fprintf(s.stderr, "Config test failed: %v\n", err)
 			return errkit.NewExitError(2, err.Error())
 		}
-		s.config.output(s.encoder)
+		s.config.output(s.stdout, s.stderr, s.encoder)
 		return errkit.NewExitError(0)
 	}
 
@@ -177,7 +185,7 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 			fmt.Fprintf(s.stderr, "Config test failed: %v\n", err)
 			err = errkit.NewExitError(2, err.Error())
 		} else {
-			fmt.Fprintln(os.Stdout, "Config test successful")
+			fmt.Fprintln(s.stdout, "Config test successful")
 			err = errkit.NewExitError(0)
 		}
 	}
@@ -193,7 +201,7 @@ func (s *BaseService[T]) setupComponents() error {
 	for _, c := range s.config.Components {
 		com, err := component.Create(c.Name)
 		if err != nil {
-			return err
+			return errkit.NewExitError(2, fmt.Sprintf("failed to create component %q: %v", c.Name, err))
 		}
 		if s.components.AddComponent(c.UUID, com) == nil {
 			return fmt.Errorf("duplicate component uuid: %q", c.UUID)
