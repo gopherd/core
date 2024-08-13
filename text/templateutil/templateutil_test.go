@@ -1,9 +1,12 @@
 package templateutil
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"math"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -29,6 +32,23 @@ func TestDefaultTemplate(t *testing.T) {
 			}
 		}
 	}
+
+	tmpl := DefaultTemplate("test")
+	_, err := tmpl.Parse("Hello, {{.Name}}!")
+	if err != nil {
+		t.Fatalf("Failed to parse template: %v", err)
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, struct{ Name string }{"World"})
+	if err != nil {
+		t.Fatalf("Failed to execute template: %v", err)
+	}
+
+	expected := "Hello, World!"
+	if buf.String() != expected {
+		t.Errorf("Template execution produced %q, want %q", buf.String(), expected)
+	}
 }
 
 func TestContainerFuncs(t *testing.T) {
@@ -38,7 +58,6 @@ func TestContainerFuncs(t *testing.T) {
 		args     []any
 		expected any
 	}{
-		{"len", "len", []any{[]any{1, 2, 3}}, 3},
 		{"list", "list", []any{1, 2, 3}, []any{1, 2, 3}},
 		{"bools", "bools", []any{true, false, true}, []bool{true, false, true}},
 		{"strings", "strings", []any{"a", "b", "c"}, []string{"a", "b", "c"}},
@@ -212,6 +231,15 @@ func TestMathFuncs(t *testing.T) {
 		{"pow mixed", "pow", []any{2, 3.0}, 8.0, false},
 		{"pow negative", "pow", []any{2, -2}, 0.25, false},
 		{"pow error", "pow", []any{2, "a"}, nil, true},
+		{"sum empty", "sum", []any{}, nil, true},
+		{"sum mixed types", "sum", []any{1, 2.5, "3"}, nil, true},
+		{"add string and number", "add", []any{"1", 2}, "12", false},
+		{"sub string", "sub", []any{"a", "b"}, nil, true},
+		{"mul by zero", "mul", []any{5, 0}, int64(0), false},
+		{"div by zero", "div", []any{5, 0}, nil, true},
+		{"mod by zero", "mod", []any{5, 0}, nil, true},
+		{"pow negative", "pow", []any{2, -2}, 0.25, false},
+		{"pow fractional", "pow", []any{2, 0.5}, math.Sqrt2, false},
 	}
 
 	funcs := DefaultFuncs()
@@ -366,4 +394,112 @@ func convToValues(args []any) []reflect.Value {
 		vals[i] = reflect.ValueOf(arg)
 	}
 	return vals
+}
+
+func TestExecute(t *testing.T) {
+	tests := []struct {
+		name     string
+		template string
+		data     interface{}
+		options  []string
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "Simple template",
+			template: "Hello, {{.Name}}!",
+			data:     struct{ Name string }{"World"},
+			expected: "Hello, World!",
+		},
+		{
+			name:     "Template with function",
+			template: "{{len .Items}} items",
+			data:     struct{ Items []int }{[]int{1, 2, 3}},
+			expected: "3 items",
+		},
+		{
+			name:     "Template with option",
+			template: "{{.Unsafe}}",
+			data:     struct{ Unsafe string }{"<script>alert('xss')</script>"},
+			options:  []string{"missingkey=zero"},
+			expected: "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;",
+		},
+		{
+			name:     "Invalid template",
+			template: "{{.MissingField}}",
+			data:     struct{}{},
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := Execute("test", tt.template, tt.data, tt.options...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && result != tt.expected {
+				t.Errorf("Execute() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCleanTemplateError(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected string
+	}{
+		{
+			name:     "Standard template error",
+			err:      errors.New("template: test.tmpl:10:20: executing \"test.tmpl\" at <.MissingField>: can't evaluate field MissingField in type struct {}"),
+			expected: "template: test.tmpl:10:20: can't evaluate field MissingField in type struct {}",
+		},
+		{
+			name:     "Non-standard error",
+			err:      errors.New("some other error"),
+			expected: "some other error",
+		},
+		{
+			name:     "Nil error",
+			err:      nil,
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := cleanTemplateError(tt.err)
+			if tt.err == nil {
+				if result != nil {
+					t.Errorf("cleanTemplateError() = %v, want nil", result)
+				}
+			} else if result.Error() != tt.expected {
+				t.Errorf("cleanTemplateError() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func ExampleDefaultTemplate() {
+	tmpl := DefaultTemplate("greeting")
+	tmpl, _ = tmpl.Parse("Hello, {{.Name}}!")
+	data := struct{ Name string }{"World"}
+	_ = tmpl.Execute(os.Stdout, data)
+	// Output: Hello, World!
+}
+
+func ExampleExecute() {
+	result, _ := Execute("math", "{{add 2 3}}", nil)
+	fmt.Println(result)
+	// Output: 5
+}
+
+func ExampleDefaultFuncs_math() {
+	tmpl := DefaultTemplate("math")
+	tmpl, _ = tmpl.Parse("Sum: {{sum 1 2 3}}, Product: {{mul 2 3}}")
+	_ = tmpl.Execute(os.Stdout, nil)
+	// Output: Sum: 6, Product: 6
 }

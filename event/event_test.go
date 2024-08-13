@@ -1,8 +1,11 @@
 package event_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"testing"
 
@@ -222,4 +225,128 @@ func TestDispatcher(t *testing.T) {
 			t.Errorf("Removed listener should not exist")
 		}
 	})
+}
+
+type testEncodableEvent struct {
+	Type    int
+	Message string
+}
+
+func (e testEncodableEvent) Typeof() int {
+	return e.Type
+}
+
+func TestRegister(t *testing.T) {
+	event.Register(testEncodableEvent{})
+
+	// Verify that the type is registered with gob
+	buffer := &bytes.Buffer{}
+	enc := gob.NewEncoder(buffer)
+	dec := gob.NewDecoder(buffer)
+
+	original := testEncodableEvent{Type: 1, Message: "Test"}
+	if err := enc.Encode(&original); err != nil {
+		t.Fatalf("Failed to encode: %v", err)
+	}
+
+	var decoded testEncodableEvent
+	if err := dec.Decode(&decoded); err != nil {
+		t.Fatalf("Failed to decode: %v", err)
+	}
+
+	if original != decoded {
+		t.Errorf("Decoded event doesn't match original. Got %v, want %v", decoded, original)
+	}
+}
+
+func TestEncoderDecoder(t *testing.T) {
+	event.Register(testEncodableEvent{})
+
+	testCases := []struct {
+		name  string
+		event testEncodableEvent
+	}{
+		{"Simple event", testEncodableEvent{Type: 1, Message: "Hello"}},
+		{"Empty message", testEncodableEvent{Type: 2, Message: ""}},
+		{"Zero type", testEncodableEvent{Type: 0, Message: "Zero type"}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			buffer := &bytes.Buffer{}
+
+			// Test EncodeTo
+			if err := event.EncodeTo(buffer, tc.event); err != nil {
+				t.Fatalf("EncodeTo failed: %v", err)
+			}
+
+			// Test DecodeFrom
+			var decoded testEncodableEvent
+			if err := event.DecodeFrom(buffer, &decoded); err != nil {
+				t.Fatalf("DecodeFrom failed: %v", err)
+			}
+
+			if tc.event != decoded {
+				t.Errorf("Decoded event doesn't match original. Got %v, want %v", decoded, tc.event)
+			}
+		})
+	}
+}
+
+func TestEncoder(t *testing.T) {
+	event.Register(testEncodableEvent{})
+
+	buffer := &bytes.Buffer{}
+	encoder := event.NewEncoder(buffer)
+
+	testEvent := testEncodableEvent{Type: 3, Message: "Encoder Test"}
+
+	if err := event.Encode(encoder, testEvent); err != nil {
+		t.Fatalf("Encode failed: %v", err)
+	}
+
+	var decoded testEncodableEvent
+	decoder := event.NewDecoder(buffer)
+
+	if err := event.Decode(decoder, &decoded); err != nil {
+		t.Fatalf("Decode failed: %v", err)
+	}
+
+	if testEvent != decoded {
+		t.Errorf("Decoded event doesn't match original. Got %v, want %v", decoded, testEvent)
+	}
+}
+
+func TestDecoderWithInvalidData(t *testing.T) {
+	event.Register(testEncodableEvent{})
+
+	invalidData := []byte{0xFF, 0xFF, 0xFF} // Invalid gob data
+	decoder := event.NewDecoder(bytes.NewReader(invalidData))
+
+	var decoded testEncodableEvent
+	err := event.Decode(decoder, &decoded)
+	if err == nil {
+		t.Error("Expected an error when decoding invalid data, but got nil")
+	}
+}
+
+func ExampleEncodeTo() {
+	event.Register(testEncodableEvent{})
+
+	testEvent := testEncodableEvent{Type: 4, Message: "Example Event"}
+	buffer := &bytes.Buffer{}
+
+	err := event.EncodeTo(buffer, testEvent)
+	if err != nil {
+		panic(err)
+	}
+
+	var decoded testEncodableEvent
+	err = event.DecodeFrom(buffer, &decoded)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(decoded.Type, decoded.Message)
+	// Output: 4 Example Event
 }

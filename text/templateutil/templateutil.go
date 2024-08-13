@@ -15,7 +15,6 @@ import (
 var (
 	// containerFuncs contains functions for working with containers.
 	containerFuncs = template.FuncMap{
-		"len":      func(vals []any) int { return len(vals) },
 		"list":     func(vals ...any) []any { return vals },
 		"bools":    func(vals ...bool) []bool { return vals },
 		"strings":  func(vals ...string) []string { return vals },
