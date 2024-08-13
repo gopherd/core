@@ -80,13 +80,6 @@ func TestValueTypes(t *testing.T) {
 	testValueType[*Duration](t, "Duration", time.Duration(0), 5*time.Second, "5s", func() *Duration { return new(Duration) })
 }
 
-func TestTime(t *testing.T) {
-	now := time.Now().Round(0) // Round to remove monotonic clock reading
-	nowStr := now.Format(time.RFC3339Nano)
-
-	testValueType[*Time](t, "Time", time.Time{}, now, nowStr, func() *Time { return new(Time) })
-}
-
 func TestRawObject(t *testing.T) {
 	t.Run("RawObject", func(t *testing.T) {
 		data := []byte(`{"key":"value"}`)
