@@ -104,15 +104,3 @@ func ShuffleN[S ~[]T, T any](s S, n int) S {
 	}
 	return s
 }
-
-// Repeat returns a new slice consisting of n copies of x.
-func Repeat[T any](n int, x T) []T {
-	if n < 0 {
-		panic("Repeat: negative count")
-	}
-	s := make([]T, n)
-	for i := range s {
-		s[i] = x
-	}
-	return s
-}

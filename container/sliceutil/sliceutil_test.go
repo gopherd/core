@@ -229,33 +229,3 @@ func TestShuffleN(t *testing.T) {
 		sliceutil.ShuffleN([]int{1, 2, 3}, 4)
 	})
 }
-
-func TestRepeat(t *testing.T) {
-	tests := []struct {
-		name string
-		n    int
-		x    int
-		want []int
-	}{
-		{"RepeatPositive", 5, 3, []int{3, 3, 3, 3, 3}},
-		{"RepeatZero", 0, 3, []int{}},
-		{"RepeatOne", 1, 3, []int{3}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := sliceutil.Repeat(tt.n, tt.x); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Repeat() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-
-	t.Run("PanicOnNegativeCount", func(t *testing.T) {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Errorf("Repeat() did not panic on negative count")
-			}
-		}()
-		sliceutil.Repeat(-1, 3)
-	})
-}

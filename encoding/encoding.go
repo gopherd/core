@@ -7,7 +7,9 @@
 // functionalities while providing a consistent interface.
 package encoding
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Encoder is a function type that encodes a value into bytes.
 type Encoder func(any) ([]byte, error)
@@ -24,7 +26,7 @@ type Decoder func([]byte, any) error
 //
 // If an error occurs during decoding or encoding, Transform returns nil for the bytes
 // and the error describing the failure.
-func Transform(data []byte, encoder Encoder, decoder Decoder) ([]byte, error) {
+func Transform(data []byte, decoder Decoder, encoder Encoder) ([]byte, error) {
 	var v any
 	if err := decoder(data, &v); err != nil {
 		return nil, fmt.Errorf("decoding error: %w", err)

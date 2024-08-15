@@ -69,7 +69,7 @@ func (c *Config[T]) load(stdin io.Reader, decoder encoding.Decoder, source strin
 		if err != nil {
 			return fmt.Errorf("read config data failed: %w", err)
 		}
-		data, err = encoding.Transform(data, json.Marshal, decoder)
+		data, err = encoding.Transform(data, decoder, json.Marshal)
 		if err != nil {
 			return fmt.Errorf("decode config failed: %w", err)
 		}
@@ -154,7 +154,7 @@ func (c *Config[T]) processTemplate(enableTemplate bool, source string) error {
 // It uses indentation for better readability.
 func (c Config[T]) output(stdout, stderr io.Writer, encoder encoding.Encoder) {
 	if encoder == nil {
-		if data, err := jsonIdentEncoder(c); err != nil {
+		if data, err := jsonIndentEncoder(c); err != nil {
 			fmt.Fprintf(stderr, "Encode config failed: %v\n", err)
 		} else {
 			fmt.Fprint(stdout, string(data))
@@ -164,7 +164,7 @@ func (c Config[T]) output(stdout, stderr io.Writer, encoder encoding.Encoder) {
 
 	if data, err := json.Marshal(c); err != nil {
 		fmt.Fprintf(stderr, "Encode config failed: %v\n", err)
-	} else if data, err = encoding.Transform(data, encoder, json.Unmarshal); err != nil {
+	} else if data, err = encoding.Transform(data, json.Unmarshal, encoder); err != nil {
 		fmt.Fprintf(stderr, "Encode config failed: %v\n", err)
 	} else {
 		fmt.Fprint(stdout, string(data))
@@ -199,7 +199,7 @@ func stripJSONComments(r io.Reader) ([]byte, error) {
 	return bytes, nil
 }
 
-func jsonIdentEncoder(v any) ([]byte, error) {
+func jsonIndentEncoder(v any) ([]byte, error) {
 	var buf bytes.Buffer
 	encoder := json.NewEncoder(&buf)
 	encoder.SetEscapeHTML(false)

@@ -537,7 +537,7 @@ func TestJsonIdentEncoder(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := jsonIdentEncoder(tt.input)
+			got, err := jsonIndentEncoder(tt.input)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("jsonIdentEncoder() error = %v, wantErr %v", err, tt.wantErr)

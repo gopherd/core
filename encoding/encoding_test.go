@@ -179,7 +179,7 @@ func TestTransform(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := encoding.Transform(tt.input, tt.encoder, tt.decoder)
+			result, err := encoding.Transform(tt.input, tt.decoder, tt.encoder)
 
 			if tt.expectError {
 				if err == nil {
@@ -228,7 +228,7 @@ func ExampleTransform() {
 		return []byte(result.String()), nil
 	}
 
-	result, err := encoding.Transform(input, encoder, decoder)
+	result, err := encoding.Transform(input, decoder, encoder)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
