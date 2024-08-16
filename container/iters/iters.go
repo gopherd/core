@@ -44,9 +44,9 @@ func Enumerate[S ~[]E, E any](s S) iter.Seq2[int, E] {
 	}
 }
 
-// EnumerateKV returns an iterator that generates a sequence of key-value pairs
+// EnumerateMap returns an iterator that generates a sequence of key-value pairs
 // for each entry in the map.
-func EnumerateKV[K comparable, V any](m map[K]V) iter.Seq2[K, V] {
+func EnumerateMap[M ~map[K]V, K comparable, V any](m M) iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		for k, v := range m {
 			if !yield(k, v) {
@@ -210,6 +210,28 @@ func Steps[T constraints.Number](n int, start T, steps ...T) iter.Seq[T] {
 	}
 }
 
+// Keys returns an iterator that generates a sequence of keys from the key-value sequence m.
+func Keys[K any, V any](m iter.Seq2[K, V]) iter.Seq[K] {
+	return func(yield func(K) bool) {
+		for k := range m {
+			if !yield(k) {
+				return
+			}
+		}
+	}
+}
+
+// Values returns an iterator that generates a sequence of values from the key-value sequence m.
+func Values[K any, V any](m iter.Seq2[K, V]) iter.Seq[V] {
+	return func(yield func(V) bool) {
+		for _, v := range m {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
 // Sum returns the sum of all elements in the sequence s.
 func Sum[T constraints.Number | string](s iter.Seq[T]) T {
 	var sum T
@@ -306,6 +328,24 @@ func Unique[T comparable](s iter.Seq[T]) iter.Seq[T] {
 	}
 }
 
+// UniqueFunc returns an iterator that generates a sequence of unique elements from s.
+// Adjacent elements are considered duplicates if the function f returns the same value for them.
+func UniqueFunc[F ~func(T, T) bool, T comparable](s iter.Seq[T], eq F) iter.Seq[T] {
+	var last T
+	var first = true
+	return func(yield func(T) bool) {
+		for v := range s {
+			if first || !eq(v, last) {
+				first = false
+				last = v
+				if !yield(v) {
+					return
+				}
+			}
+		}
+	}
+}
+
 // Map returns an iterator that applies the function f to each element in s.
 func Map[T, U any](s iter.Seq[T], f func(T) U) iter.Seq[U] {
 	return func(yield func(U) bool) {
@@ -317,8 +357,8 @@ func Map[T, U any](s iter.Seq[T], f func(T) U) iter.Seq[U] {
 	}
 }
 
-// MapKV returns an iterator that applies the function f to each key-value pair in m.
-func MapKV[K, V, U any](m iter.Seq2[K, V], f func(K, V) U) iter.Seq[U] {
+// Map2 returns an iterator that applies the function f to each key-value pair in m.
+func Map2[K, V, U any](m iter.Seq2[K, V], f func(K, V) U) iter.Seq[U] {
 	return func(yield func(U) bool) {
 		for k, v := range m {
 			if !yield(f(k, v)) {
@@ -342,9 +382,9 @@ func Filter[T any](s iter.Seq[T], f func(T) bool) iter.Seq[T] {
 	}
 }
 
-// FilterKV returns an iterator that generates a sequence of key-value pairs from m
+// Filter2 returns an iterator that generates a sequence of key-value pairs from m
 // for which the function f returns true.
-func FilterKV[K, V any](m iter.Seq2[K, V], f func(K, V) bool) iter.Seq2[K, V] {
+func Filter2[K, V any](m iter.Seq2[K, V], f func(K, V) bool) iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		for k, v := range m {
 			if f(k, v) {
@@ -408,6 +448,173 @@ func GroupBy[K comparable, V any](s iter.Seq[V], f func(V) K) iter.Seq2[K, []V] 
 		}
 		for k, vs := range groups {
 			if !yield(k, vs) {
+				return
+			}
+		}
+	}
+}
+
+// Min returns the minimum element in the sequence s.
+// It panics if s is empty.
+func Min[T cmp.Ordered](s iter.Seq[T]) T {
+	var min T
+	first := true
+	for v := range s {
+		if first || cmp.Less(v, min) {
+			min = v
+			first = false
+		}
+	}
+	if first {
+		panic("empty sequence")
+	}
+	return min
+}
+
+// MinKey returns the minimum key in the key-value sequence m.
+func MinKey[K cmp.Ordered, V any](m iter.Seq2[K, V]) K {
+	var min K
+	first := true
+	for k := range m {
+		if first || cmp.Less(k, min) {
+			min = k
+			first = false
+		}
+	}
+	return min
+}
+
+// MinValue returns the minimum value in the key-value sequence m.
+func MinValue[K any, V cmp.Ordered](m iter.Seq2[K, V]) V {
+	var min V
+	first := true
+	for _, v := range m {
+		if first || cmp.Less(v, min) {
+			min = v
+			first = false
+		}
+	}
+	return min
+}
+
+// Max returns the maximum element in the sequence s.
+// It panics if s is empty.
+func Max[T cmp.Ordered](s iter.Seq[T]) T {
+	var max T
+	first := true
+	for v := range s {
+		if first || cmp.Less(max, v) {
+			max = v
+			first = false
+		}
+	}
+	if first {
+		panic("empty sequence")
+	}
+	return max
+}
+
+// MaxKey returns the maximum key in the key-value sequence m.
+func MaxKey[K cmp.Ordered, V any](m iter.Seq2[K, V]) K {
+	var max K
+	first := true
+	for k := range m {
+		if first || cmp.Less(max, k) {
+			max = k
+			first = false
+		}
+	}
+	return max
+}
+
+// MaxValue returns the maximum value in the key-value sequence m.
+func MaxValue[K any, V cmp.Ordered](m iter.Seq2[K, V]) V {
+	var max V
+	first := true
+	for _, v := range m {
+		if first || cmp.Less(max, v) {
+			max = v
+			first = false
+		}
+	}
+	return max
+}
+
+// MinMax returns the minimum and maximum elements in the sequence s.
+// It panics if s is empty.
+func MinMax[T cmp.Ordered](s iter.Seq[T]) (min, max T) {
+	first := true
+	for v := range s {
+		if first {
+			min, max = v, v
+			first = false
+		} else if cmp.Less(v, min) {
+			min = v
+		} else if cmp.Less(max, v) {
+			max = v
+		}
+	}
+	if first {
+		panic("empty sequence")
+	}
+	return
+}
+
+// MinMaxKey returns the minimum and maximum keys in the key-value sequence m.
+func MinMaxKey[K cmp.Ordered, V any](m iter.Seq2[K, V]) (min, max K) {
+	first := true
+	for k := range m {
+		if first {
+			min, max = k, k
+			first = false
+		} else if cmp.Less(k, min) {
+			min = k
+		} else if cmp.Less(max, k) {
+			max = k
+		}
+	}
+	return
+}
+
+// MinMaxValue returns the key-value pairs with the minimum and maximum values in the key-value sequence m.
+func MinMaxValue[K any, V cmp.Ordered](m iter.Seq2[K, V]) (min, max V) {
+	first := true
+	for _, v := range m {
+		if first {
+			min, max = v, v
+			first = false
+		} else if cmp.Less(v, min) {
+			min = v
+		} else if cmp.Less(max, v) {
+			max = v
+		}
+	}
+	return
+}
+
+// Split returns an iterator that generates a sequence of chunks from s.
+// The sequence is split into n chunks of approximately equal size.
+// It panics if n is less than 1.
+func Split[S ~[]T, T any](s S, n int) iter.Seq[[]T] {
+	if n < 1 {
+		panic("n must be positive")
+	}
+	return func(yield func([]T) bool) {
+		total := len(s)
+		size := total / n
+		remainder := total % n
+		i := 0
+		for i < total {
+			var chunk []T
+			if remainder > 0 {
+				chunk = s[i : i+size+1]
+				remainder--
+				i += size + 1
+			} else {
+				chunk = s[i : i+size]
+				i += size
+			}
+			if !yield(chunk) {
 				return
 			}
 		}

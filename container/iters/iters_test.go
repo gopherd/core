@@ -5,10 +5,12 @@ package iters_test
 import (
 	"fmt"
 	"iter"
+	"math"
 	"reflect"
 	"slices"
 	"sort"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/gopherd/core/container/iters"
@@ -350,7 +352,7 @@ func TestEnumerateKV(t *testing.T) {
 				k string
 				v int
 			}, 0, len(tt.input))
-			for k, v := range iters.EnumerateKV(tt.input) {
+			for k, v := range iters.EnumerateMap(tt.input) {
 				result = append(result, struct {
 					k string
 					v int
@@ -365,7 +367,7 @@ func TestEnumerateKV(t *testing.T) {
 				t.Errorf("EnumerateKV() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.EnumerateKV(tt.input) {
+			for range iters.EnumerateMap(tt.input) {
 				break
 			}
 		})
@@ -492,12 +494,12 @@ func TestSumKeys(t *testing.T) {
 	}{
 		{
 			name:     "empty map",
-			input:    iters.EnumerateKV(map[int]string{}),
+			input:    iters.EnumerateMap(map[int]string{}),
 			expected: 0,
 		},
 		{
 			name:     "non-empty map",
-			input:    iters.EnumerateKV(map[int]string{1: "a", 2: "b", 3: "c"}),
+			input:    iters.EnumerateMap(map[int]string{1: "a", 2: "b", 3: "c"}),
 			expected: 6,
 		},
 	}
@@ -519,12 +521,12 @@ func TestSumValues(t *testing.T) {
 	}{
 		{
 			name:     "empty map",
-			input:    iters.EnumerateKV(map[string]int{}),
+			input:    iters.EnumerateMap(map[string]int{}),
 			expected: 0,
 		},
 		{
 			name:     "non-empty map",
-			input:    iters.EnumerateKV(map[string]int{"a": 1, "b": 2, "c": 3}),
+			input:    iters.EnumerateMap(map[string]int{"a": 1, "b": 2, "c": 3}),
 			expected: 6,
 		},
 	}
@@ -599,7 +601,7 @@ func TestAccumulateKeys(t *testing.T) {
 	}{
 		{
 			name:     "sum of keys",
-			input:    iters.EnumerateKV(map[int]string{1: "a", 2: "b", 3: "c"}),
+			input:    iters.EnumerateMap(map[int]string{1: "a", 2: "b", 3: "c"}),
 			initial:  10,
 			expected: 16,
 		},
@@ -623,7 +625,7 @@ func TestAccumulateValues(t *testing.T) {
 	}{
 		{
 			name:     "sum of values",
-			input:    iters.EnumerateKV(map[string]int{"a": 1, "b": 2, "c": 3}),
+			input:    iters.EnumerateMap(map[string]int{"a": 1, "b": 2, "c": 3}),
 			initial:  10,
 			expected: 16,
 		},
@@ -648,7 +650,7 @@ func TestAccumulateKeysFunc(t *testing.T) {
 	}{
 		{
 			name:  "count keys with length > 1",
-			input: iters.EnumerateKV(map[string]int{"a": 1, "bb": 2, "ccc": 3}),
+			input: iters.EnumerateMap(map[string]int{"a": 1, "bb": 2, "ccc": 3}),
 			f: func(acc int, k string) int {
 				if len(k) > 1 {
 					return acc + 1
@@ -679,7 +681,7 @@ func TestAccumulateValuesFunc(t *testing.T) {
 	}{
 		{
 			name:  "sum of even values",
-			input: iters.EnumerateKV(map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}),
+			input: iters.EnumerateMap(map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}),
 			f: func(acc, v int) int {
 				if v%2 == 0 {
 					return acc + v
@@ -778,13 +780,13 @@ func TestMapKV(t *testing.T) {
 	}{
 		{
 			name:     "combine key and value",
-			input:    iters.EnumerateKV(map[string]int{"a": 1, "b": 2, "c": 3}),
+			input:    iters.EnumerateMap(map[string]int{"a": 1, "b": 2, "c": 3}),
 			f:        func(k string, v int) string { return fmt.Sprintf("%s:%d", k, v) },
 			expected: []string{"a:1", "b:2", "c:3"},
 		},
 		{
 			name:     "empty map",
-			input:    iters.EnumerateKV(map[string]int{}),
+			input:    iters.EnumerateMap(map[string]int{}),
 			f:        func(k string, v int) string { return fmt.Sprintf("%s:%d", k, v) },
 			expected: []string{},
 		},
@@ -793,7 +795,7 @@ func TestMapKV(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := make([]string, 0)
-			for v := range iters.MapKV(tt.input, tt.f) {
+			for v := range iters.Map2(tt.input, tt.f) {
 				result = append(result, v)
 			}
 
@@ -804,7 +806,7 @@ func TestMapKV(t *testing.T) {
 				t.Errorf("MapKV() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.MapKV(tt.input, tt.f) {
+			for range iters.Map2(tt.input, tt.f) {
 				break
 			}
 		})
@@ -871,25 +873,25 @@ func TestFilterKV(t *testing.T) {
 	}{
 		{
 			name:     "values greater than 2",
-			input:    iters.EnumerateKV(map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}),
+			input:    iters.EnumerateMap(map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}),
 			f:        func(k string, v int) bool { return v > 2 },
 			expected: map[string]int{"c": 3, "d": 4},
 		},
 		{
 			name:     "no matches",
-			input:    iters.EnumerateKV(map[string]int{"a": 1, "b": 2}),
+			input:    iters.EnumerateMap(map[string]int{"a": 1, "b": 2}),
 			f:        func(k string, v int) bool { return v > 5 },
 			expected: map[string]int{},
 		},
 		{
 			name:     "all match",
-			input:    iters.EnumerateKV(map[string]int{"a": 1, "b": 2}),
+			input:    iters.EnumerateMap(map[string]int{"a": 1, "b": 2}),
 			f:        func(k string, v int) bool { return v > 0 },
 			expected: map[string]int{"a": 1, "b": 2},
 		},
 		{
 			name:     "empty map",
-			input:    iters.EnumerateKV(map[string]int{}),
+			input:    iters.EnumerateMap(map[string]int{}),
 			f:        func(k string, v int) bool { return true },
 			expected: map[string]int{},
 		},
@@ -898,7 +900,7 @@ func TestFilterKV(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := make(map[string]int)
-			for k, v := range iters.FilterKV(tt.input, tt.f) {
+			for k, v := range iters.Filter2(tt.input, tt.f) {
 				result[k] = v
 			}
 
@@ -906,7 +908,7 @@ func TestFilterKV(t *testing.T) {
 				t.Errorf("FilterKV() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.FilterKV(tt.input, tt.f) {
+			for range iters.Filter2(tt.input, tt.f) {
 				break
 			}
 		})
@@ -1110,7 +1112,7 @@ func TestSort(t *testing.T) {
 // Example tests
 func ExampleEnumerateKV() {
 	m := map[string]int{"a": 1, "b": 2, "c": 3}
-	for k, v := range iters.EnumerateKV(m) {
+	for k, v := range iters.EnumerateMap(m) {
 		fmt.Printf("%s: %d\n", k, v)
 	}
 	// Unordered output:
@@ -1162,4 +1164,637 @@ func ExampleGroupBy() {
 	// Unordered output:
 	// even: [2 4 6]
 	// odd: [1 3 5]
+}
+
+func TestMin(t *testing.T) {
+	tests := []struct {
+		name string
+		seq  []int
+		want int
+	}{
+		{"SingleElement", []int{5}, 5},
+		{"MultipleElements", []int{3, 1, 4, 1, 5, 9}, 1},
+		{"NegativeNumbers", []int{-3, -1, -4, -1, -5, -9}, -9},
+		{"MixedNumbers", []int{-3, 0, 4, -1, 5, -9}, -9},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := iters.Min(iters.Of(tt.seq...))
+			if got != tt.want {
+				t.Errorf("Min() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMin_EmptySequence(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Min() did not panic on empty sequence")
+		}
+	}()
+
+	emptySeq := func(yield func(int) bool) {}
+	iters.Min(emptySeq)
+}
+
+func TestMax(t *testing.T) {
+	tests := []struct {
+		name string
+		seq  []int
+		want int
+	}{
+		{"SingleElement", []int{5}, 5},
+		{"MultipleElements", []int{3, 1, 4, 1, 5, 9}, 9},
+		{"NegativeNumbers", []int{-3, -1, -4, -1, -5, -9}, -1},
+		{"MixedNumbers", []int{-3, 0, 4, -1, 5, -9}, 5},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := iters.Max(iters.Of(tt.seq...))
+			if got != tt.want {
+				t.Errorf("Max() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMax_EmptySequence(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Max() did not panic on empty sequence")
+		}
+	}()
+
+	emptySeq := func(yield func(int) bool) {}
+	iters.Max(emptySeq)
+}
+
+func TestMinMax(t *testing.T) {
+	tests := []struct {
+		name    string
+		seq     []int
+		wantMin int
+		wantMax int
+	}{
+		{"SingleElement", []int{5}, 5, 5},
+		{"MultipleElements", []int{3, 1, 4, 1, 5, 9}, 1, 9},
+		{"NegativeNumbers", []int{-3, -1, -4, -1, -5, -9}, -9, -1},
+		{"MixedNumbers", []int{-3, 0, 4, -1, 5, -9}, -9, 5},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotMin, gotMax := iters.MinMax(iters.Of(tt.seq...))
+			if gotMin != tt.wantMin || gotMax != tt.wantMax {
+				t.Errorf("MinMax() = (%v, %v), want (%v, %v)", gotMin, gotMax, tt.wantMin, tt.wantMax)
+			}
+		})
+	}
+}
+
+func TestMinMax_EmptySequence(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("MinMax() did not panic on empty sequence")
+		}
+	}()
+
+	emptySeq := func(yield func(int) bool) {}
+	iters.MinMax(emptySeq)
+}
+
+func TestMinKey(t *testing.T) {
+	tests := []struct {
+		name string
+		seq  map[int]string
+		want int
+	}{
+		{"SingleElement", map[int]string{5: "five"}, 5},
+		{"MultipleElements", map[int]string{3: "three", 1: "one", 4: "four", 5: "five", 9: "nine"}, 1},
+		{"NegativeNumbers", map[int]string{-3: "minus three", -1: "minus one", -4: "minus four", -5: "minus five"}, -5},
+		{"MixedNumbers", map[int]string{-3: "minus three", 0: "zero", 4: "four", -1: "minus one", 5: "five"}, -3},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := iters.MinKey(iters.EnumerateMap(tt.seq))
+			if got != tt.want {
+				t.Errorf("MinKey() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMaxKey(t *testing.T) {
+	tests := []struct {
+		name string
+		seq  map[int]string
+		want int
+	}{
+		{"SingleElement", map[int]string{5: "five"}, 5},
+		{"MultipleElements", map[int]string{3: "three", 1: "one", 4: "four", 5: "five", 9: "nine"}, 9},
+		{"NegativeNumbers", map[int]string{-3: "minus three", -1: "minus one", -4: "minus four", -5: "minus five"}, -1},
+		{"MixedNumbers", map[int]string{-3: "minus three", 0: "zero", 4: "four", -1: "minus one", 5: "five"}, 5},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := iters.MaxKey(iters.EnumerateMap(tt.seq))
+			if got != tt.want {
+				t.Errorf("MaxKey() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMinMaxKey(t *testing.T) {
+	tests := []struct {
+		name    string
+		seq     map[int]string
+		wantMin int
+		wantMax int
+	}{
+		{"SingleElement", map[int]string{5: "five"}, 5, 5},
+		{"MultipleElements", map[int]string{3: "three", 1: "one", 4: "four", 5: "five", 9: "nine"}, 1, 9},
+		{"NegativeNumbers", map[int]string{-3: "minus three", -1: "minus one", -4: "minus four", -5: "minus five"}, -5, -1},
+		{"MixedNumbers", map[int]string{-3: "minus three", 0: "zero", 4: "four", -1: "minus one", 5: "five"}, -3, 5},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotMin, gotMax := iters.MinMaxKey(iters.EnumerateMap(tt.seq))
+			if gotMin != tt.wantMin || gotMax != tt.wantMax {
+				t.Errorf("MinMaxKey() = (%v, %v), want (%v, %v)", gotMin, gotMax, tt.wantMin, tt.wantMax)
+			}
+		})
+	}
+}
+
+func TestMinValue(t *testing.T) {
+	tests := []struct {
+		name string
+		seq  map[string]int
+		want int
+	}{
+		{"SingleElement", map[string]int{"five": 5}, 5},
+		{"MultipleElements", map[string]int{"three": 3, "one": 1, "four": 4, "five": 5, "nine": 9}, 1},
+		{"NegativeNumbers", map[string]int{"minus three": -3, "minus one": -1, "minus four": -4, "minus five": -5}, -5},
+		{"MixedNumbers", map[string]int{"minus three": -3, "zero": 0, "four": 4, "minus one": -1, "five": 5}, -3},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := iters.MinValue(iters.EnumerateMap(tt.seq))
+			if got != tt.want {
+				t.Errorf("MinValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMaxValue(t *testing.T) {
+	tests := []struct {
+		name string
+		seq  map[string]int
+		want int
+	}{
+		{"SingleElement", map[string]int{"five": 5}, 5},
+		{"MultipleElements", map[string]int{"three": 3, "one": 1, "four": 4, "five": 5, "nine": 9}, 9},
+		{"NegativeNumbers", map[string]int{"minus three": -3, "minus one": -1, "minus four": -4, "minus five": -5}, -1},
+		{"MixedNumbers", map[string]int{"minus three": -3, "zero": 0, "four": 4, "minus one": -1, "five": 5}, 5},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := iters.MaxValue(iters.EnumerateMap(tt.seq))
+			if got != tt.want {
+				t.Errorf("MaxValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMinMaxValue(t *testing.T) {
+	tests := []struct {
+		name    string
+		seq     map[string]int
+		wantMin int
+		wantMax int
+	}{
+		{"SingleElement", map[string]int{"five": 5}, 5, 5},
+		{"MultipleElements", map[string]int{"three": 3, "one": 1, "four": 4, "five": 5, "nine": 9}, 1, 9},
+		{"NegativeNumbers", map[string]int{"minus three": -3, "minus one": -1, "minus four": -4, "minus five": -5}, -5, -1},
+		{"MixedNumbers", map[string]int{"minus three": -3, "zero": 0, "four": 4, "minus one": -1, "five": 5}, -3, 5},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotMin, gotMax := iters.MinMaxValue(iters.EnumerateMap(tt.seq))
+			if gotMin != tt.wantMin || gotMax != tt.wantMax {
+				t.Errorf("MinMaxValue() = (%v, %v), want (%v, %v)", gotMin, gotMax, tt.wantMin, tt.wantMax)
+			}
+		})
+	}
+}
+
+func TestSplit(t *testing.T) {
+	tests := []struct {
+		name  string
+		slice []int
+		n     int
+		want  [][]int
+	}{
+		{"EvenSplit", []int{1, 2, 3, 4}, 2, [][]int{{1, 2}, {3, 4}}},
+		{"OddSplit", []int{1, 2, 3, 4, 5}, 2, [][]int{{1, 2, 3}, {4, 5}}},
+		{"SingleChunk", []int{1, 2, 3, 4}, 1, [][]int{{1, 2, 3, 4}}},
+		{"MoreChunksThanElements", []int{1, 2, 3}, 4, [][]int{{1}, {2}, {3}}},
+		{"EmptySlice", []int{}, 3, [][]int{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := [][]int{}
+			for chunk := range iters.Split(tt.slice, tt.n) {
+				got = append(got, chunk)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Split() = %v, want %v", got, tt.want)
+			}
+			for range iters.Split(tt.slice, tt.n) {
+				break
+			}
+		})
+	}
+}
+
+func TestSplit_InvalidN(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Split() did not panic on invalid n")
+		}
+	}()
+
+	iters.Split([]int{1, 2, 3}, 0)
+}
+
+// Example tests
+
+func ExampleMin() {
+	min := iters.Min(iters.Of(3, 1, 4, 1, 5, 9))
+	fmt.Println(min)
+	// Output: 1
+}
+
+func ExampleMax() {
+	max := iters.Max(iters.Of(3, 1, 4, 1, 5, 9))
+	fmt.Println(max)
+	// Output: 9
+}
+
+func ExampleMinMax() {
+	min, max := iters.MinMax(iters.Of(3, 1, 4, 1, 5, 9))
+	fmt.Printf("Min: %d, Max: %d\n", min, max)
+	// Output: Min: 1, Max: 9
+}
+
+func ExampleMinKey() {
+	data := map[int]string{3: "three", 1: "one", 4: "four", 5: "five"}
+	minKey := iters.MinKey(iters.EnumerateMap(data))
+	fmt.Println(minKey)
+	// Output: 1
+}
+
+func ExampleMaxKey() {
+	data := map[int]string{3: "three", 1: "one", 4: "four", 5: "five"}
+	maxKey := iters.MaxKey(iters.EnumerateMap(data))
+	fmt.Println(maxKey)
+	// Output: 5
+}
+
+func ExampleMinValue() {
+	data := map[string]int{"three": 3, "one": 1, "four": 4, "five": 5}
+	minValue := iters.MinValue(iters.EnumerateMap(data))
+	fmt.Println(minValue)
+	// Output: 1
+}
+
+func ExampleMaxValue() {
+	data := map[string]int{"three": 3, "one": 1, "four": 4, "five": 5}
+	maxValue := iters.MaxValue(iters.EnumerateMap(data))
+	fmt.Println(maxValue)
+	// Output: 5
+}
+
+func ExampleSplit() {
+	slice := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	chunks := iters.Split(slice, 3)
+	for chunk := range chunks {
+		fmt.Println(chunk)
+	}
+	// Output:
+	// [1 2 3 4]
+	// [5 6 7]
+	// [8 9 10]
+}
+
+func TestMinMaxWithInfinity(t *testing.T) {
+	values := []float64{math.Inf(1), math.Inf(-1), 0, 1, -1}
+	min, max := iters.MinMax(iters.Of(values...))
+	if min != math.Inf(-1) {
+		t.Errorf("Min should be negative infinity, got %v", min)
+	}
+	if max != math.Inf(1) {
+		t.Errorf("Max should be positive infinity, got %v", max)
+	}
+}
+
+func TestSplitWithLargeN(t *testing.T) {
+	slice := []int{1, 2, 3}
+	chunks := iters.Split(slice, 1000000)
+	count := 0
+	for chunk := range chunks {
+		count++
+		if len(chunk) != 1 {
+			t.Errorf("Expected chunk size 1, got %d", len(chunk))
+		}
+	}
+	if count != 3 {
+		t.Errorf("Expected 3 chunks, got %d", count)
+	}
+}
+
+func TestMinMaxWithAllEqualValues(t *testing.T) {
+	seq := func(yield func(int) bool) {
+		for i := 0; i < 1000; i++ {
+			if !yield(42) {
+				return
+			}
+		}
+	}
+	min, max := iters.MinMax(seq)
+	if min != 42 || max != 42 {
+		t.Errorf("Expected min and max to be 42, got min=%d, max=%d", min, max)
+	}
+}
+
+func TestSplitWithEmptySlice(t *testing.T) {
+	slice := []int{}
+	chunks := iters.Split(slice, 5)
+	count := 0
+	for range chunks {
+		count++
+	}
+	if count != 0 {
+		t.Errorf("Expected 0 chunks for empty slice, got %d", count)
+	}
+}
+
+func TestKeys(t *testing.T) {
+	tests := []struct {
+		name string
+		seq  map[string]int
+		want []string
+	}{
+		{"EmptyMap", map[string]int{}, []string{}},
+		{"SingleElement", map[string]int{"a": 1}, []string{"a"}},
+		{"MultipleElements", map[string]int{"a": 1, "b": 2, "c": 3}, []string{"a", "b", "c"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := make([]string, 0, len(tt.seq))
+			for k := range iters.Keys(iters.EnumerateMap(tt.seq)) {
+				got = append(got, k)
+			}
+
+			// Sort both slices for comparison
+			sort.Strings(got)
+			sort.Strings(tt.want)
+
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Keys() = %v, want %v", got, tt.want)
+			}
+
+			for range iters.Keys(iters.EnumerateMap(tt.seq)) {
+				break
+			}
+		})
+	}
+}
+
+func TestValues(t *testing.T) {
+	tests := []struct {
+		name string
+		seq  map[string]int
+		want []int
+	}{
+		{"EmptyMap", map[string]int{}, []int{}},
+		{"SingleElement", map[string]int{"a": 1}, []int{1}},
+		{"MultipleElements", map[string]int{"a": 1, "b": 2, "c": 3}, []int{1, 2, 3}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := make([]int, 0, len(tt.seq))
+			for v := range iters.Values(iters.EnumerateMap(tt.seq)) {
+				got = append(got, v)
+			}
+
+			// Sort both slices for comparison
+			sort.Ints(got)
+			sort.Ints(tt.want)
+
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Values() = %v, want %v", got, tt.want)
+			}
+
+			for range iters.Values(iters.EnumerateMap(tt.seq)) {
+				break
+			}
+		})
+	}
+}
+
+func ExampleKeys() {
+	m := map[string]int{"a": 1, "b": 2, "c": 3}
+	result := make([]string, 0, 3)
+	for k := range iters.Keys(iters.EnumerateMap(m)) {
+		result = append(result, k)
+	}
+
+	// Sort the result for consistent output
+	sort.Strings(result)
+	fmt.Println(result)
+	// Output: [a b c]
+}
+
+func ExampleValues() {
+	m := map[string]int{"a": 1, "b": 2, "c": 3}
+	result := make([]int, 0, 3)
+	for v := range iters.Values(iters.EnumerateMap(m)) {
+		result = append(result, v)
+	}
+
+	// Sort the result for consistent output
+	sort.Ints(result)
+	fmt.Println(result)
+	// Output: [1 2 3]
+}
+
+func TestKeysWithLargeMap(t *testing.T) {
+	largeMap := make(map[int]string)
+	for i := 0; i < 1000000; i++ {
+		largeMap[i] = fmt.Sprintf("value%d", i)
+	}
+
+	count := 0
+	for range iters.Keys(iters.EnumerateMap(largeMap)) {
+		count++
+	}
+
+	if count != 1000000 {
+		t.Errorf("Expected 1000000 keys, got %d", count)
+	}
+}
+
+func TestValuesWithLargeMap(t *testing.T) {
+	largeMap := make(map[int]string)
+	for i := 0; i < 1000000; i++ {
+		largeMap[i] = fmt.Sprintf("value%d", i)
+	}
+
+	count := 0
+	for range iters.Values(iters.EnumerateMap(largeMap)) {
+		count++
+	}
+
+	if count != 1000000 {
+		t.Errorf("Expected 1000000 values, got %d", count)
+	}
+}
+
+func TestUniqueFunc(t *testing.T) {
+	tests := []struct {
+		name string
+		seq  []int
+		eq   func(int, int) bool
+		want []int
+	}{
+		{
+			name: "StandardEquality",
+			seq:  []int{1, 2, 2, 3, 3, 3, 4, 4, 4, 4},
+			eq:   func(a, b int) bool { return a == b },
+			want: []int{1, 2, 3, 4},
+		},
+		{
+			name: "EmptySequence",
+			seq:  []int{},
+			eq:   func(a, b int) bool { return a == b },
+			want: []int{},
+		},
+		{
+			name: "AllUnique",
+			seq:  []int{1, 2, 3, 4, 5},
+			eq:   func(a, b int) bool { return a == b },
+			want: []int{1, 2, 3, 4, 5},
+		},
+		{
+			name: "AllSame",
+			seq:  []int{1, 1, 1, 1, 1},
+			eq:   func(a, b int) bool { return a == b },
+			want: []int{1},
+		},
+		{
+			name: "CustomEquality",
+			seq:  []int{1, 11, 2, 22, 3, 33},
+			eq:   func(a, b int) bool { return a%10 == b%10 },
+			want: []int{1, 2, 3},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			uniqueSeq := iters.UniqueFunc(iters.Of(tt.seq...), tt.eq)
+			got := make([]int, 0)
+			for v := range uniqueSeq {
+				got = append(got, v)
+			}
+
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("UniqueFunc() = %v, want %v", got, tt.want)
+			}
+
+			for range iters.UniqueFunc(iters.Of(tt.seq...), tt.eq) {
+				break
+			}
+		})
+	}
+}
+
+func TestUniqueFuncWithStrings(t *testing.T) {
+	words := []string{"hello", "HELLO", "world", "WORLD"}
+	eq := func(a, b string) bool {
+		return strings.ToLower(a) == strings.ToLower(b)
+	}
+
+	uniqueSeq := iters.UniqueFunc(iters.Of(words...), eq)
+	got := make([]string, 0)
+	for v := range uniqueSeq {
+		got = append(got, v)
+	}
+
+	want := []string{"hello", "world"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("UniqueFunc() with case-insensitive comparison = %v, want %v", got, want)
+	}
+}
+
+func ExampleUniqueFunc() {
+	numbers := []int{1, 1, 2, 3, 3, 4, 4, 4, 5}
+	eq := func(a, b int) bool { return a == b }
+
+	uniqueSeq := iters.UniqueFunc(iters.Of(numbers...), eq)
+	for v := range uniqueSeq {
+		fmt.Print(v, " ")
+	}
+	// Output: 1 2 3 4 5
+}
+
+func TestUniqueFuncWithCustomType(t *testing.T) {
+	type Person struct {
+		Name string
+		Age  int
+	}
+
+	people := []Person{
+		{"Alice", 30},
+		{"Bob", 25},
+		{"Bob", 25},
+		{"Charlie", 35},
+		{"Charlie", 26},
+	}
+
+	eq := func(a, b Person) bool {
+		return a.Name == b.Name && a.Age == b.Age
+	}
+
+	uniqueSeq := iters.UniqueFunc(iters.Of(people...), eq)
+	got := make([]Person, 0)
+	for v := range uniqueSeq {
+		got = append(got, v)
+	}
+
+	want := []Person{
+		{"Alice", 30},
+		{"Bob", 25},
+		{"Charlie", 35},
+		{"Charlie", 26},
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("UniqueFunc() with custom type = %v, want %v", got, want)
+	}
 }
