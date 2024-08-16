@@ -16,6 +16,47 @@ import (
 	"github.com/gopherd/core/container/iters"
 )
 
+func TestInfinite(t *testing.T) {
+	tests := []struct {
+		name     string
+		f        func(int) int
+		expected []int
+	}{
+		{
+			name: "increment",
+			f:    func(i int) int { return i + 1 },
+			expected: []int{
+				1, 2, 3, 4, 5,
+			},
+		},
+		{
+			name: "square",
+			f:    func(i int) int { return i * i },
+			expected: []int{
+				0, 1, 4, 9, 16,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := make([]int, 0, len(tt.expected))
+			for i := range iters.Infinite() {
+				result = append(result, tt.f(i))
+				if len(result) == len(tt.expected) {
+					break
+				}
+			}
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("Infinite() = %v, want %v", result, tt.expected)
+			}
+			for range iters.Infinite() {
+				break
+			}
+		})
+	}
+}
+
 func TestRepeat(t *testing.T) {
 	tests := []struct {
 		name     string

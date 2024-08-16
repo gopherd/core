@@ -11,6 +11,17 @@ import (
 	"github.com/gopherd/core/constraints"
 )
 
+// Infinite returns an iterator that generates an infinite sequence of integers starting from 0.
+func Infinite() iter.Seq[int] {
+	return func(yield func(int) bool) {
+		for i := 0; ; i++ {
+			if !yield(i) {
+				return
+			}
+		}
+	}
+}
+
 // Repeat returns an iterator that generates a sequence of n elements, each with the value v.
 // It panics if n is negative.
 func Repeat[T any](v T, n int) iter.Seq[T] {
