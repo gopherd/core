@@ -142,3 +142,10 @@ func MustValue[T any](value T, err error) T {
 	}
 	return value
 }
+
+// ReverseCompare returns a comparison function that reverses the order of the original comparison function.
+func ReverseCompare[T any](cmp func(T, T) int) func(T, T) int {
+	return func(x, y T) int {
+		return cmp(y, x)
+	}
+}
