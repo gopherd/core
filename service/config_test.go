@@ -566,11 +566,12 @@ func TestStripJSONComments(t *testing.T) {
 			input: `{
     // This is a comment
     "name": "John",
-    "age": 30 // This is an inline comment
+    "age": 30 // This is an invalid inline comment
 }`,
 			expected: `{
+
     "name": "John",
-    "age": 30 // This is an inline comment
+    "age": 30 // This is an invalid inline comment
 }`,
 			wantErr: false,
 		},
@@ -585,8 +586,11 @@ func TestStripJSONComments(t *testing.T) {
     "c": 3
 }`,
 			expected: `{
+
     "a": 1,
+
     "b": 2,
+
     "c": 3
 }`,
 			wantErr: false,
@@ -602,8 +606,10 @@ func TestStripJSONComments(t *testing.T) {
 			input: `// Comment 1
 // Comment 2
 // Comment 3`,
-			expected: "",
-			wantErr:  false,
+			expected: `
+
+`,
+			wantErr: false,
 		},
 		{
 			name: "Comments with varying indentation",
@@ -615,6 +621,8 @@ func TestStripJSONComments(t *testing.T) {
 }`,
 			expected: `{
     "a": 1,
+
+
     "b": 2
 }`,
 			wantErr: false,
@@ -639,7 +647,8 @@ func TestStripJSONComments(t *testing.T) {
 // Comment at the end`,
 			expected: `{
     "name": "John"
-}`,
+}
+`,
 			wantErr: false,
 		},
 		{
@@ -649,6 +658,7 @@ func TestStripJSONComments(t *testing.T) {
     "data": "value"
 }`,
 			expected: `{
+
     "data": "value"
 }`,
 			wantErr: false,

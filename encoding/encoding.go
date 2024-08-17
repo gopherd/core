@@ -8,6 +8,8 @@
 package encoding
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 )
 
@@ -38,4 +40,80 @@ func Transform(data []byte, decoder Decoder, encoder Encoder) ([]byte, error) {
 	}
 
 	return encodedValue, nil
+}
+
+// GetPosition returns the line and column number of the given offset in the data.
+func GetPosition(data []byte, offset int) (line, column int) {
+	line = 1
+	column = 1
+
+	for i := 0; i < offset && i < len(data); i++ {
+		if data[i] == '\n' {
+			line++
+			column = 1
+		} else if data[i] == '\r' {
+			if i+1 < len(data) && data[i+1] == '\n' {
+				continue
+			}
+			line++
+			column = 1
+		} else {
+			column++
+		}
+	}
+
+	return line, column
+}
+
+type SourceError struct {
+	Filename string
+	Line     int
+	Column   int
+	Offset   int
+	Context  string
+	Err      error
+}
+
+func (e *SourceError) Error() string {
+	return fmt.Sprintf("%s:%d:%d(%s): %v", e.Filename, e.Line, e.Column, e.Context, e.Err)
+}
+
+func (e *SourceError) Unwrap() error {
+	return e.Err
+}
+
+func GetJSONSourceError(filename string, data []byte, err error) error {
+	if err == nil {
+		return err
+	}
+
+	var offset int
+	switch e := err.(type) {
+	case *json.SyntaxError:
+		offset = int(e.Offset)
+	case *json.UnmarshalTypeError:
+		offset = int(e.Offset)
+	default:
+		return err
+	}
+	if offset <= 0 {
+		return err
+	}
+
+	const maxContext = 256
+	line, column := GetPosition(data, offset)
+	begin := bytes.LastIndexByte(data[:offset], '\n') + 1
+	context := string(data[begin:offset])
+	if offset-begin > maxContext {
+		begin = offset - maxContext
+		context = "..." + string(data[begin:offset])
+	}
+	return &SourceError{
+		Filename: filename,
+		Line:     line,
+		Column:   column,
+		Offset:   offset,
+		Context:  context,
+		Err:      err,
+	}
 }

@@ -76,6 +76,7 @@ func (c *Config[T]) load(stdin io.Reader, decoder encoding.Decoder, source strin
 	}
 
 	if err := json.Unmarshal(data, c); err != nil {
+		err = encoding.GetJSONSourceError(source, data, err)
 		return fmt.Errorf("unmarshal config failed: %w", err)
 	}
 
@@ -178,14 +179,12 @@ func stripJSONComments(r io.Reader) ([]byte, error) {
 		line := scanner.Bytes()
 		trimmed := bytes.TrimSpace(line)
 		if !bytes.HasPrefix(trimmed, []byte("//")) {
-			_, err := buf.Write(line)
-			if err != nil {
+			if _, err := buf.Write(line); err != nil {
 				return nil, err
 			}
-			err = buf.WriteByte('\n')
-			if err != nil {
-				return nil, err
-			}
+		}
+		if err := buf.WriteByte('\n'); err != nil {
+			return nil, err
 		}
 	}
 	if err := scanner.Err(); err != nil {

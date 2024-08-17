@@ -249,3 +249,85 @@ func ExampleTransform() {
 	// city = New York
 	// name = John Doe
 }
+
+func TestGetLineAndColumn(t *testing.T) {
+	tests := []struct {
+		name     string
+		data     string
+		offset   int
+		wantLine int
+		wantCol  int
+	}{
+		{"Empty string", "", 0, 1, 1},
+		{"Single char", "a", 0, 1, 1},
+		{"Single char end", "a", 1, 1, 2},
+		{"Multiple chars", "abc", 1, 1, 2},
+		{"Multiple chars end", "abc", 3, 1, 4},
+		{"Single line with LF", "abc\n", 3, 1, 4},
+		{"Single line with LF end", "abc\n", 4, 2, 1},
+		{"Two lines with LF", "abc\ndef", 4, 2, 1},
+		{"Two lines with LF middle", "abc\ndef", 5, 2, 2},
+		{"Single line with CRLF", "abc\r\n", 3, 1, 4},
+		{"Single line with CRLF end", "abc\r\n", 5, 2, 1},
+		{"Two lines with CRLF", "abc\r\ndef", 5, 2, 1},
+		{"Two lines with CRLF middle", "abc\r\ndef", 6, 2, 2},
+		{"Single line with CR", "abc\r", 3, 1, 4},
+		{"Single line with CR end", "abc\r", 4, 2, 1},
+		{"Two lines with CR", "abc\rdef", 4, 2, 1},
+		{"Two lines with CR middle", "abc\rdef", 5, 2, 2},
+		{"Mixed newlines", "abc\ndef\r\nghi\rjkl", 10, 3, 2},
+		{"Offset beyond data", "abc", 5, 1, 4},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotLine, gotCol := encoding.GetPosition([]byte(tt.data), tt.offset)
+			if gotLine != tt.wantLine || gotCol != tt.wantCol {
+				t.Errorf("getLineAndColumn() = (%v, %v), want (%v, %v)",
+					gotLine, gotCol, tt.wantLine, tt.wantCol)
+			}
+		})
+	}
+}
+
+func TestGetJSONSourceError(t *testing.T) {
+	tests := []struct {
+		name     string
+		data     string
+		err      error
+		wantLine int
+		wantCol  int
+	}{
+		{"Syntax error", `{"name":"John"`, &json.SyntaxError{Offset: 12}, 1, 13},
+		{"Syntax error at end", `{"name":"John"`, &json.SyntaxError{Offset: 13}, 1, 14},
+		{"Unmarshal type error", `{"name":30}`, &json.UnmarshalTypeError{Offset: 8}, 1, 9},
+		{"Unmarshal type error at end", `{"name":30}`, &json.UnmarshalTypeError{Offset: 9}, 1, 10},
+		{"Unknown error", `{"name":"John"}`, fmt.Errorf("unknown error"), 0, 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := encoding.GetJSONSourceError("test.json", []byte(tt.data), tt.err)
+			if err == nil {
+				if tt.wantLine != 0 || tt.wantCol != 0 {
+					t.Errorf("GetJSONSourceError() = nil, want line %v, col %v",
+						tt.wantLine, tt.wantCol)
+				}
+			} else {
+				if e, ok := err.(*encoding.SourceError); ok {
+					if e.Line != tt.wantLine || e.Column != tt.wantCol {
+						t.Errorf("GetJSONSourceError() = (%v, %v), want (%v, %v)",
+							e.Line, e.Column, tt.wantLine, tt.wantCol)
+					}
+				} else {
+					if err.Error() != "unknown error" {
+						t.Errorf("GetJSONSourceError() = %v, want *JSONErrorContext", err)
+					} else if tt.wantLine != 0 || tt.wantCol != 0 {
+						t.Errorf("GetJSONSourceError() = %v, want line %v, col %v",
+							err, tt.wantLine, tt.wantCol)
+					}
+				}
+			}
+		})
+	}
+}
