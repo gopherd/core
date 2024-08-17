@@ -77,28 +77,20 @@ type Resolver interface {
 	Resolve(Container) error
 }
 
-// BaseComponent provides a basic implementation of the Component interface.
-type BaseComponent[T any] struct {
-	lifecycle.BaseLifecycle
-
-	options    T
+type simpleComponent struct {
+	funcs      lifecycle.Funcs
 	identifier string
 	container  Container
 	logger     atomic.Pointer[slog.Logger]
 }
 
-// Options returns a pointer to the component's options.
-func (c *BaseComponent[T]) Options() *T {
-	return &c.options
-}
-
 // String implements the fmt.Stringer interface.
-func (c *BaseComponent[T]) String() string {
+func (c *simpleComponent) String() string {
 	return c.identifier
 }
 
 // Logger implements the Component Logger method.
-func (c *BaseComponent[T]) Logger() *slog.Logger {
+func (c *simpleComponent) Logger() *slog.Logger {
 	currentLogger := c.logger.Load()
 	latestLogger := c.container.Logger()
 	if currentLogger != latestLogger {
@@ -109,7 +101,7 @@ func (c *BaseComponent[T]) Logger() *slog.Logger {
 }
 
 // Setup implements the Component Setup method.
-func (c *BaseComponent[T]) Setup(container Container, config Config) error {
+func (c *simpleComponent) Setup(container Container, config Config) error {
 	c.container = container
 	if config.UUID != "" {
 		if strings.Contains(config.UUID, config.Name) {
@@ -120,7 +112,57 @@ func (c *BaseComponent[T]) Setup(container Container, config Config) error {
 	} else {
 		c.identifier = config.Name
 	}
+	return nil
+}
 
+// Init implements the Component Init method.
+func (c *simpleComponent) Init(ctx context.Context) error {
+	if c.funcs.Init != nil {
+		return c.funcs.Init(ctx)
+	}
+	return nil
+}
+
+// Start implements the Component Start method.
+func (c *simpleComponent) Start(ctx context.Context) error {
+	if c.funcs.Start != nil {
+		return c.funcs.Start(ctx)
+	}
+	return nil
+}
+
+// Shutdown implements the Component Shutdown method.
+func (c *simpleComponent) Shutdown(ctx context.Context) error {
+	if c.funcs.Shutdown != nil {
+		return c.funcs.Shutdown(ctx)
+	}
+	return nil
+}
+
+// Uninit implements the Component Uninit method.
+func (c *simpleComponent) Uninit(ctx context.Context) error {
+	if c.funcs.Uninit != nil {
+		return c.funcs.Uninit(ctx)
+	}
+	return nil
+}
+
+// BaseComponent provides a basic implementation of the Component interface.
+type BaseComponent[T any] struct {
+	simpleComponent
+	options T
+}
+
+// Options returns a pointer to the component's options.
+func (c *BaseComponent[T]) Options() *T {
+	return &c.options
+}
+
+// Setup implements the Component Setup method.
+func (c *BaseComponent[T]) Setup(container Container, config Config) error {
+	if err := c.simpleComponent.Setup(container, config); err != nil {
+		return err
+	}
 	if err := config.Options.Decode(json.Unmarshal, &c.options); err != nil {
 		return fmt.Errorf("failed to unmarshal options: %w", err)
 	}
@@ -136,8 +178,8 @@ func (c *BaseComponent[T]) Setup(container Container, config Config) error {
 
 // Reference represents a reference to another component.
 type Reference[T any] struct {
-	component T
 	uuid      string
+	component T
 }
 
 // Ref creates a reference to a component with the given UUID.
@@ -393,6 +435,15 @@ func Register(name string, creator func() Component) {
 		panic("component: Register called twice for component " + name)
 	}
 	creators[name] = creator
+}
+
+// RegisterFuncs registers a component creator with lifecycle functions.
+func RegisterFuncs(name string, funcs lifecycle.Funcs) {
+	Register(name, func() Component {
+		return &simpleComponent{
+			funcs: funcs,
+		}
+	})
 }
 
 // Create creates a new component by its name.

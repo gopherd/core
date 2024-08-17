@@ -91,14 +91,189 @@ func TestPair(t *testing.T) {
 	})
 }
 
+func TestString(t *testing.T) {
+	var tests = []struct {
+		name     string
+		p        pair.Pair[any, any]
+		expected string
+	}{
+		{
+			name:     "IntString",
+			p:        pair.New[any, any](42, "hello"),
+			expected: "(42,hello)",
+		},
+		{
+			name:     "FloatBool",
+			p:        pair.New[any, any](3.14, "world"),
+			expected: "(3.14,world)",
+		},
+		{
+			name:     "StringNil",
+			p:        pair.New[any, any](42, ""),
+			expected: "(42,)",
+		},
+		{
+			name:     "NilNil",
+			p:        pair.New[any, any](nil, nil),
+			expected: "(<nil>,<nil>)",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.p.String()
+			if result != tt.expected {
+				t.Errorf("String() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCompare(t *testing.T) {
+	var tests = []struct {
+		name     string
+		p1       pair.Pair[int, string]
+		p2       pair.Pair[int, string]
+		expected int
+	}{
+		{
+			name:     "Equal",
+			p1:       pair.New(1, "one"),
+			p2:       pair.New(1, "one"),
+			expected: 0,
+		},
+		{
+			name:     "FirstLess",
+			p1:       pair.New(1, "one"),
+			p2:       pair.New(2, "two"),
+			expected: -1,
+		},
+		{
+			name:     "FirstGreater",
+			p1:       pair.New(2, "two"),
+			p2:       pair.New(1, "one"),
+			expected: 1,
+		},
+		{
+			name:     "SecondLess",
+			p1:       pair.New(1, "one"),
+			p2:       pair.New(1, "two"),
+			expected: -1,
+		},
+		{
+			name:     "SecondGreater",
+			p1:       pair.New(1, "two"),
+			p2:       pair.New(1, "one"),
+			expected: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := pair.Compare(tt.p1, tt.p2)
+			if result != tt.expected {
+				t.Errorf("Compare() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCompareFirst(t *testing.T) {
+	var tests = []struct {
+		name     string
+		p1       pair.Pair[int, string]
+		p2       pair.Pair[int, string]
+		expected int
+	}{
+		{
+			name:     "Equal",
+			p1:       pair.New(1, "one"),
+			p2:       pair.New(1, "one"),
+			expected: 0,
+		},
+		{
+			name:     "FirstLess",
+			p1:       pair.New(1, "one"),
+			p2:       pair.New(2, "two"),
+			expected: -1,
+		},
+		{
+			name:     "FirstGreater",
+			p1:       pair.New(2, "two"),
+			p2:       pair.New(1, "one"),
+			expected: 1,
+		},
+		{
+			name:     "SecondLess",
+			p1:       pair.New(1, "one"),
+			p2:       pair.New(1, "two"),
+			expected: 0,
+		},
+		{
+			name:     "SecondGreater",
+			p1:       pair.New(1, "two"),
+			p2:       pair.New(1, "one"),
+			expected: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := pair.CompareFirst(tt.p1, tt.p2)
+			if result != tt.expected {
+				t.Errorf("CompareFirst() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCompareSecond(t *testing.T) {
+	var tests = []struct {
+		name     string
+		p1       pair.Pair[int, string]
+		p2       pair.Pair[int, string]
+		expected int
+	}{
+		{
+			name:     "Equal",
+			p1:       pair.New(1, "one"),
+			p2:       pair.New(1, "one"),
+			expected: 0,
+		},
+		{
+			name:     "FirstLess",
+			p1:       pair.New(1, "one"),
+			p2:       pair.New(2, "one"),
+			expected: 0,
+		},
+		{
+			name:     "FirstGreater",
+			p1:       pair.New(2, "one"),
+			p2:       pair.New(1, "one"),
+			expected: 0,
+		},
+		{
+			name:     "SecondLess",
+			p1:       pair.New(1, "one"),
+			p2:       pair.New(1, "two"),
+			expected: -1,
+		},
+		{
+			name:     "SecondGreater",
+			p1:       pair.New(1, "two"),
+			p2:       pair.New(1, "one"),
+			expected: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := pair.CompareSecond(tt.p1, tt.p2)
+			if result != tt.expected {
+				t.Errorf("CompareSecond() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
 func ExampleNew() {
 	p := pair.New(10, "ten")
 	fmt.Printf("First: %v, Second: %v\n", p.First, p.Second)
 	// Output: First: 10, Second: ten
-}
-
-func BenchmarkNew(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		pair.New(i, fmt.Sprintf("value-%d", i))
-	}
 }

@@ -55,3 +55,8 @@ type Number interface {
 type Field interface {
 	Float | Complex
 }
+
+// Addable is a constraint that permits any number or string type.
+type Addable interface {
+	Number | string
+}

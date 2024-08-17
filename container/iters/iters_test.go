@@ -5,6 +5,7 @@ package iters_test
 import (
 	"fmt"
 	"iter"
+	"maps"
 	"reflect"
 	"sort"
 	"strconv"
@@ -184,13 +185,13 @@ func TestMap2(t *testing.T) {
 	}{
 		{
 			name:     "combine key and value",
-			input:    iters.Enumerate2(map[string]int{"a": 1, "b": 2, "c": 3}),
+			input:    maps.All(map[string]int{"a": 1, "b": 2, "c": 3}),
 			f:        func(k string, v int) string { return fmt.Sprintf("%s:%d", k, v) },
 			expected: []string{"a:1", "b:2", "c:3"},
 		},
 		{
 			name:     "empty map",
-			input:    iters.Enumerate2(map[string]int{}),
+			input:    maps.All(map[string]int{}),
 			f:        func(k string, v int) string { return fmt.Sprintf("%s:%d", k, v) },
 			expected: []string{},
 		},
@@ -277,25 +278,25 @@ func TestFilter2(t *testing.T) {
 	}{
 		{
 			name:     "values greater than 2",
-			input:    iters.Enumerate2(map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}),
+			input:    maps.All(map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}),
 			f:        func(k string, v int) bool { return v > 2 },
 			expected: map[string]int{"c": 3, "d": 4},
 		},
 		{
 			name:     "no matches",
-			input:    iters.Enumerate2(map[string]int{"a": 1, "b": 2}),
+			input:    maps.All(map[string]int{"a": 1, "b": 2}),
 			f:        func(k string, v int) bool { return v > 5 },
 			expected: map[string]int{},
 		},
 		{
 			name:     "all match",
-			input:    iters.Enumerate2(map[string]int{"a": 1, "b": 2}),
+			input:    maps.All(map[string]int{"a": 1, "b": 2}),
 			f:        func(k string, v int) bool { return v > 0 },
 			expected: map[string]int{"a": 1, "b": 2},
 		},
 		{
 			name:     "empty map",
-			input:    iters.Enumerate2(map[string]int{}),
+			input:    maps.All(map[string]int{}),
 			f:        func(k string, v int) bool { return true },
 			expected: map[string]int{},
 		},
@@ -416,7 +417,7 @@ func TestSort2(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := make([]string, 0)
-			for k, v := range iters.Sort2(iters.Enumerate2(tt.input)) {
+			for k, v := range iters.Sort2(maps.All(tt.input)) {
 				result = append(result, fmt.Sprintf("%s:%d", k, v))
 			}
 
@@ -427,7 +428,7 @@ func TestSort2(t *testing.T) {
 				t.Errorf("Sort2() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.Sort2(iters.Enumerate2(tt.input)) {
+			for range iters.Sort2(maps.All(tt.input)) {
 				break
 			}
 		})
@@ -480,7 +481,7 @@ func TestSortFunc2(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := make([]string, 0)
-			for k, v := range iters.SortFunc2(iters.Enumerate2(tt.input), tt.compare) {
+			for k, v := range iters.SortFunc2(maps.All(tt.input), tt.compare) {
 				result = append(result, fmt.Sprintf("%s:%d", k, v))
 			}
 
@@ -488,7 +489,7 @@ func TestSortFunc2(t *testing.T) {
 				t.Errorf("SortFunc2() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.SortFunc2(iters.Enumerate2(tt.input), tt.compare) {
+			for range iters.SortFunc2(maps.All(tt.input), tt.compare) {
 				break
 			}
 		})
@@ -516,7 +517,7 @@ func TestSortKeys(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := make([]string, 0)
-			for k := range iters.SortKeys(iters.Enumerate2(tt.input)) {
+			for k := range iters.SortKeys(maps.All(tt.input)) {
 				result = append(result, k)
 			}
 
@@ -524,7 +525,7 @@ func TestSortKeys(t *testing.T) {
 				t.Errorf("SortKeys() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.SortKeys(iters.Enumerate2(tt.input)) {
+			for range iters.SortKeys(maps.All(tt.input)) {
 				break
 			}
 		})
@@ -552,7 +553,7 @@ func TestSortValues(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := make([]int, 0)
-			for _, v := range iters.SortValues(iters.Enumerate2(tt.input)) {
+			for _, v := range iters.SortValues(maps.All(tt.input)) {
 				result = append(result, v)
 			}
 
@@ -560,7 +561,7 @@ func TestSortValues(t *testing.T) {
 				t.Errorf("SortValues() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.SortValues(iters.Enumerate2(tt.input)) {
+			for range iters.SortValues(maps.All(tt.input)) {
 				break
 			}
 		})
@@ -570,7 +571,7 @@ func TestSortValues(t *testing.T) {
 // Example tests
 func ExampleEnumerateMap() {
 	m := map[string]int{"a": 1, "b": 2, "c": 3}
-	for k, v := range iters.Enumerate2(m) {
+	for k, v := range maps.All(m) {
 		fmt.Printf("%s: %d\n", k, v)
 	}
 	// Unordered output:
@@ -675,7 +676,7 @@ func TestKeys(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := make([]string, 0, len(tt.seq))
-			for k := range iters.Keys(iters.Enumerate2(tt.seq)) {
+			for k := range iters.Keys(maps.All(tt.seq)) {
 				got = append(got, k)
 			}
 
@@ -687,7 +688,7 @@ func TestKeys(t *testing.T) {
 				t.Errorf("Keys() = %v, want %v", got, tt.want)
 			}
 
-			for range iters.Keys(iters.Enumerate2(tt.seq)) {
+			for range iters.Keys(maps.All(tt.seq)) {
 				break
 			}
 		})
@@ -708,7 +709,7 @@ func TestValues(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := make([]int, 0, len(tt.seq))
-			for v := range iters.Values(iters.Enumerate2(tt.seq)) {
+			for v := range iters.Values(maps.All(tt.seq)) {
 				got = append(got, v)
 			}
 
@@ -720,7 +721,7 @@ func TestValues(t *testing.T) {
 				t.Errorf("Values() = %v, want %v", got, tt.want)
 			}
 
-			for range iters.Values(iters.Enumerate2(tt.seq)) {
+			for range iters.Values(maps.All(tt.seq)) {
 				break
 			}
 		})
@@ -730,7 +731,7 @@ func TestValues(t *testing.T) {
 func ExampleKeys() {
 	m := map[string]int{"a": 1, "b": 2, "c": 3}
 	result := make([]string, 0, 3)
-	for k := range iters.Keys(iters.Enumerate2(m)) {
+	for k := range iters.Keys(maps.All(m)) {
 		result = append(result, k)
 	}
 
@@ -743,7 +744,7 @@ func ExampleKeys() {
 func ExampleValues() {
 	m := map[string]int{"a": 1, "b": 2, "c": 3}
 	result := make([]int, 0, 3)
-	for v := range iters.Values(iters.Enumerate2(m)) {
+	for v := range iters.Values(maps.All(m)) {
 		result = append(result, v)
 	}
 
@@ -760,7 +761,7 @@ func TestKeysWithLargeMap(t *testing.T) {
 	}
 
 	count := 0
-	for range iters.Keys(iters.Enumerate2(largeMap)) {
+	for range iters.Keys(maps.All(largeMap)) {
 		count++
 	}
 
@@ -776,7 +777,7 @@ func TestValuesWithLargeMap(t *testing.T) {
 	}
 
 	count := 0
-	for range iters.Values(iters.Enumerate2(largeMap)) {
+	for range iters.Values(maps.All(largeMap)) {
 		count++
 	}
 
@@ -953,15 +954,15 @@ func TestConcat2(t *testing.T) {
 		{
 			name: "non-empty sequences",
 			input: []iter.Seq2[string, int]{
-				iters.Enumerate2(map[string]int{"a": 1, "b": 2}),
-				iters.Enumerate2(map[string]int{"c": 3, "d": 4}),
-				iters.Enumerate2(map[string]int{"e": 5, "f": 6}),
+				maps.All(map[string]int{"a": 1, "b": 2}),
+				maps.All(map[string]int{"c": 3, "d": 4}),
+				maps.All(map[string]int{"e": 5, "f": 6}),
 			},
 			expected: map[string]int{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5, "f": 6},
 		},
 		{
 			name:     "empty sequences",
-			input:    []iter.Seq2[string, int]{iters.Enumerate2(map[string]int{}), iters.Enumerate2(map[string]int{}), iters.Enumerate2(map[string]int{})},
+			input:    []iter.Seq2[string, int]{maps.All(map[string]int{}), maps.All(map[string]int{}), maps.All(map[string]int{})},
 			expected: map[string]int{},
 		},
 	}

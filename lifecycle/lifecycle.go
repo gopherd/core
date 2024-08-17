@@ -52,6 +52,14 @@ type Lifecycle interface {
 	Shutdown(context.Context) error
 }
 
+// Funcs represents a set of lifecycle functions for a simple component.
+type Funcs struct {
+	Init     func(context.Context) error
+	Start    func(context.Context) error
+	Shutdown func(context.Context) error
+	Uninit   func(context.Context) error
+}
+
 // BaseLifecycle provides a default implementation of the Lifecycle interface.
 type BaseLifecycle struct{}
 

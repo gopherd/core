@@ -1,7 +1,10 @@
 // Package pair provides a generic Pair type for holding two values of any types.
 package pair
 
-import "cmp"
+import (
+	"cmp"
+	"fmt"
+)
 
 // Pair represents a tuple of two values of potentially different types.
 type Pair[T1, T2 any] struct {
@@ -12,6 +15,10 @@ type Pair[T1, T2 any] struct {
 // New creates a new Pair with the given values.
 func New[T1, T2 any](first T1, second T2) Pair[T1, T2] {
 	return Pair[T1, T2]{First: first, Second: second}
+}
+
+func (p Pair[T1, T2]) String() string {
+	return fmt.Sprintf("(%v,%v)", p.First, p.Second)
 }
 
 func Compare[T1, T2 cmp.Ordered](p1, p2 Pair[T1, T2]) int {

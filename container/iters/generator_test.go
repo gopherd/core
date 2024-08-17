@@ -4,6 +4,7 @@ package iters_test
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 	"sort"
@@ -138,7 +139,7 @@ func TestEnumerate(t *testing.T) {
 	}
 }
 
-func TestLoop(t *testing.T) {
+func TestLessThan(t *testing.T) {
 	tests := []struct {
 		name     string
 		end      int
@@ -151,7 +152,7 @@ func TestLoop(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			seq := iters.Loop(tt.end)
+			seq := iters.LessThan(tt.end)
 			result := make([]int, 0, tt.end)
 			for v := range seq {
 				result = append(result, v)
@@ -164,20 +165,20 @@ func TestLoop(t *testing.T) {
 					t.Errorf("At index %d: expected %d, got %d", i, tt.expected[i], v)
 				}
 			}
-			for range iters.Loop(tt.end) {
+			for range iters.LessThan(tt.end) {
 				break
 			}
 		})
 	}
 }
 
-func TestLoopPanic(t *testing.T) {
+func TestLessPanic(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("Expected panic for negative end, but it didn't panic")
 		}
 	}()
-	iters.Loop(-1)
+	iters.LessThan(-1)
 }
 
 func TestRange(t *testing.T) {
@@ -304,8 +305,8 @@ func ExampleEnumerate() {
 	// cherry
 }
 
-func ExampleLoop() {
-	for v := range iters.Loop(3) {
+func ExampleLessThan() {
+	for v := range iters.LessThan(3) {
 		fmt.Print(v, " ")
 	}
 	// Output: 0 1 2
@@ -327,12 +328,12 @@ func ExampleSteps() {
 
 func TestGenericFunctions(t *testing.T) {
 	t.Run("Loop with float64", func(t *testing.T) {
-		sum := iters.Sum(iters.Loop(5.0))
+		sum := iters.Sum(iters.LessThan(5.0))
 		expected := 10.0
 		if sum != expected {
 			t.Errorf("Expected sum %f, got %f", expected, sum)
 		}
-		for range iters.Loop(5.0) {
+		for range iters.LessThan(5.0) {
 			break
 		}
 	})
@@ -389,7 +390,7 @@ func TestEnumerateMap(t *testing.T) {
 				k string
 				v int
 			}, 0, len(tt.input))
-			for k, v := range iters.Enumerate2(tt.input) {
+			for k, v := range maps.All(tt.input) {
 				result = append(result, struct {
 					k string
 					v int
@@ -404,7 +405,7 @@ func TestEnumerateMap(t *testing.T) {
 				t.Errorf("EnumerateKV() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.Enumerate2(tt.input) {
+			for range maps.All(tt.input) {
 				break
 			}
 		})

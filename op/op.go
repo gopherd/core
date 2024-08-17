@@ -149,3 +149,16 @@ func ReverseCompare[T any](cmp func(T, T) int) func(T, T) int {
 		return cmp(y, x)
 	}
 }
+
+// Zero returns the zero value of type T.
+func Zero[T any]() T {
+	var zero T
+	return zero
+}
+
+// Identity returns a function that returns the input value.
+func Identity[T any](v T) func() T {
+	return func() T {
+		return v
+	}
+}

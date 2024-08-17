@@ -10,6 +10,36 @@ import (
 	"github.com/gopherd/core/constraints"
 )
 
+// Enumerate returns an iterator that generates a sequence of values for each element
+// in the slice. The index of the element is not provided. If you need the index, use
+// slices.All instead.
+//
+// Example:
+//
+//	for v := range Enumerate([]string{"a", "b", "c"}) {
+//		fmt.Println(v) // Output: a \n b \n c
+//	}
+func Enumerate[S ~[]E, E any](s S) iter.Seq[E] {
+	return func(yield func(E) bool) {
+		for _, v := range s {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
+// List returns an iterator that generates a sequence of the provided values.
+func List[T any](values ...T) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for _, v := range values {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
 // Infinite returns an iterator that generates an infinite sequence of integers starting from 0.
 func Infinite() iter.Seq[int] {
 	return func(yield func(int) bool) {
@@ -36,51 +66,9 @@ func Repeat[T any](v T, n int) iter.Seq[T] {
 	}
 }
 
-// Enumerate returns an iterator that generates a sequence of values for each element
-// in the slice. The index of the element is not provided. If you need the index, use
-// slices.All instead.
-//
-// Example:
-//
-//	for v := range Enumerate([]string{"a", "b", "c"}) {
-//		fmt.Println(v) // Output: a \n b \n c
-//	}
-func Enumerate[S ~[]E, E any](s S) iter.Seq[E] {
-	return func(yield func(E) bool) {
-		for _, v := range s {
-			if !yield(v) {
-				return
-			}
-		}
-	}
-}
-
-// Enumerate2 returns an iterator that generates a sequence of key-value pairs
-// for each entry in the map.
-func Enumerate2[M ~map[K]V, K comparable, V any](m M) iter.Seq2[K, V] {
-	return func(yield func(K, V) bool) {
-		for k, v := range m {
-			if !yield(k, v) {
-				return
-			}
-		}
-	}
-}
-
-// List returns an iterator that generates a sequence of the provided values.
-func List[T any](values ...T) iter.Seq[T] {
-	return func(yield func(T) bool) {
-		for _, v := range values {
-			if !yield(v) {
-				return
-			}
-		}
-	}
-}
-
-// Loop returns an iterator that generates a sequence of numbers [0, end) with a step size of 1.
+// LessThan returns an iterator that generates a sequence of numbers [0, end) with a step size of 1.
 // It panics if end is negative.
-func Loop[T constraints.Real](end T) iter.Seq[T] {
+func LessThan[T constraints.Real](end T) iter.Seq[T] {
 	if end < 0 {
 		panic("end must be non-negative")
 	}

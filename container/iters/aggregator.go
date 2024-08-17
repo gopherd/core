@@ -28,6 +28,22 @@ func Min[T cmp.Ordered](s iter.Seq[T]) T {
 	return min
 }
 
+// MinFunc returns the element in the sequence s for which the function f returns the minimum value.
+func MinFunc[T any](s iter.Seq[T], f func(T, T) int) T {
+	var min T
+	first := true
+	for v := range s {
+		if first || f(v, min) < 0 {
+			min = v
+			first = false
+		}
+	}
+	if first {
+		panic("empty sequence")
+	}
+	return min
+}
+
 // MinKey returns the minimum key in the key-value sequence m.
 func MinKey[K cmp.Ordered, V any](m iter.Seq2[K, V]) K {
 	var min K
@@ -54,6 +70,32 @@ func MinValue[K any, V cmp.Ordered](m iter.Seq2[K, V]) V {
 	return min
 }
 
+// Min2 returns the minimum key-value pair in the key-value sequence m.
+func Min2[K, V cmp.Ordered](s iter.Seq2[K, V]) (K, V) {
+	var min pair.Pair[K, V]
+	first := true
+	for k, v := range s {
+		if first || pair.Compare(pair.New(k, v), min) < 0 {
+			min = pair.New(k, v)
+			first = false
+		}
+	}
+	return min.First, min.Second
+}
+
+// MinFunc2 returns the key-value pair in the key-value sequence m for which the function f returns the minimum value.
+func MinFunc2[K, V any](s iter.Seq2[K, V], f func(pair.Pair[K, V], pair.Pair[K, V]) int) (K, V) {
+	var min pair.Pair[K, V]
+	first := true
+	for k, v := range s {
+		if first || f(pair.New(k, v), min) < 0 {
+			min = pair.New(k, v)
+			first = false
+		}
+	}
+	return min.First, min.Second
+}
+
 // Max returns the maximum element in the sequence s.
 // It panics if s is empty.
 func Max[T cmp.Ordered](s iter.Seq[T]) T {
@@ -61,6 +103,22 @@ func Max[T cmp.Ordered](s iter.Seq[T]) T {
 	first := true
 	for v := range s {
 		if first || cmp.Less(max, v) {
+			max = v
+			first = false
+		}
+	}
+	if first {
+		panic("empty sequence")
+	}
+	return max
+}
+
+// MaxFunc returns the element in the sequence s for which the function f returns the maximum value.
+func MaxFunc[T any](s iter.Seq[T], f func(T, T) int) T {
+	var max T
+	first := true
+	for v := range s {
+		if first || f(max, v) < 0 {
 			max = v
 			first = false
 		}
@@ -97,6 +155,32 @@ func MaxValue[K any, V cmp.Ordered](m iter.Seq2[K, V]) V {
 	return max
 }
 
+// Max2 returns the maximum key-value pair in the key-value sequence m.
+func Max2[K, V cmp.Ordered](s iter.Seq2[K, V]) (K, V) {
+	var max pair.Pair[K, V]
+	first := true
+	for k, v := range s {
+		if first || pair.Compare(max, pair.New(k, v)) < 0 {
+			max = pair.New(k, v)
+			first = false
+		}
+	}
+	return max.First, max.Second
+}
+
+// MaxFunc2 returns the key-value pair in the key-value sequence m for which the function f returns the maximum value.
+func MaxFunc2[K, V any](s iter.Seq2[K, V], f func(pair.Pair[K, V], pair.Pair[K, V]) int) (K, V) {
+	var max pair.Pair[K, V]
+	first := true
+	for k, v := range s {
+		if first || f(max, pair.New(k, v)) < 0 {
+			max = pair.New(k, v)
+			first = false
+		}
+	}
+	return max.First, max.Second
+}
+
 // MinMax returns the minimum and maximum elements in the sequence s.
 // It panics if s is empty.
 func MinMax[T cmp.Ordered](s iter.Seq[T]) (min, max T) {
@@ -108,6 +192,25 @@ func MinMax[T cmp.Ordered](s iter.Seq[T]) (min, max T) {
 		} else if cmp.Less(v, min) {
 			min = v
 		} else if cmp.Less(max, v) {
+			max = v
+		}
+	}
+	if first {
+		panic("empty sequence")
+	}
+	return
+}
+
+// MinMaxFunc returns the elements in the sequence s for which the function f returns the minimum and maximum values.
+func MinMaxFunc[T any](s iter.Seq[T], f func(T, T) int) (min, max T) {
+	first := true
+	for v := range s {
+		if first {
+			min, max = v, v
+			first = false
+		} else if f(v, min) < 0 {
+			min = v
+		} else if f(max, v) < 0 {
 			max = v
 		}
 	}
@@ -144,6 +247,38 @@ func MinMaxValue[K any, V cmp.Ordered](m iter.Seq2[K, V]) (min, max V) {
 			min = v
 		} else if cmp.Less(max, v) {
 			max = v
+		}
+	}
+	return
+}
+
+// MinMax2 returns the key-value pairs with the minimum and maximum values in the key-value sequence m.
+func MinMax2[K, V cmp.Ordered](s iter.Seq2[K, V]) (min, max pair.Pair[K, V]) {
+	first := true
+	for k, v := range s {
+		if first {
+			min, max = pair.New(k, v), pair.New(k, v)
+			first = false
+		} else if pair.Compare(pair.New(k, v), min) < 0 {
+			min = pair.New(k, v)
+		} else if pair.Compare(max, pair.New(k, v)) < 0 {
+			max = pair.New(k, v)
+		}
+	}
+	return
+}
+
+// MinMaxFunc2 returns the key-value pairs with the minimum and maximum values in the key-value sequence m.
+func MinMaxFunc2[K, V any](s iter.Seq2[K, V], f func(pair.Pair[K, V], pair.Pair[K, V]) int) (min, max pair.Pair[K, V]) {
+	first := true
+	for k, v := range s {
+		if first {
+			min, max = pair.New(k, v), pair.New(k, v)
+			first = false
+		} else if f(pair.New(k, v), min) < 0 {
+			min = pair.New(k, v)
+		} else if f(max, pair.New(k, v)) < 0 {
+			max = pair.New(k, v)
 		}
 	}
 	return
