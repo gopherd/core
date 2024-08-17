@@ -18,11 +18,11 @@ func TestSum(t *testing.T) {
 		input    iter.Seq[int]
 		expected int
 	}{
-		{"empty sequence", iters.Of[int](), 0},
-		{"single element", iters.Of(5), 5},
-		{"multiple elements", iters.Of(1, 2, 3, 4, 5), 15},
-		{"negative numbers", iters.Of(-1, -2, -3), -6},
-		{"mixed numbers", iters.Of(-1, 0, 1), 0},
+		{"empty sequence", iters.List[int](), 0},
+		{"single element", iters.List(5), 5},
+		{"multiple elements", iters.List(1, 2, 3, 4, 5), 15},
+		{"negative numbers", iters.List(-1, -2, -3), -6},
+		{"mixed numbers", iters.List(-1, 0, 1), 0},
 	}
 
 	for _, tt := range tests {
@@ -42,12 +42,12 @@ func TestSumKeys(t *testing.T) {
 	}{
 		{
 			name:     "empty map",
-			input:    iters.EnumerateMap(map[int]string{}),
+			input:    iters.Enumerate2(map[int]string{}),
 			expected: 0,
 		},
 		{
 			name:     "non-empty map",
-			input:    iters.EnumerateMap(map[int]string{1: "a", 2: "b", 3: "c"}),
+			input:    iters.Enumerate2(map[int]string{1: "a", 2: "b", 3: "c"}),
 			expected: 6,
 		},
 	}
@@ -69,12 +69,12 @@ func TestSumValues(t *testing.T) {
 	}{
 		{
 			name:     "empty map",
-			input:    iters.EnumerateMap(map[string]int{}),
+			input:    iters.Enumerate2(map[string]int{}),
 			expected: 0,
 		},
 		{
 			name:     "non-empty map",
-			input:    iters.EnumerateMap(map[string]int{"a": 1, "b": 2, "c": 3}),
+			input:    iters.Enumerate2(map[string]int{"a": 1, "b": 2, "c": 3}),
 			expected: 6,
 		},
 	}
@@ -95,9 +95,9 @@ func TestAccumulate(t *testing.T) {
 		initial  int
 		expected int
 	}{
-		{"empty sequence", iters.Of[int](), 10, 10},
-		{"single element", iters.Of(5), 10, 15},
-		{"multiple elements", iters.Of(1, 2, 3), 10, 16},
+		{"empty sequence", iters.List[int](), 10, 10},
+		{"single element", iters.List(5), 10, 15},
+		{"multiple elements", iters.List(1, 2, 3), 10, 16},
 	}
 
 	for _, tt := range tests {
@@ -119,7 +119,7 @@ func TestAccumulateFunc(t *testing.T) {
 	}{
 		{
 			name:  "count non-empty strings",
-			input: iters.Of("a", "", "b", "c", ""),
+			input: iters.List("a", "", "b", "c", ""),
 			f: func(acc int, s string) int {
 				if s != "" {
 					return acc + 1
@@ -149,7 +149,7 @@ func TestAccumulateKeys(t *testing.T) {
 	}{
 		{
 			name:     "sum of keys",
-			input:    iters.EnumerateMap(map[int]string{1: "a", 2: "b", 3: "c"}),
+			input:    iters.Enumerate2(map[int]string{1: "a", 2: "b", 3: "c"}),
 			initial:  10,
 			expected: 16,
 		},
@@ -173,7 +173,7 @@ func TestAccumulateValues(t *testing.T) {
 	}{
 		{
 			name:     "sum of values",
-			input:    iters.EnumerateMap(map[string]int{"a": 1, "b": 2, "c": 3}),
+			input:    iters.Enumerate2(map[string]int{"a": 1, "b": 2, "c": 3}),
 			initial:  10,
 			expected: 16,
 		},
@@ -198,7 +198,7 @@ func TestAccumulateKeysFunc(t *testing.T) {
 	}{
 		{
 			name:  "count keys with length > 1",
-			input: iters.EnumerateMap(map[string]int{"a": 1, "bb": 2, "ccc": 3}),
+			input: iters.Enumerate2(map[string]int{"a": 1, "bb": 2, "ccc": 3}),
 			f: func(acc int, k string) int {
 				if len(k) > 1 {
 					return acc + 1
@@ -229,7 +229,7 @@ func TestAccumulateValuesFunc(t *testing.T) {
 	}{
 		{
 			name:  "sum of even values",
-			input: iters.EnumerateMap(map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}),
+			input: iters.Enumerate2(map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}),
 			f: func(acc, v int) int {
 				if v%2 == 0 {
 					return acc + v
@@ -257,9 +257,9 @@ func TestContains(t *testing.T) {
 		target   int
 		expected bool
 	}{
-		{"element present", iters.Of(1, 2, 3, 4, 5), 3, true},
-		{"element not present", iters.Of(1, 2, 3, 4, 5), 6, false},
-		{"empty sequence", iters.Of[int](), 1, false},
+		{"element present", iters.List(1, 2, 3, 4, 5), 3, true},
+		{"element not present", iters.List(1, 2, 3, 4, 5), 6, false},
+		{"empty sequence", iters.List[int](), 1, false},
 	}
 
 	for _, tt := range tests {
@@ -280,19 +280,19 @@ func TestContainsFunc(t *testing.T) {
 	}{
 		{
 			name:     "even number present",
-			input:    iters.Of(1, 3, 5, 7, 8, 9),
+			input:    iters.List(1, 3, 5, 7, 8, 9),
 			f:        func(i int) bool { return i%2 == 0 },
 			expected: true,
 		},
 		{
 			name:     "no even number present",
-			input:    iters.Of(1, 3, 5, 7, 9),
+			input:    iters.List(1, 3, 5, 7, 9),
 			f:        func(i int) bool { return i%2 == 0 },
 			expected: false,
 		},
 		{
 			name:     "empty sequence",
-			input:    iters.Of[int](),
+			input:    iters.List[int](),
 			f:        func(i int) bool { return i%2 == 0 },
 			expected: false,
 		},
@@ -313,8 +313,8 @@ func TestCount(t *testing.T) {
 		input    iter.Seq[int]
 		expected int
 	}{
-		{"non-empty sequence", iters.Of(1, 2, 3, 4, 5), 5},
-		{"empty sequence", iters.Of[int](), 0},
+		{"non-empty sequence", iters.List(1, 2, 3, 4, 5), 5},
+		{"empty sequence", iters.List[int](), 0},
 	}
 
 	for _, tt := range tests {
@@ -335,25 +335,25 @@ func TestCountFunc(t *testing.T) {
 	}{
 		{
 			name:     "count even numbers",
-			input:    iters.Of(1, 2, 3, 4, 5, 6),
+			input:    iters.List(1, 2, 3, 4, 5, 6),
 			f:        func(i int) bool { return i%2 == 0 },
 			expected: 3,
 		},
 		{
 			name:     "no matches",
-			input:    iters.Of(1, 3, 5),
+			input:    iters.List(1, 3, 5),
 			f:        func(i int) bool { return i%2 == 0 },
 			expected: 0,
 		},
 		{
 			name:     "all match",
-			input:    iters.Of(2, 4, 6),
+			input:    iters.List(2, 4, 6),
 			f:        func(i int) bool { return i%2 == 0 },
 			expected: 3,
 		},
 		{
 			name:     "empty sequence",
-			input:    iters.Of[int](),
+			input:    iters.List[int](),
 			f:        func(i int) bool { return i%2 == 0 },
 			expected: 0,
 		},
@@ -382,7 +382,7 @@ func TestMin(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := iters.Min(iters.Of(tt.seq...))
+			got := iters.Min(iters.List(tt.seq...))
 			if got != tt.want {
 				t.Errorf("Min() = %v, want %v", got, tt.want)
 			}
@@ -415,7 +415,7 @@ func TestMax(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := iters.Max(iters.Of(tt.seq...))
+			got := iters.Max(iters.List(tt.seq...))
 			if got != tt.want {
 				t.Errorf("Max() = %v, want %v", got, tt.want)
 			}
@@ -449,7 +449,7 @@ func TestMinMax(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotMin, gotMax := iters.MinMax(iters.Of(tt.seq...))
+			gotMin, gotMax := iters.MinMax(iters.List(tt.seq...))
 			if gotMin != tt.wantMin || gotMax != tt.wantMax {
 				t.Errorf("MinMax() = (%v, %v), want (%v, %v)", gotMin, gotMax, tt.wantMin, tt.wantMax)
 			}
@@ -482,7 +482,7 @@ func TestMinKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := iters.MinKey(iters.EnumerateMap(tt.seq))
+			got := iters.MinKey(iters.Enumerate2(tt.seq))
 			if got != tt.want {
 				t.Errorf("MinKey() = %v, want %v", got, tt.want)
 			}
@@ -504,7 +504,7 @@ func TestMaxKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := iters.MaxKey(iters.EnumerateMap(tt.seq))
+			got := iters.MaxKey(iters.Enumerate2(tt.seq))
 			if got != tt.want {
 				t.Errorf("MaxKey() = %v, want %v", got, tt.want)
 			}
@@ -527,7 +527,7 @@ func TestMinMaxKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotMin, gotMax := iters.MinMaxKey(iters.EnumerateMap(tt.seq))
+			gotMin, gotMax := iters.MinMaxKey(iters.Enumerate2(tt.seq))
 			if gotMin != tt.wantMin || gotMax != tt.wantMax {
 				t.Errorf("MinMaxKey() = (%v, %v), want (%v, %v)", gotMin, gotMax, tt.wantMin, tt.wantMax)
 			}
@@ -549,7 +549,7 @@ func TestMinValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := iters.MinValue(iters.EnumerateMap(tt.seq))
+			got := iters.MinValue(iters.Enumerate2(tt.seq))
 			if got != tt.want {
 				t.Errorf("MinValue() = %v, want %v", got, tt.want)
 			}
@@ -571,7 +571,7 @@ func TestMaxValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := iters.MaxValue(iters.EnumerateMap(tt.seq))
+			got := iters.MaxValue(iters.Enumerate2(tt.seq))
 			if got != tt.want {
 				t.Errorf("MaxValue() = %v, want %v", got, tt.want)
 			}
@@ -594,7 +594,7 @@ func TestMinMaxValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotMin, gotMax := iters.MinMaxValue(iters.EnumerateMap(tt.seq))
+			gotMin, gotMax := iters.MinMaxValue(iters.Enumerate2(tt.seq))
 			if gotMin != tt.wantMin || gotMax != tt.wantMax {
 				t.Errorf("MinMaxValue() = (%v, %v), want (%v, %v)", gotMin, gotMax, tt.wantMin, tt.wantMax)
 			}
@@ -605,54 +605,54 @@ func TestMinMaxValue(t *testing.T) {
 // Example tests
 
 func ExampleMin() {
-	min := iters.Min(iters.Of(3, 1, 4, 1, 5, 9))
+	min := iters.Min(iters.List(3, 1, 4, 1, 5, 9))
 	fmt.Println(min)
 	// Output: 1
 }
 
 func ExampleMax() {
-	max := iters.Max(iters.Of(3, 1, 4, 1, 5, 9))
+	max := iters.Max(iters.List(3, 1, 4, 1, 5, 9))
 	fmt.Println(max)
 	// Output: 9
 }
 
 func ExampleMinMax() {
-	min, max := iters.MinMax(iters.Of(3, 1, 4, 1, 5, 9))
+	min, max := iters.MinMax(iters.List(3, 1, 4, 1, 5, 9))
 	fmt.Printf("Min: %d, Max: %d\n", min, max)
 	// Output: Min: 1, Max: 9
 }
 
 func ExampleMinKey() {
 	data := map[int]string{3: "three", 1: "one", 4: "four", 5: "five"}
-	minKey := iters.MinKey(iters.EnumerateMap(data))
+	minKey := iters.MinKey(iters.Enumerate2(data))
 	fmt.Println(minKey)
 	// Output: 1
 }
 
 func ExampleMaxKey() {
 	data := map[int]string{3: "three", 1: "one", 4: "four", 5: "five"}
-	maxKey := iters.MaxKey(iters.EnumerateMap(data))
+	maxKey := iters.MaxKey(iters.Enumerate2(data))
 	fmt.Println(maxKey)
 	// Output: 5
 }
 
 func ExampleMinValue() {
 	data := map[string]int{"three": 3, "one": 1, "four": 4, "five": 5}
-	minValue := iters.MinValue(iters.EnumerateMap(data))
+	minValue := iters.MinValue(iters.Enumerate2(data))
 	fmt.Println(minValue)
 	// Output: 1
 }
 
 func ExampleMaxValue() {
 	data := map[string]int{"three": 3, "one": 1, "four": 4, "five": 5}
-	maxValue := iters.MaxValue(iters.EnumerateMap(data))
+	maxValue := iters.MaxValue(iters.Enumerate2(data))
 	fmt.Println(maxValue)
 	// Output: 5
 }
 
 func TestMinMaxWithInfinity(t *testing.T) {
 	values := []float64{math.Inf(1), math.Inf(-1), 0, 1, -1}
-	min, max := iters.MinMax(iters.Of(values...))
+	min, max := iters.MinMax(iters.List(values...))
 	if min != math.Inf(-1) {
 		t.Errorf("Min should be negative infinity, got %v", min)
 	}
@@ -677,7 +677,7 @@ func TestMinMaxWithAllEqualValues(t *testing.T) {
 
 func TestAppendSeq2(t *testing.T) {
 	result := []pair.Pair[int, string]{pair.New(0, "")}
-	seq := iters.EnumerateMap(map[int]string{1: "a", 2: "b", 3: "c"})
+	seq := iters.Enumerate2(map[int]string{1: "a", 2: "b", 3: "c"})
 	result = iters.AppendSeq2(result, seq)
 	values := []string{"", "a", "b", "c"}
 	for i := 0; i < len(result); i++ {
@@ -691,7 +691,7 @@ func TestAppendSeq2(t *testing.T) {
 }
 
 func TestCollect2(t *testing.T) {
-	seq := iters.EnumerateMap(map[int]string{1: "a", 2: "b", 3: "c"})
+	seq := iters.Enumerate2(map[int]string{1: "a", 2: "b", 3: "c"})
 	result := iters.Collect2(seq)
 	values := []string{"a", "b", "c"}
 	for i := 0; i < len(result); i++ {

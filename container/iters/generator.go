@@ -36,27 +36,28 @@ func Repeat[T any](v T, n int) iter.Seq[T] {
 	}
 }
 
-// Enumerate returns an iterator that generates a sequence of index-value pairs
-// for each element in the slice.
+// Enumerate returns an iterator that generates a sequence of values for each element
+// in the slice. The index of the element is not provided. If you need the index, use
+// slices.All instead.
 //
 // Example:
 //
-//	for i, v := range Enumerate([]string{"a", "b", "c"}) {
-//		fmt.Println(i, v) // Output: 0 a \n 1 b \n 2 c
+//	for v := range Enumerate([]string{"a", "b", "c"}) {
+//		fmt.Println(v) // Output: a \n b \n c
 //	}
-func Enumerate[S ~[]E, E any](s S) iter.Seq2[int, E] {
-	return func(yield func(int, E) bool) {
-		for i, v := range s {
-			if !yield(i, v) {
+func Enumerate[S ~[]E, E any](s S) iter.Seq[E] {
+	return func(yield func(E) bool) {
+		for _, v := range s {
+			if !yield(v) {
 				return
 			}
 		}
 	}
 }
 
-// EnumerateMap returns an iterator that generates a sequence of key-value pairs
+// Enumerate2 returns an iterator that generates a sequence of key-value pairs
 // for each entry in the map.
-func EnumerateMap[M ~map[K]V, K comparable, V any](m M) iter.Seq2[K, V] {
+func Enumerate2[M ~map[K]V, K comparable, V any](m M) iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		for k, v := range m {
 			if !yield(k, v) {
@@ -66,8 +67,8 @@ func EnumerateMap[M ~map[K]V, K comparable, V any](m M) iter.Seq2[K, V] {
 	}
 }
 
-// Of returns an iterator that generates a sequence of the provided values.
-func Of[T any](values ...T) iter.Seq[T] {
+// List returns an iterator that generates a sequence of the provided values.
+func List[T any](values ...T) iter.Seq[T] {
 	return func(yield func(T) bool) {
 		for _, v := range values {
 			if !yield(v) {

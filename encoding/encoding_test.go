@@ -5,11 +5,10 @@ import (
 	"encoding/xml"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
-	"github.com/gopherd/core/container/maputil"
-	"github.com/gopherd/core/container/sliceutil"
 	"github.com/gopherd/core/encoding"
 )
 
@@ -127,7 +126,12 @@ func TestTransform(t *testing.T) {
 			encoder: func(v any) ([]byte, error) {
 				m := v.(map[string]string)
 				var result string
-				for _, k := range sliceutil.Sort(maputil.Keys(m)) {
+				keys := make([]string, 0, len(m))
+				for k := range m {
+					keys = append(keys, k)
+				}
+				slices.Sort(keys)
+				for _, k := range keys {
 					result += fmt.Sprintf("%s=%s;", k, m[k])
 				}
 				return []byte(result), nil
@@ -222,7 +226,12 @@ func ExampleTransform() {
 			return nil, fmt.Errorf("expected map[string]string, got %T", v)
 		}
 		var result strings.Builder
-		for _, k := range sliceutil.Sort(maputil.Keys(m)) {
+		keys := make([]string, 0, len(m))
+		for k := range m {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		for _, k := range keys {
 			result.WriteString(fmt.Sprintf("%s = %s\n", k, m[k]))
 		}
 		return []byte(result.String()), nil

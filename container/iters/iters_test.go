@@ -28,8 +28,8 @@ func TestZip(t *testing.T) {
 	}{
 		{
 			name: "equal length sequences",
-			seq1: iters.Of(1, 2, 3),
-			seq2: iters.Of("a", "b", "c"),
+			seq1: iters.List(1, 2, 3),
+			seq2: iters.List("a", "b", "c"),
 			expected: []struct {
 				v1 int
 				v2 string
@@ -37,8 +37,8 @@ func TestZip(t *testing.T) {
 		},
 		{
 			name: "seq1 longer than seq2",
-			seq1: iters.Of(1, 2, 3, 4),
-			seq2: iters.Of("a", "b"),
+			seq1: iters.List(1, 2, 3, 4),
+			seq2: iters.List("a", "b"),
 			expected: []struct {
 				v1 int
 				v2 string
@@ -46,8 +46,8 @@ func TestZip(t *testing.T) {
 		},
 		{
 			name: "seq2 longer than seq1",
-			seq1: iters.Of(1, 2),
-			seq2: iters.Of("a", "b", "c", "d"),
+			seq1: iters.List(1, 2),
+			seq2: iters.List("a", "b", "c", "d"),
 			expected: []struct {
 				v1 int
 				v2 string
@@ -55,8 +55,8 @@ func TestZip(t *testing.T) {
 		},
 		{
 			name: "seq1 is empty",
-			seq1: iters.Of[int](),
-			seq2: iters.Of("a", "b", "c"),
+			seq1: iters.List[int](),
+			seq2: iters.List("a", "b", "c"),
 			expected: []struct {
 				v1 int
 				v2 string
@@ -64,8 +64,8 @@ func TestZip(t *testing.T) {
 		},
 		{
 			name: "seq2 is empty",
-			seq1: iters.Of[int](1, 2, 3),
-			seq2: iters.Of[string](),
+			seq1: iters.List[int](1, 2, 3),
+			seq2: iters.List[string](),
 			expected: []struct {
 				v1 int
 				v2 string
@@ -73,8 +73,8 @@ func TestZip(t *testing.T) {
 		},
 		{
 			name: "empty sequences",
-			seq1: iters.Of[int](),
-			seq2: iters.Of[string](),
+			seq1: iters.List[int](),
+			seq2: iters.List[string](),
 			expected: []struct {
 				v1 int
 				v2 string
@@ -112,10 +112,10 @@ func TestUnique(t *testing.T) {
 		input    iter.Seq[int]
 		expected []int
 	}{
-		{"no duplicates", iters.Of(1, 2, 3, 4), []int{1, 2, 3, 4}},
-		{"with duplicates", iters.Of(1, 2, 2, 3, 3, 3, 4), []int{1, 2, 3, 4}},
-		{"all duplicates", iters.Of(1, 1, 1, 1), []int{1}},
-		{"empty sequence", iters.Of[int](), []int{}},
+		{"no duplicates", iters.List(1, 2, 3, 4), []int{1, 2, 3, 4}},
+		{"with duplicates", iters.List(1, 2, 2, 3, 3, 3, 4), []int{1, 2, 3, 4}},
+		{"all duplicates", iters.List(1, 1, 1, 1), []int{1}},
+		{"empty sequence", iters.List[int](), []int{}},
 	}
 
 	for _, tt := range tests {
@@ -145,13 +145,13 @@ func TestMap(t *testing.T) {
 	}{
 		{
 			name:     "int to string",
-			input:    iters.Of(1, 2, 3),
+			input:    iters.List(1, 2, 3),
 			f:        func(i int) string { return strconv.Itoa(i) },
 			expected: []string{"1", "2", "3"},
 		},
 		{
 			name:     "empty sequence",
-			input:    iters.Of[int](),
+			input:    iters.List[int](),
 			f:        func(i int) string { return strconv.Itoa(i) },
 			expected: []string{},
 		},
@@ -184,13 +184,13 @@ func TestMap2(t *testing.T) {
 	}{
 		{
 			name:     "combine key and value",
-			input:    iters.EnumerateMap(map[string]int{"a": 1, "b": 2, "c": 3}),
+			input:    iters.Enumerate2(map[string]int{"a": 1, "b": 2, "c": 3}),
 			f:        func(k string, v int) string { return fmt.Sprintf("%s:%d", k, v) },
 			expected: []string{"a:1", "b:2", "c:3"},
 		},
 		{
 			name:     "empty map",
-			input:    iters.EnumerateMap(map[string]int{}),
+			input:    iters.Enumerate2(map[string]int{}),
 			f:        func(k string, v int) string { return fmt.Sprintf("%s:%d", k, v) },
 			expected: []string{},
 		},
@@ -226,25 +226,25 @@ func TestFilter(t *testing.T) {
 	}{
 		{
 			name:     "even numbers",
-			input:    iters.Of(1, 2, 3, 4, 5, 6),
+			input:    iters.List(1, 2, 3, 4, 5, 6),
 			f:        func(i int) bool { return i%2 == 0 },
 			expected: []int{2, 4, 6},
 		},
 		{
 			name:     "no matches",
-			input:    iters.Of(1, 3, 5),
+			input:    iters.List(1, 3, 5),
 			f:        func(i int) bool { return i%2 == 0 },
 			expected: []int{},
 		},
 		{
 			name:     "all match",
-			input:    iters.Of(2, 4, 6),
+			input:    iters.List(2, 4, 6),
 			f:        func(i int) bool { return i%2 == 0 },
 			expected: []int{2, 4, 6},
 		},
 		{
 			name:     "empty sequence",
-			input:    iters.Of[int](),
+			input:    iters.List[int](),
 			f:        func(i int) bool { return i%2 == 0 },
 			expected: []int{},
 		},
@@ -277,25 +277,25 @@ func TestFilter2(t *testing.T) {
 	}{
 		{
 			name:     "values greater than 2",
-			input:    iters.EnumerateMap(map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}),
+			input:    iters.Enumerate2(map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}),
 			f:        func(k string, v int) bool { return v > 2 },
 			expected: map[string]int{"c": 3, "d": 4},
 		},
 		{
 			name:     "no matches",
-			input:    iters.EnumerateMap(map[string]int{"a": 1, "b": 2}),
+			input:    iters.Enumerate2(map[string]int{"a": 1, "b": 2}),
 			f:        func(k string, v int) bool { return v > 5 },
 			expected: map[string]int{},
 		},
 		{
 			name:     "all match",
-			input:    iters.EnumerateMap(map[string]int{"a": 1, "b": 2}),
+			input:    iters.Enumerate2(map[string]int{"a": 1, "b": 2}),
 			f:        func(k string, v int) bool { return v > 0 },
 			expected: map[string]int{"a": 1, "b": 2},
 		},
 		{
 			name:     "empty map",
-			input:    iters.EnumerateMap(map[string]int{}),
+			input:    iters.Enumerate2(map[string]int{}),
 			f:        func(k string, v int) bool { return true },
 			expected: map[string]int{},
 		},
@@ -328,7 +328,7 @@ func TestGroupBy(t *testing.T) {
 	}{
 		{
 			name:  "group by even/odd",
-			input: iters.Of(1, 2, 3, 4, 5, 6),
+			input: iters.List(1, 2, 3, 4, 5, 6),
 			f: func(i int) string {
 				if i%2 == 0 {
 					return "even"
@@ -343,7 +343,7 @@ func TestGroupBy(t *testing.T) {
 		},
 		{
 			name:     "empty sequence",
-			input:    iters.Of[int](),
+			input:    iters.List[int](),
 			f:        func(i int) string { return "group" },
 			expected: map[string][]int{},
 		},
@@ -373,8 +373,8 @@ func TestSort(t *testing.T) {
 		input    iter.Seq[int]
 		expected []int
 	}{
-		{"non-empty sequence", iters.Of(3, 1, 4, 1, 5, 9, 2, 6, 5, 3), []int{1, 1, 2, 3, 3, 4, 5, 5, 6, 9}},
-		{"empty sequence", iters.Of[int](), []int{}},
+		{"non-empty sequence", iters.List(3, 1, 4, 1, 5, 9, 2, 6, 5, 3), []int{1, 1, 2, 3, 3, 4, 5, 5, 6, 9}},
+		{"empty sequence", iters.List[int](), []int{}},
 	}
 
 	for _, tt := range tests {
@@ -416,7 +416,7 @@ func TestSort2(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := make([]string, 0)
-			for k, v := range iters.Sort2(iters.EnumerateMap(tt.input)) {
+			for k, v := range iters.Sort2(iters.Enumerate2(tt.input)) {
 				result = append(result, fmt.Sprintf("%s:%d", k, v))
 			}
 
@@ -427,7 +427,7 @@ func TestSort2(t *testing.T) {
 				t.Errorf("Sort2() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.Sort2(iters.EnumerateMap(tt.input)) {
+			for range iters.Sort2(iters.Enumerate2(tt.input)) {
 				break
 			}
 		})
@@ -480,7 +480,7 @@ func TestSortFunc2(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := make([]string, 0)
-			for k, v := range iters.SortFunc2(iters.EnumerateMap(tt.input), tt.compare) {
+			for k, v := range iters.SortFunc2(iters.Enumerate2(tt.input), tt.compare) {
 				result = append(result, fmt.Sprintf("%s:%d", k, v))
 			}
 
@@ -488,7 +488,7 @@ func TestSortFunc2(t *testing.T) {
 				t.Errorf("SortFunc2() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.SortFunc2(iters.EnumerateMap(tt.input), tt.compare) {
+			for range iters.SortFunc2(iters.Enumerate2(tt.input), tt.compare) {
 				break
 			}
 		})
@@ -516,7 +516,7 @@ func TestSortKeys(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := make([]string, 0)
-			for k := range iters.SortKeys(iters.EnumerateMap(tt.input)) {
+			for k := range iters.SortKeys(iters.Enumerate2(tt.input)) {
 				result = append(result, k)
 			}
 
@@ -524,7 +524,7 @@ func TestSortKeys(t *testing.T) {
 				t.Errorf("SortKeys() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.SortKeys(iters.EnumerateMap(tt.input)) {
+			for range iters.SortKeys(iters.Enumerate2(tt.input)) {
 				break
 			}
 		})
@@ -552,7 +552,7 @@ func TestSortValues(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := make([]int, 0)
-			for _, v := range iters.SortValues(iters.EnumerateMap(tt.input)) {
+			for _, v := range iters.SortValues(iters.Enumerate2(tt.input)) {
 				result = append(result, v)
 			}
 
@@ -560,7 +560,7 @@ func TestSortValues(t *testing.T) {
 				t.Errorf("SortValues() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.SortValues(iters.EnumerateMap(tt.input)) {
+			for range iters.SortValues(iters.Enumerate2(tt.input)) {
 				break
 			}
 		})
@@ -570,7 +570,7 @@ func TestSortValues(t *testing.T) {
 // Example tests
 func ExampleEnumerateMap() {
 	m := map[string]int{"a": 1, "b": 2, "c": 3}
-	for k, v := range iters.EnumerateMap(m) {
+	for k, v := range iters.Enumerate2(m) {
 		fmt.Printf("%s: %d\n", k, v)
 	}
 	// Unordered output:
@@ -580,8 +580,8 @@ func ExampleEnumerateMap() {
 }
 
 func ExampleZip() {
-	s1 := iters.Of(1, 2, 3)
-	s2 := iters.Of("a", "b", "c")
+	s1 := iters.List(1, 2, 3)
+	s2 := iters.List("a", "b", "c")
 	for v1, v2 := range iters.Zip(s1, s2) {
 		fmt.Printf("%d: %s\n", v1, v2)
 	}
@@ -592,7 +592,7 @@ func ExampleZip() {
 }
 
 func ExampleUnique() {
-	s := iters.Of(1, 2, 2, 3, 3, 3, 4)
+	s := iters.List(1, 2, 2, 3, 3, 3, 4)
 	for v := range iters.Unique(s) {
 		fmt.Printf("%d ", v)
 	}
@@ -600,7 +600,7 @@ func ExampleUnique() {
 }
 
 func ExampleFilter() {
-	s := iters.Of(1, 2, 3, 4, 5, 6)
+	s := iters.List(1, 2, 3, 4, 5, 6)
 	evenNumbers := iters.Filter(s, func(i int) bool { return i%2 == 0 })
 	for v := range evenNumbers {
 		fmt.Printf("%d ", v)
@@ -609,7 +609,7 @@ func ExampleFilter() {
 }
 
 func ExampleGroupBy() {
-	s := iters.Of(1, 2, 3, 4, 5, 6)
+	s := iters.List(1, 2, 3, 4, 5, 6)
 	groups := iters.GroupBy(s, func(i int) string {
 		if i%2 == 0 {
 			return "even"
@@ -645,7 +645,7 @@ func TestWithIndex(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := make([]int, 0)
-			for i, v := range iters.WithIndex(iters.Of(tt.seq...)) {
+			for i, v := range iters.WithIndex(iters.List(tt.seq...)) {
 				result = append(result, i)
 				result = append(result, v)
 			}
@@ -654,7 +654,7 @@ func TestWithIndex(t *testing.T) {
 				t.Errorf("WithIndex() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.WithIndex(iters.Of(tt.seq...)) {
+			for range iters.WithIndex(iters.List(tt.seq...)) {
 				break
 			}
 		})
@@ -675,7 +675,7 @@ func TestKeys(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := make([]string, 0, len(tt.seq))
-			for k := range iters.Keys(iters.EnumerateMap(tt.seq)) {
+			for k := range iters.Keys(iters.Enumerate2(tt.seq)) {
 				got = append(got, k)
 			}
 
@@ -687,7 +687,7 @@ func TestKeys(t *testing.T) {
 				t.Errorf("Keys() = %v, want %v", got, tt.want)
 			}
 
-			for range iters.Keys(iters.EnumerateMap(tt.seq)) {
+			for range iters.Keys(iters.Enumerate2(tt.seq)) {
 				break
 			}
 		})
@@ -708,7 +708,7 @@ func TestValues(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := make([]int, 0, len(tt.seq))
-			for v := range iters.Values(iters.EnumerateMap(tt.seq)) {
+			for v := range iters.Values(iters.Enumerate2(tt.seq)) {
 				got = append(got, v)
 			}
 
@@ -720,7 +720,7 @@ func TestValues(t *testing.T) {
 				t.Errorf("Values() = %v, want %v", got, tt.want)
 			}
 
-			for range iters.Values(iters.EnumerateMap(tt.seq)) {
+			for range iters.Values(iters.Enumerate2(tt.seq)) {
 				break
 			}
 		})
@@ -730,7 +730,7 @@ func TestValues(t *testing.T) {
 func ExampleKeys() {
 	m := map[string]int{"a": 1, "b": 2, "c": 3}
 	result := make([]string, 0, 3)
-	for k := range iters.Keys(iters.EnumerateMap(m)) {
+	for k := range iters.Keys(iters.Enumerate2(m)) {
 		result = append(result, k)
 	}
 
@@ -743,7 +743,7 @@ func ExampleKeys() {
 func ExampleValues() {
 	m := map[string]int{"a": 1, "b": 2, "c": 3}
 	result := make([]int, 0, 3)
-	for v := range iters.Values(iters.EnumerateMap(m)) {
+	for v := range iters.Values(iters.Enumerate2(m)) {
 		result = append(result, v)
 	}
 
@@ -760,7 +760,7 @@ func TestKeysWithLargeMap(t *testing.T) {
 	}
 
 	count := 0
-	for range iters.Keys(iters.EnumerateMap(largeMap)) {
+	for range iters.Keys(iters.Enumerate2(largeMap)) {
 		count++
 	}
 
@@ -776,7 +776,7 @@ func TestValuesWithLargeMap(t *testing.T) {
 	}
 
 	count := 0
-	for range iters.Values(iters.EnumerateMap(largeMap)) {
+	for range iters.Values(iters.Enumerate2(largeMap)) {
 		count++
 	}
 
@@ -826,7 +826,7 @@ func TestUniqueFunc(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			uniqueSeq := iters.UniqueFunc(iters.Of(tt.seq...), tt.eq)
+			uniqueSeq := iters.UniqueFunc(iters.List(tt.seq...), tt.eq)
 			got := make([]int, 0)
 			for v := range uniqueSeq {
 				got = append(got, v)
@@ -836,7 +836,7 @@ func TestUniqueFunc(t *testing.T) {
 				t.Errorf("UniqueFunc() = %v, want %v", got, tt.want)
 			}
 
-			for range iters.UniqueFunc(iters.Of(tt.seq...), tt.eq) {
+			for range iters.UniqueFunc(iters.List(tt.seq...), tt.eq) {
 				break
 			}
 		})
@@ -849,7 +849,7 @@ func TestUniqueFuncWithStrings(t *testing.T) {
 		return strings.ToLower(a) == strings.ToLower(b)
 	}
 
-	uniqueSeq := iters.UniqueFunc(iters.Of(words...), eq)
+	uniqueSeq := iters.UniqueFunc(iters.List(words...), eq)
 	got := make([]string, 0)
 	for v := range uniqueSeq {
 		got = append(got, v)
@@ -865,7 +865,7 @@ func ExampleUniqueFunc() {
 	numbers := []int{1, 1, 2, 3, 3, 4, 4, 4, 5}
 	eq := func(a, b int) bool { return a == b }
 
-	uniqueSeq := iters.UniqueFunc(iters.Of(numbers...), eq)
+	uniqueSeq := iters.UniqueFunc(iters.List(numbers...), eq)
 	for v := range uniqueSeq {
 		fmt.Print(v, " ")
 	}
@@ -890,7 +890,7 @@ func TestUniqueFuncWithCustomType(t *testing.T) {
 		return a.Name == b.Name && a.Age == b.Age
 	}
 
-	uniqueSeq := iters.UniqueFunc(iters.Of(people...), eq)
+	uniqueSeq := iters.UniqueFunc(iters.List(people...), eq)
 	got := make([]Person, 0)
 	for v := range uniqueSeq {
 		got = append(got, v)
@@ -916,12 +916,12 @@ func TestConcat(t *testing.T) {
 	}{
 		{
 			name:     "non-empty sequences",
-			input:    []iter.Seq[int]{iters.Of(1, 2), iters.Of(3, 4), iters.Of(5, 6)},
+			input:    []iter.Seq[int]{iters.List(1, 2), iters.List(3, 4), iters.List(5, 6)},
 			expected: []int{1, 2, 3, 4, 5, 6},
 		},
 		{
 			name:     "empty sequences",
-			input:    []iter.Seq[int]{iters.Of[int](), iters.Of[int](), iters.Of[int]()},
+			input:    []iter.Seq[int]{iters.List[int](), iters.List[int](), iters.List[int]()},
 			expected: []int{},
 		},
 	}
@@ -953,15 +953,15 @@ func TestConcat2(t *testing.T) {
 		{
 			name: "non-empty sequences",
 			input: []iter.Seq2[string, int]{
-				iters.EnumerateMap(map[string]int{"a": 1, "b": 2}),
-				iters.EnumerateMap(map[string]int{"c": 3, "d": 4}),
-				iters.EnumerateMap(map[string]int{"e": 5, "f": 6}),
+				iters.Enumerate2(map[string]int{"a": 1, "b": 2}),
+				iters.Enumerate2(map[string]int{"c": 3, "d": 4}),
+				iters.Enumerate2(map[string]int{"e": 5, "f": 6}),
 			},
 			expected: map[string]int{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5, "f": 6},
 		},
 		{
 			name:     "empty sequences",
-			input:    []iter.Seq2[string, int]{iters.EnumerateMap(map[string]int{}), iters.EnumerateMap(map[string]int{}), iters.EnumerateMap(map[string]int{})},
+			input:    []iter.Seq2[string, int]{iters.Enumerate2(map[string]int{}), iters.Enumerate2(map[string]int{}), iters.Enumerate2(map[string]int{})},
 			expected: map[string]int{},
 		},
 	}
@@ -992,12 +992,12 @@ func TestDistinct(t *testing.T) {
 	}{
 		{
 			name:     "non-empty sequences",
-			input:    iters.Of(1, 2, 3, 4, 3, 4, 5, 6, 5, 6, 7, 8),
+			input:    iters.List(1, 2, 3, 4, 3, 4, 5, 6, 5, 6, 7, 8),
 			expected: []int{1, 2, 3, 4, 5, 6, 7, 8},
 		},
 		{
 			name:     "empty sequences",
-			input:    iters.Of[int](),
+			input:    iters.List[int](),
 			expected: []int{},
 		},
 	}
@@ -1029,31 +1029,31 @@ func TestDistinctFunc(t *testing.T) {
 	}{
 		{
 			name:     "StandardKey",
-			input:    iters.Of(1, 2, 3, 4, 3, 4, 5, 6, 5, 6, 7, 8),
+			input:    iters.List(1, 2, 3, 4, 3, 4, 5, 6, 5, 6, 7, 8),
 			key:      func(a int) int { return a },
 			expected: []int{1, 2, 3, 4, 5, 6, 7, 8},
 		},
 		{
 			name:     "EmptySequence",
-			input:    iters.Of[int](),
+			input:    iters.List[int](),
 			key:      func(a int) int { return a },
 			expected: []int{},
 		},
 		{
 			name:     "AllUnique",
-			input:    iters.Of(1, 2, 3, 4, 5),
+			input:    iters.List(1, 2, 3, 4, 5),
 			key:      func(a int) int { return a },
 			expected: []int{1, 2, 3, 4, 5},
 		},
 		{
 			name:     "AllSame",
-			input:    iters.Of(1, 2, 3, 4, 5),
+			input:    iters.List(1, 2, 3, 4, 5),
 			key:      func(a int) int { return 0 },
 			expected: []int{0},
 		},
 		{
 			name:     "ModKey",
-			input:    iters.Of(1, 11, 2, 22, 3, 33),
+			input:    iters.List(1, 11, 2, 22, 3, 33),
 			key:      func(a int) int { return a % 10 },
 			expected: []int{1, 2, 3},
 		},

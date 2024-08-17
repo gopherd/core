@@ -97,37 +97,37 @@ func TestEnumerate(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    []string
-		expected [][2]interface{}
+		expected []interface{}
 	}{
 		{
 			name:     "Normal slice",
 			input:    []string{"a", "b", "c"},
-			expected: [][2]interface{}{{0, "a"}, {1, "b"}, {2, "c"}},
+			expected: []interface{}{"a", "b", "c"},
 		},
 		{
 			name:     "Empty slice",
 			input:    []string{},
-			expected: [][2]interface{}{},
+			expected: []interface{}{},
 		},
 		{
 			name:     "Single element slice",
 			input:    []string{"x"},
-			expected: [][2]interface{}{{0, "x"}},
+			expected: []interface{}{"x"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			seq := iters.Enumerate(tt.input)
-			result := make([][2]interface{}, 0, len(tt.input))
-			for i, v := range seq {
-				result = append(result, [2]interface{}{i, v})
+			result := make([]interface{}, 0, len(tt.input))
+			for v := range seq {
+				result = append(result, v)
 			}
 			if len(result) != len(tt.expected) {
 				t.Errorf("Expected length %d, got %d", len(tt.expected), len(result))
 			}
 			for i, v := range result {
-				if v[0] != tt.expected[i][0] || v[1] != tt.expected[i][1] {
+				if v != tt.expected[i] {
 					t.Errorf("At index %d: expected %v, got %v", i, tt.expected[i], v)
 				}
 			}
@@ -295,13 +295,13 @@ func ExampleRepeat() {
 
 func ExampleEnumerate() {
 	fruits := []string{"apple", "banana", "cherry"}
-	for i, v := range iters.Enumerate(fruits) {
-		fmt.Printf("%d: %s\n", i, v)
+	for v := range iters.Enumerate(fruits) {
+		fmt.Println(v)
 	}
 	// Output:
-	// 0: apple
-	// 1: banana
-	// 2: cherry
+	// apple
+	// banana
+	// cherry
 }
 
 func ExampleLoop() {
@@ -389,7 +389,7 @@ func TestEnumerateMap(t *testing.T) {
 				k string
 				v int
 			}, 0, len(tt.input))
-			for k, v := range iters.EnumerateMap(tt.input) {
+			for k, v := range iters.Enumerate2(tt.input) {
 				result = append(result, struct {
 					k string
 					v int
@@ -404,7 +404,7 @@ func TestEnumerateMap(t *testing.T) {
 				t.Errorf("EnumerateKV() = %v, want %v", result, tt.expected)
 			}
 
-			for range iters.EnumerateMap(tt.input) {
+			for range iters.Enumerate2(tt.input) {
 				break
 			}
 		})
