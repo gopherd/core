@@ -30,7 +30,7 @@ func (e anotherTestEvent) Typeof() int {
 
 func TestDispatcher(t *testing.T) {
 	t.Run("AddListener", func(t *testing.T) {
-		d := event.NewDispatcher[int](false)
+		d := event.NewEventSystem[int](false)
 		id := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
 			return nil
 		}))
@@ -40,7 +40,7 @@ func TestDispatcher(t *testing.T) {
 	})
 
 	t.Run("RemoveListener", func(t *testing.T) {
-		d := event.NewDispatcher[int](false)
+		d := event.NewEventSystem[int](false)
 		id := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
 			return nil
 		}))
@@ -53,7 +53,7 @@ func TestDispatcher(t *testing.T) {
 	})
 
 	t.Run("DispatchEvent", func(t *testing.T) {
-		d := event.NewDispatcher[int](false)
+		d := event.NewEventSystem[int](false)
 		called := false
 		d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
 			called = true
@@ -69,7 +69,7 @@ func TestDispatcher(t *testing.T) {
 	})
 
 	t.Run("DispatchEventError", func(t *testing.T) {
-		d := event.NewDispatcher[int](false)
+		d := event.NewEventSystem[int](false)
 		expectedErr := errors.New("test error")
 		d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
 			return expectedErr
@@ -84,7 +84,7 @@ func TestDispatcher(t *testing.T) {
 	})
 
 	t.Run("TypeMismatch", func(t *testing.T) {
-		d := event.NewDispatcher[int](false)
+		d := event.NewEventSystem[int](false)
 		d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
 			return nil
 		}))
@@ -98,7 +98,7 @@ func TestDispatcher(t *testing.T) {
 	})
 
 	t.Run("DispatchNonExistentEventType", func(t *testing.T) {
-		d := event.NewDispatcher[int](false)
+		d := event.NewEventSystem[int](false)
 		err := d.DispatchEvent(context.Background(), testEvent{eventType: 999})
 		if err != nil {
 			t.Errorf("Expected no error for non-existent event type, got %v", err)
@@ -106,7 +106,7 @@ func TestDispatcher(t *testing.T) {
 	})
 
 	t.Run("MultipleListeners", func(t *testing.T) {
-		d := event.NewDispatcher[int](false)
+		d := event.NewEventSystem[int](false)
 		count := 0
 		for i := 0; i < 3; i++ {
 			d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
@@ -122,7 +122,7 @@ func TestDispatcher(t *testing.T) {
 
 	t.Run("RemoveMiddleListenerUnordered", func(t *testing.T) {
 		var called atomic.Int32
-		d := event.NewDispatcher[int](false) // unordered dispatcher
+		d := event.NewEventSystem[int](false) // unordered dispatcher
 		id1 := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
 			called.Add(1)
 			return nil
@@ -159,7 +159,7 @@ func TestDispatcher(t *testing.T) {
 	})
 
 	t.Run("RemoveMiddleListenerOrdered", func(t *testing.T) {
-		d := event.NewDispatcher[int](true) // ordered dispatcher
+		d := event.NewEventSystem[int](true) // ordered dispatcher
 		callOrder := []int{}
 		id1 := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
 			callOrder = append(callOrder, 1)
@@ -197,7 +197,7 @@ func TestDispatcher(t *testing.T) {
 	})
 
 	t.Run("RemoveLastListener", func(t *testing.T) {
-		d := event.NewDispatcher[int](false)
+		d := event.NewEventSystem[int](false)
 		id1 := d.AddListener(event.Listen(1, func(ctx context.Context, e testEvent) error {
 			return nil
 		}))

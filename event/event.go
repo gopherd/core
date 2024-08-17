@@ -32,107 +32,123 @@ type Listener[T comparable] interface {
 }
 
 // Listen creates a Listener for the given event type and handler function.
-func Listen[T comparable, E Event[T], H ~func(context.Context, E) error](eventType T, handler H) Listener[T] {
-	return listenerFunc[T, E, H]{eventType, handler}
+func Listen[H ~func(context.Context, E) error, E Event[T], T comparable](eventType T, handler H) Listener[T] {
+	return listenerFunc[H, E, T]{eventType, handler}
 }
 
-type listenerFunc[T comparable, E Event[T], H ~func(context.Context, E) error] struct {
+type listenerFunc[H ~func(context.Context, E) error, E Event[T], T comparable] struct {
 	eventType T
 	handler   H
 }
 
 // EventType implements the Listener interface.
-func (h listenerFunc[T, E, H]) EventType() T {
+func (h listenerFunc[H, E, T]) EventType() T {
 	return h.eventType
 }
 
 // HandleEvent implements the Listener interface.
-func (h listenerFunc[T, E, H]) HandleEvent(ctx context.Context, event Event[T]) error {
+func (h listenerFunc[H, E, T]) HandleEvent(ctx context.Context, event Event[T]) error {
 	if e, ok := event.(E); ok {
 		return h.handler(ctx, e)
 	}
 	return fmt.Errorf("%w: got %T for type %v", ErrUnexpectedEventType, event, event.Typeof())
 }
 
-// Dispatcher manages event listeners and dispatches events.
-type Dispatcher[T comparable] interface {
-	// AddListener registers a new listener and returns its ID.
+// ListenerAdder adds a new listener and returns its ID.
+type ListenerAdder[T comparable] interface {
 	AddListener(Listener[T]) ListenerID
-	// RemoveListener removes the listener with the given ID.
+}
+
+// ListenerRemover removes a listener by its ID.
+type ListenerRemover interface {
 	RemoveListener(ListenerID) bool
-	// HasListener checks if a listener with the given ID exists.
+}
+
+// ListenerChecker checks if a listener exists by its ID.
+type ListenerChecker interface {
 	HasListener(ListenerID) bool
-	// DispatchEvent sends an event to all registered listeners of its type.
+}
+
+// Dispatcher dispatches events.
+type Dispatcher[T comparable] interface {
 	DispatchEvent(context.Context, Event[T]) error
 }
 
-type dispatcher[T comparable] struct {
+// EventSystem is the interface that manages listeners and dispatches events.
+type EventSystem[T comparable] interface {
+	ListenerAdder[T]
+	ListenerRemover
+	ListenerChecker
+	Dispatcher[T]
+}
+
+type eventSystem[T comparable] struct {
 	nextID    ListenerID
 	ordered   bool
 	listeners map[T][]pair.Pair[ListenerID, Listener[T]]
 	mapping   map[ListenerID]pair.Pair[T, int]
 }
 
-func newDispatcher[T comparable](ordered bool) *dispatcher[T] {
-	return &dispatcher[T]{
+func newDispatcher[T comparable](ordered bool) *eventSystem[T] {
+	return &eventSystem[T]{
 		ordered:   ordered,
 		listeners: make(map[T][]pair.Pair[ListenerID, Listener[T]]),
 		mapping:   make(map[ListenerID]pair.Pair[T, int]),
 	}
 }
 
-// NewDispatcher creates a new Dispatcher instance.
-func NewDispatcher[T comparable](ordered bool) Dispatcher[T] {
+// NewEventSystem creates a new EventSystem instance.
+func NewEventSystem[T comparable](ordered bool) EventSystem[T] {
 	return newDispatcher[T](ordered)
 }
 
-// AddListener implements the Dispatcher interface.
-func (d *dispatcher[T]) AddListener(listener Listener[T]) ListenerID {
-	d.nextID++
-	id := d.nextID
+// AddListener implements the ListenerAdder interface.
+func (es *eventSystem[T]) AddListener(listener Listener[T]) ListenerID {
+	es.nextID++
+	id := es.nextID
 	eventType := listener.EventType()
-	listeners := d.listeners[eventType]
+	listeners := es.listeners[eventType]
 	index := len(listeners)
-	d.listeners[eventType] = append(listeners, pair.New(id, listener))
-	d.mapping[id] = pair.New(eventType, index)
+	es.listeners[eventType] = append(listeners, pair.New(id, listener))
+	es.mapping[id] = pair.New(eventType, index)
 	return id
 }
 
-// RemoveListener implements the Dispatcher interface.
-func (d *dispatcher[T]) RemoveListener(id ListenerID) bool {
-	index, ok := d.mapping[id]
+// RemoveListener implements the ListenerRemover interface.
+func (es *eventSystem[T]) RemoveListener(id ListenerID) bool {
+	index, ok := es.mapping[id]
 	if !ok {
 		return false
 	}
 	eventType := index.First
-	listeners := d.listeners[eventType]
+	listeners := es.listeners[eventType]
 	last := len(listeners) - 1
 	if index.Second != last {
-		if d.ordered {
+		if es.ordered {
 			copy(listeners[index.Second:last], listeners[index.Second+1:])
 			for i := index.Second; i < last; i++ {
-				d.mapping[listeners[i].First] = pair.New(eventType, i)
+				es.mapping[listeners[i].First] = pair.New(eventType, i)
 			}
 		} else {
 			listeners[index.Second] = listeners[last]
-			d.mapping[listeners[index.Second].First] = pair.New(eventType, index.Second)
+			es.mapping[listeners[index.Second].First] = pair.New(eventType, index.Second)
 		}
 	}
 	listeners[last].Second = nil
-	d.listeners[eventType] = listeners[:last]
-	delete(d.mapping, id)
+	es.listeners[eventType] = listeners[:last]
+	delete(es.mapping, id)
 	return true
 }
 
 // HasListener implements the Dispatcher interface.
-func (d *dispatcher[T]) HasListener(id ListenerID) bool {
-	_, ok := d.mapping[id]
+func (es *eventSystem[T]) HasListener(id ListenerID) bool {
+	_, ok := es.mapping[id]
 	return ok
 }
 
 // DispatchEvent implements the Dispatcher interface.
-func (d *dispatcher[T]) DispatchEvent(ctx context.Context, event Event[T]) error {
-	listeners, ok := d.listeners[event.Typeof()]
+func (es *eventSystem[T]) DispatchEvent(ctx context.Context, event Event[T]) error {
+	listeners, ok := es.listeners[event.Typeof()]
 	if !ok || len(listeners) == 0 {
 		return nil
 	}
