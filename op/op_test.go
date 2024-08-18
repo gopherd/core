@@ -320,19 +320,19 @@ func TestResult(t *testing.T) {
 	var err = fmt.Errorf("error")
 	tests := []struct {
 		name string
-		a    error
-		b    any
+		a    any
+		b    error
 		want any
 	}{
-		{"nil", nil, 1, 1},
-		{"error", err, 1, err},
+		{"nil", 1, nil, 1},
+		{"error", 1, err, err},
 		{"nil_nil", nil, nil, nil},
-		{"error_nil", err, nil, err},
-		{"nil_error", nil, err, err},
-		{"nil_string", nil, "string", "string"},
-		{"error_string", err, "string", err},
-		{"nil_float", nil, 1.0, 1.0},
-		{"error_float", err, 1.0, err},
+		{"error_nil", nil, err, err},
+		{"nil_error", err, nil, err},
+		{"nil_string", "string", nil, "string"},
+		{"error_string", "string", err, err},
+		{"nil_float", 1.0, nil, 1.0},
+		{"error_float", 1.0, err, err},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -164,7 +164,7 @@ func Identity[T any](v T) func() T {
 }
 
 // Result returns err if it is not nil, otherwise it returns value.
-func Result(err error, value any) any {
+func Result(value any, err error) any {
 	if err != nil {
 		return err
 	}
