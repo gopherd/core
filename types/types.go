@@ -514,7 +514,7 @@ func (d *Duration) Deref() time.Duration {
 func formatDuration(d time.Duration) string {
 	var sb strings.Builder
 	if d == 0 {
-		return "0"
+		return "0s"
 	}
 	if d < 0 {
 		sb.WriteByte('-')

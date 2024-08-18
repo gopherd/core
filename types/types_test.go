@@ -117,6 +117,7 @@ func TestFormatDuration(t *testing.T) {
 		d   time.Duration
 		str string
 	}{
+		{0, "0s"},
 		{5 * time.Second, "5s"},
 		{5 * time.Minute, "5m"},
 		{5 * time.Hour, "5h"},
