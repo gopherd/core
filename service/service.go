@@ -155,29 +155,61 @@ func (s *BaseService[T]) setupConfig() error {
 	return nil
 }
 
+func (s *BaseService[T]) setupComponents() ([]pair.Pair[component.Component, component.Config], error) {
+	var components = make([]pair.Pair[component.Component, component.Config], 0, len(s.config.Components))
+	for _, c := range s.config.Components {
+		com, err := component.Create(c.Name)
+		if err != nil {
+			return nil, errkit.NewExitError(2, fmt.Sprintf("failed to create component %q: %v", c.Name, err))
+		}
+		if s.components.AddComponent(c.UUID, com) == nil {
+			return nil, fmt.Errorf("duplicate component uuid: %q", c.UUID)
+		}
+		components = append(components, pair.New(com, c))
+	}
+	for i := range components {
+		if err := components[i].First.Setup(s, components[i].Second); err != nil {
+			return nil, fmt.Errorf("component %q setup error: %w", components[i].First.String(), err)
+		}
+	}
+	return components, nil
+}
+
+func (s *BaseService[T]) setup() ([]pair.Pair[component.Component, component.Config], error) {
+	if err := s.setupCommandLineFlags(); err != nil {
+		return nil, err
+	}
+	if err := s.setupConfig(); err != nil {
+		return nil, err
+	}
+	return s.setupComponents()
+}
+
 // Init implements the Service Init method, setting up logging and initializing components.
 func (s *BaseService[T]) Init(ctx context.Context) error {
 	slog.SetDefault(slog.New(slog.NewTextHandler(s.stderr, &slog.HandlerOptions{
 		Level: slog.LevelWarn,
 	})))
 
-	if err := s.setupCommandLineFlags(); err != nil {
-		return err
-	}
-
-	err := s.setupConfig()
+	components, err := s.setup()
 
 	if s.flags.printConfig {
 		if err != nil {
 			fmt.Fprintf(s.stderr, "Config test failed: %v\n", err)
 			return errkit.NewExitError(2, err.Error())
 		}
-		s.config.output(s.stdout, s.stderr, s.encoder)
+		// generate output config after setting up components
+		configs := make([]component.Config, 0, len(components))
+		for _, c := range components {
+			config, err := c.First.Config()
+			if err != nil {
+				fmt.Fprintf(s.stderr, "Failed to get component config: %v", err)
+				return errkit.NewExitError(2, err.Error())
+			}
+			configs = append(configs, config)
+		}
+		s.config.output(configs, s.stdout, s.stderr, s.encoder)
 		return errkit.NewExitError(0)
-	}
-
-	if err == nil {
-		err = s.setupComponents()
 	}
 
 	if s.flags.testConfig {
@@ -194,26 +226,6 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 	}
 
 	return s.components.Init(ctx)
-}
-
-func (s *BaseService[T]) setupComponents() error {
-	var components = make([]pair.Pair[component.Component, component.Config], 0, len(s.config.Components))
-	for _, c := range s.config.Components {
-		com, err := component.Create(c.Name)
-		if err != nil {
-			return errkit.NewExitError(2, fmt.Sprintf("failed to create component %q: %v", c.Name, err))
-		}
-		if s.components.AddComponent(c.UUID, com) == nil {
-			return fmt.Errorf("duplicate component uuid: %q", c.UUID)
-		}
-		components = append(components, pair.New(com, c))
-	}
-	for i := range components {
-		if err := components[i].First.Setup(s, components[i].Second); err != nil {
-			return fmt.Errorf("component %q setup error: %w", components[i].First.String(), err)
-		}
-	}
-	return nil
 }
 
 // Uninit implements the Service Uninit method, uninitializing all components.

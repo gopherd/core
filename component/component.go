@@ -57,6 +57,9 @@ type Component interface {
 	// Logger returns the logger instance for the component.
 	// Logger must be guranteed to return a non-nil logger instance after Setup is called.
 	Logger() *slog.Logger
+
+	// Config returns the configuration of the component.
+	Config() (Config, error)
 }
 
 // Container represents a generic container that can hold components.
@@ -79,6 +82,7 @@ type Resolver interface {
 
 type simpleComponent struct {
 	funcs      lifecycle.Funcs
+	name, uuid string
 	identifier string
 	container  Container
 	logger     atomic.Pointer[slog.Logger]
@@ -100,9 +104,19 @@ func (c *simpleComponent) Logger() *slog.Logger {
 	return currentLogger
 }
 
+// Config implements the Component Config method.
+func (c *simpleComponent) Config() (Config, error) {
+	return Config{
+		Name: c.name,
+		UUID: c.uuid,
+	}, nil
+}
+
 // Setup implements the Component Setup method.
 func (c *simpleComponent) Setup(container Container, config Config) error {
 	c.container = container
+	c.name = config.Name
+	c.uuid = config.UUID
 	if config.UUID != "" {
 		if strings.Contains(config.UUID, config.Name) {
 			c.identifier = "#" + config.UUID
@@ -151,6 +165,19 @@ func (c *simpleComponent) Uninit(ctx context.Context) error {
 type BaseComponent[T any] struct {
 	simpleComponent
 	options T
+}
+
+// Config implements the Component Config method.
+func (c *BaseComponent[T]) Config() (Config, error) {
+	options, err := json.Marshal(c.options)
+	if err != nil {
+		return Config{}, err
+	}
+	return Config{
+		Name:    c.name,
+		UUID:    c.uuid,
+		Options: types.NewRawObject(options),
+	}, nil
 }
 
 // Options returns a pointer to the component's options.
@@ -255,6 +282,24 @@ func (r *OptionalReference[T]) Resolve(container Container) error {
 type BaseComponentWithRefs[T, R any] struct {
 	BaseComponent[T]
 	refs R
+}
+
+// Config implements the Component Config method.
+func (c *BaseComponentWithRefs[T, R]) Config() (Config, error) {
+	options, err := json.Marshal(c.options)
+	if err != nil {
+		return Config{}, err
+	}
+	refs, err := json.Marshal(c.refs)
+	if err != nil {
+		return Config{}, err
+	}
+	return Config{
+		Name:    c.name,
+		UUID:    c.uuid,
+		Refs:    types.NewRawObject(refs),
+		Options: types.NewRawObject(options),
+	}, nil
 }
 
 // Refs returns a pointer to the component's references.

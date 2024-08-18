@@ -31,13 +31,13 @@ func newBaseServiceTest[T any](config Config[T]) *BaseService[T] {
 	s := NewBaseService(config)
 	s.stderr = io.Discard
 	s.stdout = io.Discard
+	s.flagSet = flag.NewFlagSet("test", flag.ContinueOnError)
 	s.versionFunc = func() {}
 	return s
 }
 
-// resetFlagsAndArgs resets flag.CommandLine and os.Args
+// resetFlagsAndArgs resets os.Args
 func resetFlagsAndArgs() {
-	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	os.Args = []string{"test"}
 }
 
@@ -201,7 +201,6 @@ func TestSetupCommandLineFlags(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			resetFlagsAndArgs()
 			service := newBaseServiceTest(Config[struct{}]{})
-			service.flagSet = flag.NewFlagSet("test", flag.ContinueOnError)
 			os.Args = append(os.Args, tt.args...)
 
 			err := service.setupCommandLineFlags()
@@ -278,7 +277,6 @@ func TestSetupConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			resetFlagsAndArgs()
 			service := newBaseServiceTest(Config[struct{ Field string }]{})
-			service.flagSet = flag.NewFlagSet("test", flag.ContinueOnError)
 			service.flags.enableTemplate = tt.enableTemplate
 
 			// Create a temporary file with the test config content
@@ -352,7 +350,7 @@ func TestSetupComponents(t *testing.T) {
 				Components: tt.components,
 			})
 
-			err := service.setupComponents()
+			_, err := service.setupComponents()
 
 			if tt.expectedError {
 				if err == nil {

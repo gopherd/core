@@ -164,7 +164,11 @@ func (c *Config[T]) processTemplate(enableTemplate bool, source string) error {
 
 // output encodes the configuration with the encoder and writes it to stdout.
 // It uses indentation for better readability.
-func (c Config[T]) output(stdout, stderr io.Writer, encoder encoding.Encoder) {
+func (c *Config[T]) output(components []component.Config, stdout, stderr io.Writer, encoder encoding.Encoder) {
+	if len(components) > 0 {
+		c.Components = components
+	}
+
 	if encoder == nil {
 		if data, err := jsonIndentEncoder(c); err != nil {
 			fmt.Fprintf(stderr, "Encode config failed: %v\n", err)

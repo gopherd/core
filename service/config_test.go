@@ -457,7 +457,7 @@ func TestConfig_Output(t *testing.T) {
 			r, w, _ := os.Pipe()
 			os.Stdout = w
 
-			tt.config.output(os.Stdout, io.Discard, tt.encoder)
+			tt.config.output(nil, os.Stdout, io.Discard, tt.encoder)
 			w.Close()
 			os.Stdout = oldStdout
 
