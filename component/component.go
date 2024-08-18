@@ -25,25 +25,25 @@ type Config struct {
 	Name string
 
 	// UUID is the unique identifier for the component. It can be empty.
-	UUID string `json:",omitempty" toml:",omitempty"`
+	UUID string `json:",omitempty"`
 
 	// Refs is the references to other components.
-	Refs types.RawObject `json:",omitempty" toml:",omitempty"`
+	Refs types.RawObject `json:",omitempty"`
 
 	// Options is the configuration options for the component.
-	Options types.RawObject `json:",omitempty" toml:",omitempty"`
+	Options types.RawObject `json:",omitempty"`
 
 	// TemplateUUID determines if the UUID should be templated.
 	// If not set, the default value is determined by the service.
-	TemplateUUID *types.Bool `json:",omitempty" toml:",omitempty"`
+	TemplateUUID *types.Bool `json:",omitempty"`
 
 	// TemplateRefs determines if the Refs should be templated.
 	// If not set, the default value is determined by the service.
-	TemplateRefs *types.Bool `json:",omitempty" toml:",omitempty"`
+	TemplateRefs *types.Bool `json:",omitempty"`
 
 	// TemplateOptions determines if the Options should be templated.
 	// If not set, the default value is determined by the service.
-	TemplateOptions *types.Bool `json:",omitempty" toml:",omitempty"`
+	TemplateOptions *types.Bool `json:",omitempty"`
 }
 
 // Component defines the interface for a generic logic component.

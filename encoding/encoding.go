@@ -100,7 +100,7 @@ func GetJSONSourceError(filename string, data []byte, err error) error {
 		return err
 	}
 
-	const maxContext = 256
+	const maxContext = 64
 	line, column := GetPosition(data, offset)
 	begin := bytes.LastIndexByte(data[:offset], '\n') + 1
 	context := string(data[begin:offset])

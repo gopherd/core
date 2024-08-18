@@ -21,8 +21,8 @@ import (
 // Config represents a generic configuration structure for services.
 // It includes a context of type T and a list of component configurations.
 type Config[T any] struct {
-	Context    T                  `json:",omitempty" toml:",omitempty"`
-	Components []component.Config `json:",omitempty" toml:",omitempty"`
+	Context    T                  `json:",omitempty"`
+	Components []component.Config `json:",omitempty"`
 }
 
 // load processes the configuration based on the provided source.
@@ -55,14 +55,14 @@ func (c *Config[T]) load(stdin io.Reader, decoder encoding.Decoder, source strin
 	}
 
 	if err != nil {
-		return err
+		return fmt.Errorf("open config source failed: %w", err)
 	}
 
 	var data []byte
 	if decoder == nil {
 		data, err = stripJSONComments(r)
 		if err != nil {
-			return err
+			return fmt.Errorf("strip JSON comments failed: %w", err)
 		}
 	} else {
 		data, err = io.ReadAll(r)
@@ -76,7 +76,18 @@ func (c *Config[T]) load(stdin io.Reader, decoder encoding.Decoder, source strin
 	}
 
 	if err := json.Unmarshal(data, c); err != nil {
-		err = encoding.GetJSONSourceError(source, data, err)
+		if decoder == nil {
+			err = encoding.GetJSONSourceError(source, data, err)
+		} else {
+			switch e := err.(type) {
+			case *json.UnmarshalTypeError:
+				if e.Struct != "" || e.Field != "" {
+					err = errors.New("cannot unmarshal " + e.Value + " into Go struct field " + e.Struct + "." + e.Field + " of type " + e.Type.String())
+				} else {
+					err = errors.New("cannot unmarshal " + e.Value + " into Go value of type " + e.Type.String())
+				}
+			}
+		}
 		return fmt.Errorf("unmarshal config failed: %w", err)
 	}
 

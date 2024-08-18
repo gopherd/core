@@ -1,7 +1,10 @@
 // Package enums provides a way to register enum descriptors and lookup them by name.
 package enums
 
-import "sync"
+import (
+	"errors"
+	"sync"
+)
 
 // Descriptor is a struct that describes an enum type.
 type Descriptor struct {
@@ -17,25 +20,32 @@ type MemberDescriptor struct {
 	Description string `json:"description"`
 }
 
-var (
+// Registry is a struct that holds a map of enum descriptors.
+type Registry struct {
 	descriptorsMu sync.RWMutex
-	descriptors   = make(map[string]*Descriptor)
-)
+	descriptors   map[string]*Descriptor
+}
 
 // RegisterDescriptor registers an enum descriptor.
-func RegisterDescriptor(descriptor *Descriptor) {
-	descriptorsMu.Lock()
-	defer descriptorsMu.Unlock()
-	if _, dup := descriptors[descriptor.Name]; dup {
-		panic("enums: RegisterDescriptor called twice for descriptor " + descriptor.Name)
+func (r *Registry) RegisterDescriptor(descriptor *Descriptor) error {
+	r.descriptorsMu.Lock()
+	defer r.descriptorsMu.Unlock()
+	if r.descriptors == nil {
+		r.descriptors = make(map[string]*Descriptor)
 	}
-	descriptors[descriptor.Name] = descriptor
+	if _, dup := r.descriptors[descriptor.Name]; dup {
+		return errors.New("enums: RegisterDescriptor called twice for descriptor " + descriptor.Name)
+	}
+	r.descriptors[descriptor.Name] = descriptor
+	return nil
 }
 
 // LookupDescriptor looks up an enum descriptor by name.
-func LookupDescriptor(name string) *Descriptor {
-	descriptorsMu.RLock()
-	defer descriptorsMu.RUnlock()
-	descriptor := descriptors[name]
-	return descriptor
+func (r *Registry) LookupDescriptor(name string) *Descriptor {
+	r.descriptorsMu.RLock()
+	defer r.descriptorsMu.RUnlock()
+	if r.descriptors == nil {
+		return nil
+	}
+	return r.descriptors[name]
 }

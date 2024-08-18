@@ -91,20 +91,20 @@ func TestConfig_Load(t *testing.T) {
 		},
 		{
 			name:   "Custom decoder",
-			source: "testconfig.toml",
+			source: "testconfig.abc",
 			decoder: func(data []byte, v interface{}) error {
-				// Mock TOML decoder
+				// Mock decoder
 				return json.Unmarshal(data, v)
 			},
 			setup: func() error {
-				content := `{"Context":{"Name":"TestTOML"},"Components":[{"Name":"TOMLComponent"}]}`
-				return os.WriteFile("testconfig.toml", []byte(content), 0644)
+				content := `{"Context":{"Name":"TestABC"},"Components":[{"Name":"ABCComponent"}]}`
+				return os.WriteFile("testconfig.abc", []byte(content), 0644)
 			},
 			cleanup: func() {
-				os.Remove("testconfig.toml")
+				os.Remove("testconfig.abc")
 			},
 			check: func(t *testing.T, c *Config[TestContext]) {
-				if c.Context.Name != "TestTOML" || len(c.Components) != 1 || c.Components[0].Name != "TOMLComponent" {
+				if c.Context.Name != "TestABC" || len(c.Components) != 1 || c.Components[0].Name != "ABCComponent" {
 					t.Errorf("Unexpected config: %+v", c)
 				}
 			},
