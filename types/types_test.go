@@ -61,23 +61,78 @@ func testValueType[T ValueType[V], V comparable](t *testing.T, name string, zero
 }
 
 func TestValueTypes(t *testing.T) {
-	testValueType[*Bool](t, "Bool", false, true, "true", func() *Bool { return new(Bool) })
-	testValueType[*Int](t, "Int", 0, 42, "42", func() *Int { return new(Int) })
-	testValueType[*Int8](t, "Int8", int8(0), int8(42), "42", func() *Int8 { return new(Int8) })
-	testValueType[*Int16](t, "Int16", int16(0), int16(42), "42", func() *Int16 { return new(Int16) })
-	testValueType[*Int32](t, "Int32", int32(0), int32(42), "42", func() *Int32 { return new(Int32) })
-	testValueType[*Int64](t, "Int64", int64(0), int64(42), "42", func() *Int64 { return new(Int64) })
-	testValueType[*Uint](t, "Uint", uint(0), uint(42), "42", func() *Uint { return new(Uint) })
-	testValueType[*Uint8](t, "Uint8", uint8(0), uint8(42), "42", func() *Uint8 { return new(Uint8) })
-	testValueType[*Uint16](t, "Uint16", uint16(0), uint16(42), "42", func() *Uint16 { return new(Uint16) })
-	testValueType[*Uint32](t, "Uint32", uint32(0), uint32(42), "42", func() *Uint32 { return new(Uint32) })
-	testValueType[*Uint64](t, "Uint64", uint64(0), uint64(42), "42", func() *Uint64 { return new(Uint64) })
-	testValueType[*Float32](t, "Float32", float32(0), float32(3.14), "3.14", func() *Float32 { return new(Float32) })
-	testValueType[*Float64](t, "Float64", float64(0), float64(3.14), "3.14", func() *Float64 { return new(Float64) })
-	testValueType[*String](t, "String", "", "hello", "hello", func() *String { return new(String) })
-	testValueType[*Complex64](t, "Complex64", complex64(0), complex64(1+2i), "(1+2i)", func() *Complex64 { return new(Complex64) })
-	testValueType[*Complex128](t, "Complex128", complex128(0), complex128(1+2i), "(1+2i)", func() *Complex128 { return new(Complex128) })
-	testValueType[*Duration](t, "Duration", time.Duration(0), 5*time.Second, "5s", func() *Duration { return new(Duration) })
+	testValueType(t, "Bool", false, true, "true", func() *Bool { return new(Bool) })
+	testValueType(t, "Int", 0, 42, "42", func() *Int { return new(Int) })
+	testValueType(t, "Int8", int8(0), int8(42), "42", func() *Int8 { return new(Int8) })
+	testValueType(t, "Int16", int16(0), int16(42), "42", func() *Int16 { return new(Int16) })
+	testValueType(t, "Int32", int32(0), int32(42), "42", func() *Int32 { return new(Int32) })
+	testValueType(t, "Int64", int64(0), int64(42), "42", func() *Int64 { return new(Int64) })
+	testValueType(t, "Uint", uint(0), uint(42), "42", func() *Uint { return new(Uint) })
+	testValueType(t, "Uint8", uint8(0), uint8(42), "42", func() *Uint8 { return new(Uint8) })
+	testValueType(t, "Uint16", uint16(0), uint16(42), "42", func() *Uint16 { return new(Uint16) })
+	testValueType(t, "Uint32", uint32(0), uint32(42), "42", func() *Uint32 { return new(Uint32) })
+	testValueType(t, "Uint64", uint64(0), uint64(42), "42", func() *Uint64 { return new(Uint64) })
+	testValueType(t, "Float32", float32(0), float32(3.14), "3.14", func() *Float32 { return new(Float32) })
+	testValueType(t, "Float64", float64(0), float64(3.14), "3.14", func() *Float64 { return new(Float64) })
+	testValueType(t, "String", "", "hello", "hello", func() *String { return new(String) })
+	testValueType(t, "Complex64", complex64(0), complex64(1+2i), "(1+2i)", func() *Complex64 { return new(Complex64) })
+	testValueType(t, "Complex128", complex128(0), complex128(1+2i), "(1+2i)", func() *Complex128 { return new(Complex128) })
+	testValueType(t, "Duration", time.Duration(0), 5*time.Second, "5s", func() *Duration { return new(Duration) })
+}
+
+func TestParseDuration(t *testing.T) {
+	tests := []struct {
+		str string
+		d   time.Duration
+		err bool
+	}{
+		{"5s", 5 * time.Second, false},
+		{"5m", 5 * time.Minute, false},
+		{"5h", 5 * time.Hour, false},
+		{"5d", 5 * 24 * time.Hour, false},
+		{"5", 5, false},
+		{"0", 0, false},
+		{"5d6h7m8s9ms10µs11ns", 5*24*time.Hour + 6*time.Hour + 7*time.Minute + 8*time.Second + 9*time.Millisecond + 10*time.Microsecond + 11*time.Nanosecond, false},
+		{"", 0, true},
+		{"d", 0, true},
+		{"1h2d", 0, true},
+		{"w", 0, true},
+		{"y", 0, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.str, func(t *testing.T) {
+			d, err := parseDuration(tt.str)
+			if err != nil && !tt.err {
+				t.Errorf("ParseDuration() error = %v", err)
+			}
+			if d != tt.d {
+				t.Errorf("ParseDuration() = %v, want %v", d, tt.d)
+			}
+		})
+	}
+}
+
+func TestFormatDuration(t *testing.T) {
+	tests := []struct {
+		d   time.Duration
+		str string
+	}{
+		{5 * time.Second, "5s"},
+		{5 * time.Minute, "5m"},
+		{5 * time.Hour, "5h"},
+		{5*time.Hour + 7*time.Second, "5h7s"},
+		{-5*time.Hour - 7*time.Second, "-5h7s"},
+		{5 * 24 * time.Hour, "5d"},
+		{5, "5ns"},
+		{5*24*time.Hour + 6*time.Hour + 7*time.Minute + 8*time.Second + 9*time.Millisecond + 10*time.Microsecond + 11*time.Nanosecond, "5d6h7m8s9ms10µs11ns"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.str, func(t *testing.T) {
+			if s := formatDuration(tt.d); s != tt.str {
+				t.Errorf("FormatDuration() = %v, want %v", s, tt.str)
+			}
+		})
+	}
 }
 
 func TestRawObject(t *testing.T) {

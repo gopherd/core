@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gopherd/core/encoding"
@@ -510,6 +511,80 @@ func (d *Duration) Deref() time.Duration {
 	return time.Duration(*d)
 }
 
+func formatDuration(d time.Duration) string {
+	var sb strings.Builder
+	if d == 0 {
+		return "0"
+	}
+	if d < 0 {
+		sb.WriteByte('-')
+		d = -d
+	}
+	if d >= 24*time.Hour {
+		days := d / (24 * time.Hour)
+		sb.Write(strconv.AppendInt(nil, int64(days), 10))
+		sb.WriteByte('d')
+		d -= days * 24 * time.Hour
+	}
+	if d >= time.Hour {
+		sb.Write(strconv.AppendInt(nil, int64(d/time.Hour), 10))
+		sb.WriteByte('h')
+		d -= d / time.Hour * time.Hour
+	}
+	if d >= time.Minute {
+		sb.Write(strconv.AppendInt(nil, int64(d/time.Minute), 10))
+		sb.WriteByte('m')
+		d -= d / time.Minute * time.Minute
+	}
+	if d >= time.Second {
+		sb.Write(strconv.AppendInt(nil, int64(d/time.Second), 10))
+		sb.WriteByte('s')
+		d -= d / time.Second * time.Second
+	}
+	if d >= time.Millisecond {
+		sb.Write(strconv.AppendInt(nil, int64(d/time.Millisecond), 10))
+		sb.WriteString("ms")
+		d -= d / time.Millisecond * time.Millisecond
+	}
+	if d >= time.Microsecond {
+		sb.Write(strconv.AppendInt(nil, int64(d/time.Microsecond), 10))
+		sb.WriteRune('µ')
+		sb.WriteByte('s')
+		d -= d / time.Microsecond * time.Microsecond
+	}
+	if d > 0 {
+		sb.Write(strconv.AppendInt(nil, int64(d), 10))
+		sb.WriteString("ns")
+	}
+	return sb.String()
+}
+
+func parseDuration(s string) (time.Duration, error) {
+	if i, err := strconv.ParseInt(s, 10, 64); err == nil {
+		return time.Duration(i), nil
+	}
+	i := strings.IndexByte(s, 'd')
+	if i > 0 {
+		days, err := strconv.ParseInt(s[:i], 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		if i == len(s)-1 {
+			return time.Duration(days) * 24 * time.Hour, nil
+		}
+		d, err := time.ParseDuration(s[i+1:])
+		if err != nil {
+			return 0, err
+		}
+		return time.Duration(days)*24*time.Hour + d, nil
+	}
+	return time.ParseDuration(s)
+}
+
+func (d Duration) String() string {
+	return formatDuration(time.Duration(d))
+}
+
 func (d *Duration) Set(v string) error {
 	x, err := time.ParseDuration(v)
 	if err != nil {
@@ -520,7 +595,7 @@ func (d *Duration) Set(v string) error {
 }
 
 func (d Duration) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.Quote(time.Duration(d).String())), nil
+	return []byte(strconv.Quote(d.String())), nil
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) error {
@@ -536,7 +611,7 @@ func (d *Duration) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	x, err := time.ParseDuration(s)
+	x, err := parseDuration(s)
 	if err != nil {
 		return err
 	}
