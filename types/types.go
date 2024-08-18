@@ -642,3 +642,30 @@ func (t *Time) Set(v string) error {
 	*t = Time(x)
 	return nil
 }
+
+// Object wraps a map[string]any value.
+type Object map[string]any
+
+func (o Object) Get(key string) any {
+	return o[key]
+}
+
+func (o Object) Set(key string, value any) {
+	o[key] = value
+}
+
+func (o Object) Delete(key string) {
+	delete(o, key)
+}
+
+func (o Object) Keys() []string {
+	keys := make([]string, 0, len(o))
+	for key := range o {
+		keys = append(keys, key)
+	}
+	return keys
+}
+
+func (o Object) Len() int {
+	return len(o)
+}
