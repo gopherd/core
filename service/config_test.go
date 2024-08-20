@@ -271,11 +271,11 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 						TemplateUUID:    op.Addr(types.Bool(true)),
 						TemplateRefs:    op.Addr(types.Bool(true)),
 						TemplateOptions: op.Addr(types.Bool(true)),
-						Refs: types.NewRawObject(op.MustValue(json.Marshal(refs{
+						Refs: types.NewRawObject(op.MustResult(json.Marshal(refs{
 							A: "{{.Name}}-A",
 							B: "B",
 						}))),
-						Options: types.NewRawObject(op.MustValue(json.Marshal(options{
+						Options: types.NewRawObject(op.MustResult(json.Marshal(options{
 							C: "C",
 							D: "{{.Name}}-D",
 						}))),
@@ -294,11 +294,11 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 						TemplateUUID:    op.Addr(types.Bool(true)),
 						TemplateRefs:    op.Addr(types.Bool(true)),
 						TemplateOptions: op.Addr(types.Bool(true)),
-						Refs: types.NewRawObject(op.MustValue(json.Marshal(refs{
+						Refs: types.NewRawObject(op.MustResult(json.Marshal(refs{
 							A: "TestName-A",
 							B: "B",
 						}))),
-						Options: types.NewRawObject(op.MustValue(json.Marshal(options{
+						Options: types.NewRawObject(op.MustResult(json.Marshal(options{
 							C: "C",
 							D: "TestName-D",
 						}))),
@@ -354,7 +354,7 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 					{
 						Name:         "Component1",
 						TemplateRefs: op.Addr(types.Bool(true)),
-						Refs: types.NewRawObject(op.MustValue(json.Marshal(map[string]string{
+						Refs: types.NewRawObject(op.MustResult(json.Marshal(map[string]string{
 							"A": "{{.NameXXX}}-A",
 							"B": "B",
 						}))),
@@ -373,7 +373,7 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 					{
 						Name:            "Component1",
 						TemplateOptions: op.Addr(types.Bool(true)),
-						Options: types.NewRawObject(op.MustValue(json.Marshal(map[string]string{
+						Options: types.NewRawObject(op.MustResult(json.Marshal(map[string]string{
 							"A": "{{.NameXXX}}-A",
 							"B": "B",
 						}))),

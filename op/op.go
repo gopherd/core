@@ -134,13 +134,29 @@ func Must(err error) {
 	}
 }
 
-// MustValue panics if err is not nil, otherwise it returns value.
+// Result returns err if it is not nil, otherwise it returns value.
+func Result(value any, err error) any {
+	if err != nil {
+		return err
+	}
+	return value
+}
+
+// MustResult panics if err is not nil, otherwise it returns value.
 // It is a convenient way to handle errors in a single line.
-func MustValue[T any](value T, err error) T {
+func MustResult[T any](value T, err error) T {
 	if err != nil {
 		panic(err)
 	}
 	return value
+}
+
+// MustResult2 panics if err is not nil, otherwise it returns value1 and value2.
+func MustResult2[T1, T2 any](value1 T1, value2 T2, err error) (T1, T2) {
+	if err != nil {
+		panic(err)
+	}
+	return value1, value2
 }
 
 // ReverseCompare returns a comparison function that reverses the order of the original comparison function.
@@ -161,12 +177,4 @@ func Identity[T any](v T) func() T {
 	return func() T {
 		return v
 	}
-}
-
-// Result returns err if it is not nil, otherwise it returns value.
-func Result(value any, err error) any {
-	if err != nil {
-		return err
-	}
-	return value
 }

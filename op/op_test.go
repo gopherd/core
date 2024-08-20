@@ -249,18 +249,36 @@ func TestMust(t *testing.T) {
 	op.Must(fmt.Errorf("error"))
 }
 
-func TestMustValue(t *testing.T) {
+func TestMustResult(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("Must did not panic")
 		}
 	}()
-	op.MustValue(42, fmt.Errorf("error"))
+	result := op.MustResult(42, fmt.Errorf("error"))
+	if result != 42 {
+		t.Errorf("MustResult(42, error) = %v, want 42", result)
+	}
 }
 
-func TestMustValue_no_panic(t *testing.T) {
-	if got := op.MustValue(42, nil); got != 42 {
-		t.Errorf("MustValue(42, nil) = %v, want 42", got)
+func TestMustResult_no_panic(t *testing.T) {
+	if got := op.MustResult(42, nil); got != 42 {
+		t.Errorf("MustResult(42, nil) = %v, want 42", got)
+	}
+}
+
+func TestMustResult2(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Must did not panic")
+		}
+	}()
+	op.MustResult2(42, "hello", fmt.Errorf("error"))
+}
+
+func TestMustResult2_no_panic(t *testing.T) {
+	if got1, got2 := op.MustResult2(42, "hello", nil); got1 != 42 || got2 != "hello" {
+		t.Errorf("MustResult2(42, \"hello\", nil) = (%v, %v), want (42, \"hello\")", got1, got2)
 	}
 }
 
