@@ -52,6 +52,23 @@ func IsSupports256Colors() bool {
 	return isSupports256Colors
 }
 
+func ColorizeWriter(w io.Writer, c Color) io.Writer {
+	return &colorizeWriter{w: w, color: c, isTerminal: IsTerminal(w)}
+}
+
+type colorizeWriter struct {
+	w          io.Writer
+	color      Color
+	isTerminal bool
+}
+
+func (w *colorizeWriter) Write(p []byte) (n int, err error) {
+	if w.isTerminal && isSupportsAnsi && (!w.color.Is256() || isSupports256Colors) {
+		return w.w.Write([]byte(w.color.Format(string(p))))
+	}
+	return w.w.Write(p)
+}
+
 // Reset is the ANSI escape code to reset all attributes.
 const Reset = "\033[0m"
 
