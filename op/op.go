@@ -166,9 +166,16 @@ func Assert(cond bool, msgs ...any) {
 	if !cond {
 		msg := "assertion failed"
 		if len(msgs) > 0 {
-			msg += ": " + fmt.Sprint(msgs)
+			msg = fmt.Sprint(msgs)
 		}
 		panic(msg)
+	}
+}
+
+// Assertf panics with a formatted message if cond is false.
+func Assertf(cond bool, format string, args ...any) {
+	if !cond {
+		panic(fmt.Sprintf(format, args...))
 	}
 }
 
