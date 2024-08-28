@@ -166,7 +166,7 @@ func Assert(cond bool, msgs ...any) {
 	if !cond {
 		msg := "assertion failed"
 		if len(msgs) > 0 {
-			msg = fmt.Sprint(msgs)
+			msg = fmt.Sprint(msgs...)
 		}
 		panic(msg)
 	}
