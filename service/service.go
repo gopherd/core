@@ -19,6 +19,7 @@ import (
 	"github.com/gopherd/core/encoding"
 	"github.com/gopherd/core/errkit"
 	"github.com/gopherd/core/lifecycle"
+	"github.com/gopherd/core/term"
 )
 
 // Service represents a process with lifecycle management and component handling capabilities.
@@ -87,12 +88,27 @@ func (s *BaseService[T]) Config() *Config[T] {
 
 // setupCommandLineFlags sets up and processes command-line arguments for the service.
 func (s *BaseService[T]) setupCommandLineFlags() error {
-	s.flagSet.Usage = func() {
+	if len(os.Args) == 2 && os.Args[1] == "version" {
+		s.versionFunc()
+		return errkit.NewExitError(0)
+	}
+
+	s.flagSet.BoolVar(&s.flags.version, "v", false, "")
+	s.flagSet.BoolVar(&s.flags.printConfig, "p", false, "")
+	s.flagSet.BoolVar(&s.flags.testConfig, "t", false, "")
+	s.flagSet.BoolVar(&s.flags.enableTemplate, "T", false, "")
+
+	s.flagSet.Init(os.Args[0], flag.ContinueOnError)
+	s.flagSet.Usage = func() {}
+
+	// set output color for error messages
+	s.flagSet.SetOutput(term.ColorizeWriter(s.stderr, term.Red))
+	usage := func() {
+		s.flagSet.SetOutput(s.stderr)
 		name := os.Args[0]
 		var sb strings.Builder
 		fmt.Fprintf(&sb, "Usage: %s [Options] <Config>\n", name)
-		fmt.Fprintf(&sb, "       %s -h\n", name)
-		fmt.Fprintf(&sb, "       %s -v\n", name)
+		fmt.Fprintf(&sb, "       %s version\n", name)
 		fmt.Fprintf(&sb, "\nConfig:\n")
 		fmt.Fprintf(&sb, "       <path/to/file>   (Read configuration from file)\n")
 		fmt.Fprintf(&sb, "       <url>            (Read configuration from http)\n")
@@ -113,30 +129,22 @@ func (s *BaseService[T]) setupCommandLineFlags() error {
 		fmt.Fprint(s.stderr, sb.String())
 	}
 
-	s.flagSet.BoolVar(&s.flags.version, "v", false, "")
-	s.flagSet.BoolVar(&s.flags.printConfig, "p", false, "")
-	s.flagSet.BoolVar(&s.flags.testConfig, "t", false, "")
-	s.flagSet.BoolVar(&s.flags.enableTemplate, "T", false, "")
-
 	if err := s.flagSet.Parse(os.Args[1:]); err != nil {
+		if err == flag.ErrHelp {
+			usage()
+			return errkit.NewExitError(0)
+		}
 		return errkit.NewExitError(2, err.Error())
 	}
 
-	if s.flags.version {
-		if s.versionFunc != nil {
-			s.versionFunc()
-		}
-		return errkit.NewExitError(0)
-	}
-
 	if s.flagSet.NArg() == 0 || s.flagSet.Arg(0) == "" {
-		fmt.Fprintf(s.stderr, "No config source specified!\n\n")
-		s.flagSet.Usage()
+		fmt.Fprintf(s.flagSet.Output(), "no config source specified!\n\n")
+		fmt.Fprintf(s.stderr, "try %q for help\n", os.Args[0]+" -h")
 		return errkit.NewExitError(2)
 	}
 	if s.flagSet.NArg() > 1 {
-		fmt.Fprintf(s.stderr, "Too many arguments!\n\n")
-		s.flagSet.Usage()
+		fmt.Fprintf(s.flagSet.Output(), "too many arguments!\n\n")
+		fmt.Fprintf(s.stderr, "try %q for help\n", os.Args[0]+" -h")
 		return errkit.NewExitError(2)
 	}
 	s.flags.source = s.flagSet.Arg(0)

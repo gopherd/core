@@ -138,8 +138,8 @@ func TestSetupCommandLineFlags(t *testing.T) {
 		check    func(*testing.T, *BaseService[struct{}])
 	}{
 		{
-			name:     "Version flag",
-			args:     []string{"-v"},
+			name:     "Version command",
+			args:     []string{"version"},
 			wantErr:  true,
 			exitCode: 0,
 		},

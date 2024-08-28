@@ -3,6 +3,8 @@
 // It includes utilities for conditional logic, comparisons, and type manipulations.
 package op
 
+import "fmt"
+
 // Or returns b if a is the zero value for T, otherwise returns a.
 func Or[T comparable](a, b T) T {
 	var zero T
@@ -157,6 +159,17 @@ func MustResult2[T1, T2 any](value1 T1, value2 T2, err error) (T1, T2) {
 		panic(err)
 	}
 	return value1, value2
+}
+
+// Assert panics if cond is false.
+func Assert(cond bool, msgs ...any) {
+	if !cond {
+		msg := "assertion failed"
+		if len(msgs) > 0 {
+			msg += ": " + fmt.Sprint(msgs)
+		}
+		panic(msg)
+	}
 }
 
 // ReverseCompare returns a comparison function that reverses the order of the original comparison function.
