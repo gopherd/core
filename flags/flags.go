@@ -16,6 +16,32 @@ import (
 // Map is a map of string key-value pairs that implements the flag.Value interface.
 type Map map[string]string
 
+// Get returns the value of the key.
+func (m Map) Get(k string) string {
+	if m == nil {
+		return ""
+	}
+	return m[k]
+}
+
+// Contains reports whether the key is in the map.
+func (m Map) Contains(k string) bool {
+	if m == nil {
+		return false
+	}
+	_, ok := m[k]
+	return ok
+}
+
+// Lookup returns the value of the key and reports whether the key is in the map.
+func (m Map) Lookup(k string) (string, bool) {
+	if m == nil {
+		return "", false
+	}
+	v, ok := m[k]
+	return v, ok
+}
+
 // Set implements the flag.Value interface.
 func (m *Map) Set(s string) error {
 	if *m == nil {
