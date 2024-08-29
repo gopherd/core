@@ -7,8 +7,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/gopherd/core/term"
 )
@@ -48,13 +46,14 @@ func (m *Map) Set(s string) error {
 		*m = make(Map)
 	}
 	var k, v string
-	parts := strings.SplitN(s, "=", 2)
-	if len(parts) == 1 {
-		k = parts[0]
-	} else if len(parts) == 2 {
-		k, v = parts[0], parts[1]
+	index := strings.Index(s, "=")
+	if index < 0 {
+		k = s
 	} else {
-		return fmt.Errorf("invalid format: %q, expected key=value", s)
+		k, v = s[:index], s[index+1:]
+	}
+	if k == "" {
+		return fmt.Errorf("empty key")
 	}
 	if _, dup := (*m)[k]; dup {
 		return fmt.Errorf("already set: %q", k)
@@ -139,127 +138,49 @@ func (s Slice) String() string {
 	return sb.String()
 }
 
-func needsQuoting(s string) bool {
-	if len(s) == 0 {
-		return true
+// MapSlice is a map of string key-slice pairs that implements the flag.Value interface.
+// It is used to parse multiple values for the same key.
+type MapSlice map[string]Slice
+
+// Get returns the slice of the key.
+func (m MapSlice) Get(k string) Slice {
+	if m == nil {
+		return nil
 	}
-	for i := 0; i < len(s); {
-		b := s[i]
-		if b < utf8.RuneSelf {
-			// Quote anything except a backslash that would need quoting in a
-			// JSON string, as well as space and '='
-			if b != '\\' && (b == ' ' || b == '=' || !safeSet[b]) {
-				return true
-			}
-			i++
-			continue
-		}
-		r, size := utf8.DecodeRuneInString(s[i:])
-		if r == utf8.RuneError || unicode.IsSpace(r) || !unicode.IsPrint(r) {
-			return true
-		}
-		i += size
-	}
-	return false
+	return m[k]
 }
 
-var safeSet = [utf8.RuneSelf]bool{
-	' ':      true,
-	'!':      true,
-	'"':      false,
-	'#':      true,
-	'$':      true,
-	'%':      true,
-	'&':      true,
-	'\'':     true,
-	'(':      true,
-	')':      true,
-	'*':      true,
-	'+':      true,
-	',':      false,
-	'-':      true,
-	'.':      true,
-	'/':      true,
-	'0':      true,
-	'1':      true,
-	'2':      true,
-	'3':      true,
-	'4':      true,
-	'5':      true,
-	'6':      true,
-	'7':      true,
-	'8':      true,
-	'9':      true,
-	':':      true,
-	';':      true,
-	'<':      true,
-	'=':      true,
-	'>':      true,
-	'?':      true,
-	'@':      true,
-	'A':      true,
-	'B':      true,
-	'C':      true,
-	'D':      true,
-	'E':      true,
-	'F':      true,
-	'G':      true,
-	'H':      true,
-	'I':      true,
-	'J':      true,
-	'K':      true,
-	'L':      true,
-	'M':      true,
-	'N':      true,
-	'O':      true,
-	'P':      true,
-	'Q':      true,
-	'R':      true,
-	'S':      true,
-	'T':      true,
-	'U':      true,
-	'V':      true,
-	'W':      true,
-	'X':      true,
-	'Y':      true,
-	'Z':      true,
-	'[':      true,
-	'\\':     false,
-	']':      true,
-	'^':      true,
-	'_':      true,
-	'`':      true,
-	'a':      true,
-	'b':      true,
-	'c':      true,
-	'd':      true,
-	'e':      true,
-	'f':      true,
-	'g':      true,
-	'h':      true,
-	'i':      true,
-	'j':      true,
-	'k':      true,
-	'l':      true,
-	'm':      true,
-	'n':      true,
-	'o':      true,
-	'p':      true,
-	'q':      true,
-	'r':      true,
-	's':      true,
-	't':      true,
-	'u':      true,
-	'v':      true,
-	'w':      true,
-	'x':      true,
-	'y':      true,
-	'z':      true,
-	'{':      true,
-	'|':      true,
-	'}':      true,
-	'~':      true,
-	'\u007f': true,
+// Contains reports whether the key is in the map.
+func (m MapSlice) Contains(k string) bool {
+	if m == nil {
+		return false
+	}
+	_, ok := m[k]
+	return ok
+}
+
+// Lookup returns the slice of the key and reports whether the key is in the map.
+func (m MapSlice) Lookup(k string) (Slice, bool) {
+	if m == nil {
+		return nil, false
+	}
+	v, ok := m[k]
+	return v, ok
+}
+
+// Set implements the flag.Value interface.
+func (m *MapSlice) Set(s string) error {
+	if *m == nil {
+		*m = make(MapSlice)
+	}
+	var k, v string
+	index := strings.Index(s, "=")
+	if index <= 0 {
+		return fmt.Errorf("invalid format: %q, expect key=value", s)
+	}
+	k, v = s[:index], s[index+1:]
+	(*m)[k] = append((*m)[k], v)
+	return nil
 }
 
 type options struct {
