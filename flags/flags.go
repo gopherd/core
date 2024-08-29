@@ -111,14 +111,10 @@ type Slice []string
 
 // Set implements the flag.Value interface.
 func (s *Slice) Set(v string) error {
-	values := strings.Split(v, ",")
-	for _, v := range values {
-		v = strings.TrimSpace(v)
-		if v == "" {
-			continue
-		}
-		*s = append(*s, v)
+	if v == "" {
+		return fmt.Errorf("empty value")
 	}
+	*s = append(*s, v)
 	return nil
 }
 
@@ -175,12 +171,32 @@ func (m *MapSlice) Set(s string) error {
 	}
 	var k, v string
 	index := strings.Index(s, "=")
-	if index <= 0 {
+	if index <= 0 || index == len(s)-1 {
 		return fmt.Errorf("invalid format: %q, expect key=value", s)
 	}
 	k, v = s[:index], s[index+1:]
 	(*m)[k] = append((*m)[k], v)
 	return nil
+}
+
+func (m MapSlice) String() string {
+	if len(m) == 0 {
+		return ""
+	}
+	var sb strings.Builder
+	for k, vs := range m {
+		if sb.Len() > 0 {
+			sb.WriteByte(',')
+		}
+		if needsQuoting(k) {
+			sb.WriteString(strconv.Quote(k))
+		} else {
+			sb.WriteString(k)
+		}
+		sb.WriteByte('=')
+		sb.WriteString(vs.String())
+	}
+	return sb.String()
 }
 
 type options struct {
