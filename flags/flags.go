@@ -55,22 +55,8 @@ func (m *Map) Set(s string) error {
 	if _, dup := (*m)[k]; dup {
 		return fmt.Errorf("already set: %q", k)
 	}
-	if k != "" && k[0] == '"' {
-		var err error
-		k, err = strconv.Unquote(k)
-		if err != nil {
-			return err
-		}
-	}
 	if k == "" {
 		return fmt.Errorf("invalid format: %q, expect key[=value]", s)
-	}
-	if v != "" && v[0] == '"' {
-		var err error
-		v, err = strconv.Unquote(v)
-		if err != nil {
-			return err
-		}
 	}
 	(*m)[k] = v
 	return nil
@@ -127,13 +113,6 @@ type Slice []string
 func (s *Slice) Set(v string) error {
 	if v == "" {
 		return fmt.Errorf("empty value")
-	}
-	if v[0] == '"' {
-		var err error
-		v, err = strconv.Unquote(v)
-		if err != nil {
-			return err
-		}
 	}
 	*s = append(*s, v)
 	return nil
@@ -196,22 +175,8 @@ func (m *MapSlice) Set(s string) error {
 		return fmt.Errorf("invalid format: %q, expect key=value", s)
 	}
 	k, v = s[:index], s[index+1:]
-	if k != "" && k[0] == '"' {
-		var err error
-		k, err = strconv.Unquote(k)
-		if err != nil {
-			return err
-		}
-	}
 	if k == "" {
 		return fmt.Errorf("invalid format: %q, expect key=value", s)
-	}
-	if v != "" && v[0] == '"' {
-		var err error
-		v, err = strconv.Unquote(v)
-		if err != nil {
-			return err
-		}
 	}
 	if v == "" {
 		return fmt.Errorf("invalid format: %q, expect key=value", s)
