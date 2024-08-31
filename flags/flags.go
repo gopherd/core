@@ -201,10 +201,7 @@ func (m MapSlice) String() string {
 
 type options struct {
 	nameColor term.Color
-}
-
-func (o options) isEmpty() bool {
-	return o.nameColor == "" || o.nameColor == term.None
+	newline   bool
 }
 
 // Option is an option for flag types.
@@ -214,6 +211,13 @@ type Option func(*options)
 func NameColor(c term.Color) Option {
 	return func(opts *options) {
 		opts.nameColor = c
+	}
+}
+
+// Newline adds a newline after the usage text.
+func Newline() Option {
+	return func(opts *options) {
+		opts.newline = true
 	}
 }
 
@@ -235,8 +239,8 @@ func UseUsage(w io.Writer, opts ...Option) UsageFunc {
 
 // formatUsage returns a usage string with colorized command names.
 func formatUsage(w io.Writer, usage string, opt options) string {
-	if opt.isEmpty() {
-		return usage
+	if opt.newline {
+		usage += "\n"
 	}
 	if !term.IsTerminal(w) || !term.IsSupportsAnsi() || !term.IsSupports256Colors() {
 		return usage
