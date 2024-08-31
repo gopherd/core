@@ -93,7 +93,7 @@ func (c Color) Background() Color {
 
 // Format formats the string s with the color c.
 func (c Color) Format(s string) string {
-	if c == "" || c == None {
+	if c == "" {
 		return s
 	}
 	return string(c) + s + Reset

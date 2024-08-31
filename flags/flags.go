@@ -226,9 +226,7 @@ type UsageFunc func(usage string) string
 
 // UseUsage returns a UsageFunc that formats usage text with colorized command names.
 func UseUsage(w io.Writer, opts ...Option) UsageFunc {
-	o := options{
-		nameColor: term.Bold,
-	}
+	o := options{}
 	for _, opt := range opts {
 		opt(&o)
 	}
