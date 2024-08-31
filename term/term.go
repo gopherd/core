@@ -31,6 +31,9 @@ var (
 
 // IsTerminal reports whether w is a terminal.
 func IsTerminal(w io.Writer) bool {
+	if w, ok := w.(interface{ IsTerminal() bool }); ok {
+		return w.IsTerminal()
+	}
 	f, ok := w.(*os.File)
 	if !ok {
 		return false
@@ -52,21 +55,21 @@ func IsSupports256Colors() bool {
 	return isSupports256Colors
 }
 
+// ColorizeWriter returns a colorized writer if w is a terminal and supports ANSI escape codes.
 func ColorizeWriter(w io.Writer, c Color) io.Writer {
-	return &colorizeWriter{w: w, color: c, isTerminal: IsTerminal(w)}
+	if IsTerminal(w) && isSupportsAnsi && (!c.Is256() || isSupports256Colors) {
+		return &colorizeWriter{w: w, c: c}
+	}
+	return w
 }
 
 type colorizeWriter struct {
-	w          io.Writer
-	color      Color
-	isTerminal bool
+	w io.Writer
+	c Color
 }
 
 func (w *colorizeWriter) Write(p []byte) (n int, err error) {
-	if w.isTerminal && isSupportsAnsi && (!w.color.Is256() || isSupports256Colors) {
-		return w.w.Write([]byte(w.color.Format(string(p))))
-	}
-	return w.w.Write(p)
+	return w.w.Write([]byte(w.c.Format(string(p))))
 }
 
 // Color represents a terminal color.
@@ -131,6 +134,7 @@ type colorizedString struct {
 	color Color
 }
 
+// String implements fmt.Stringer.
 func (s colorizedString) String() string {
 	return s.color.Format(s.value)
 }
