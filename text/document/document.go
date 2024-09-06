@@ -40,8 +40,8 @@ type ChangeEvent struct {
 
 // Document represents an indexed text document.
 type Document struct {
-	URI     string
-	Content string
+	uri     string
+	content string
 	index   *index
 }
 
@@ -58,8 +58,8 @@ type lineInfo struct {
 // NewDocument creates a new Document with the given URI and content.
 func NewDocument(uri, content string) *Document {
 	doc := &Document{
-		URI:     uri,
-		Content: content,
+		uri:     uri,
+		content: content,
 	}
 	doc.index = buildIndex(content)
 	return doc
@@ -85,12 +85,22 @@ func buildIndex(content string) *index {
 	return &index{lines: lines}
 }
 
+// URI returns the URI of the document.
+func (d *Document) URI() string {
+	return d.uri
+}
+
+// Content returns the content of the document.
+func (d *Document) Content() string {
+	return d.content
+}
+
 func (d *Document) ApplyChanges(changes []ChangeEvent) error {
 	for _, change := range changes {
 		if change.Range == nil {
 			// Full document update
-			d.Content = change.Text
-			d.index = buildIndex(d.Content)
+			d.content = change.Text
+			d.index = buildIndex(d.content)
 			continue
 		}
 
@@ -103,9 +113,9 @@ func (d *Document) ApplyChanges(changes []ChangeEvent) error {
 			return err
 		}
 
-		beforeChange := d.Content[:startOffset]
-		afterChange := d.Content[endOffset:]
-		d.Content = beforeChange + change.Text + afterChange
+		beforeChange := d.content[:startOffset]
+		afterChange := d.content[endOffset:]
+		d.content = beforeChange + change.Text + afterChange
 
 		d.updateIndex(change.Range.Start.Line, startOffset, len(beforeChange)+len(change.Text))
 	}
@@ -113,7 +123,7 @@ func (d *Document) ApplyChanges(changes []ChangeEvent) error {
 }
 
 func (d *Document) updateIndex(startLine, startByteOffset, endByteOffset int) {
-	newContent := d.Content[startByteOffset:endByteOffset]
+	newContent := d.content[startByteOffset:endByteOffset]
 	newLines := strings.Count(newContent, "\n")
 
 	if newLines == 0 {
@@ -125,7 +135,7 @@ func (d *Document) updateIndex(startLine, startByteOffset, endByteOffset int) {
 
 func (d *Document) updateSingleLine(line, startByteOffset, endByteOffset int) {
 	oldRuneCount := d.index.lines[line].RunesInLine
-	newRuneCount := utf8.RuneCountInString(d.Content[d.index.lines[line].ByteOffset:endByteOffset])
+	newRuneCount := utf8.RuneCountInString(d.content[d.index.lines[line].ByteOffset:endByteOffset])
 	runesDiff := newRuneCount - oldRuneCount
 	bytesDiff := endByteOffset - startByteOffset
 
@@ -149,11 +159,11 @@ func (d *Document) replaceLines(startLine, startByteOffset, endByteOffset, newLi
 	byteOffset := startByteOffset
 
 	for i := 1; i < newLineCount; i++ {
-		nlIndex := strings.IndexByte(d.Content[byteOffset:endByteOffset], '\n')
+		nlIndex := strings.IndexByte(d.content[byteOffset:endByteOffset], '\n')
 		if nlIndex == -1 {
 			break
 		}
-		runeOffset += utf8.RuneCountInString(d.Content[byteOffset : byteOffset+nlIndex+1])
+		runeOffset += utf8.RuneCountInString(d.content[byteOffset : byteOffset+nlIndex+1])
 		byteOffset += nlIndex + 1
 
 		newLines[i] = lineInfo{
@@ -167,14 +177,14 @@ func (d *Document) replaceLines(startLine, startByteOffset, endByteOffset, newLi
 	for i := 0; i < newLineCount-1; i++ {
 		newLines[i].RunesInLine = newLines[i+1].RuneOffset - newLines[i].RuneOffset - 1 // -1 for newline character
 	}
-	newLines[newLineCount-1].RunesInLine = utf8.RuneCountInString(d.Content[newLines[newLineCount-1].ByteOffset:endByteOffset])
+	newLines[newLineCount-1].RunesInLine = utf8.RuneCountInString(d.content[newLines[newLineCount-1].ByteOffset:endByteOffset])
 
 	// Replace old lines with new lines
 	d.index.lines = append(d.index.lines[:startLine], append(newLines, d.index.lines[startLine+oldLineCount:]...)...)
 
 	// Update subsequent lines
 	runesDiff := newLines[newLineCount-1].RuneOffset + newLines[newLineCount-1].RunesInLine -
-		(d.index.lines[startLine].RuneOffset + utf8.RuneCountInString(d.Content[startByteOffset:endByteOffset]))
+		(d.index.lines[startLine].RuneOffset + utf8.RuneCountInString(d.content[startByteOffset:endByteOffset]))
 	bytesDiff := endByteOffset - startByteOffset
 
 	for i := startLine + newLineCount; i < len(d.index.lines); i++ {
@@ -224,7 +234,7 @@ func (d *Document) PositionToOffset(pos Position) (int, error) {
 
 	offset := lineInfo.ByteOffset
 	for i := 0; i < pos.Character; i++ {
-		_, size := utf8.DecodeRuneInString(d.Content[offset:])
+		_, size := utf8.DecodeRuneInString(d.content[offset:])
 		offset += size
 	}
 
@@ -233,7 +243,7 @@ func (d *Document) PositionToOffset(pos Position) (int, error) {
 
 // OffsetToPosition converts a byte offset to a Position in the document.
 func (d *Document) OffsetToPosition(offset int) (Position, error) {
-	if offset < 0 || offset > len(d.Content) {
+	if offset < 0 || offset > len(d.content) {
 		return Position{}, ErrInvalidOffset
 	}
 
@@ -248,7 +258,7 @@ func (d *Document) OffsetToPosition(offset int) (Position, error) {
 	lineInfo := d.index.lines[line]
 	char := 0
 	for i := lineInfo.ByteOffset; i < offset; {
-		_, size := utf8.DecodeRuneInString(d.Content[i:])
+		_, size := utf8.DecodeRuneInString(d.content[i:])
 		i += size
 		char++
 	}

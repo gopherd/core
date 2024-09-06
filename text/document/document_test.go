@@ -25,11 +25,11 @@ func TestNewDocument(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			doc := NewDocument(tt.uri, tt.content)
-			if doc.URI != tt.uri {
-				t.Errorf("NewDocument().URI = %v, want %v", doc.URI, tt.uri)
+			if doc.uri != tt.uri {
+				t.Errorf("NewDocument().URI = %v, want %v", doc.uri, tt.uri)
 			}
-			if doc.Content != tt.content {
-				t.Errorf("NewDocument().Content = %v, want %v", doc.Content, tt.content)
+			if doc.content != tt.content {
+				t.Errorf("NewDocument().Content = %v, want %v", doc.content, tt.content)
 			}
 			if got := doc.LineCount(); got != tt.wantLine {
 				t.Errorf("NewDocument().LineCount() = %v, want %v", got, tt.wantLine)
@@ -166,8 +166,8 @@ func TestDocument_ApplyChanges(t *testing.T) {
 				t.Errorf("Document.ApplyChanges() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if doc.Content != tt.wantText {
-				t.Errorf("Document.ApplyChanges() content = %v, want %v", doc.Content, tt.wantText)
+			if doc.content != tt.wantText {
+				t.Errorf("Document.ApplyChanges() content = %v, want %v", doc.content, tt.wantText)
 			}
 		})
 	}
@@ -296,8 +296,8 @@ func TestDocument_RuneCount(t *testing.T) {
 
 func ExampleNewDocument() {
 	doc := NewDocument("example.txt", "Hello, World!")
-	fmt.Printf("Document URI: %s\n", doc.URI)
-	fmt.Printf("Content: %s\n", doc.Content)
+	fmt.Printf("Document URI: %s\n", doc.uri)
+	fmt.Printf("Content: %s\n", doc.content)
 	fmt.Printf("Line count: %d\n", doc.LineCount())
 	fmt.Printf("Rune count: %d\n", doc.RuneCount())
 	// Output:
@@ -323,7 +323,7 @@ func ExampleDocument_ApplyChanges() {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
-	fmt.Printf("Updated content: %s\n", doc.Content)
+	fmt.Printf("Updated content: %s\n", doc.content)
 	// Output:
 	// Updated content: Hello, Go!
 }
