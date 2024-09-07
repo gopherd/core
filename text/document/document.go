@@ -4,6 +4,8 @@ package document
 
 import (
 	"errors"
+	"net/url"
+	"path/filepath"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -41,6 +43,7 @@ type ChangeEvent struct {
 // Document represents an indexed text document.
 type Document struct {
 	uri     string
+	path    string
 	content string
 	index   *index
 }
@@ -59,8 +62,13 @@ type lineInfo struct {
 func NewDocument(uri, content string) *Document {
 	doc := &Document{
 		uri:     uri,
+		path:    uri,
 		content: content,
 	}
+	if parsedURI, err := url.Parse(uri); err == nil {
+		doc.path = filepath.FromSlash(parsedURI.Path)
+	}
+
 	doc.index = buildIndex(content)
 	return doc
 }
@@ -88,6 +96,21 @@ func buildIndex(content string) *index {
 // URI returns the URI of the document.
 func (d *Document) URI() string {
 	return d.uri
+}
+
+// Path returns the file path of the document.
+func (d *Document) Path() string {
+	return d.path
+}
+
+// Filename returns the base name of the document path.
+func (d *Document) Filename() string {
+	return filepath.Base(d.path)
+}
+
+// Extension returns the file extension of the document path.
+func (d *Document) Extension() string {
+	return filepath.Ext(d.path)
 }
 
 // Content returns the content of the document.
