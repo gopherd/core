@@ -62,15 +62,19 @@ type lineInfo struct {
 func NewDocument(uri, content string) *Document {
 	doc := &Document{
 		uri:     uri,
-		path:    uri,
+		path:    URIToPath(uri),
 		content: content,
-	}
-	if parsedURI, err := url.Parse(uri); err == nil {
-		doc.path = filepath.FromSlash(parsedURI.Path)
 	}
 
 	doc.index = buildIndex(content)
 	return doc
+}
+
+func URIToPath(uri string) string {
+	if parsedURI, err := url.Parse(uri); err == nil {
+		return filepath.FromSlash(parsedURI.Path)
+	}
+	return uri
 }
 
 func buildIndex(content string) *index {
