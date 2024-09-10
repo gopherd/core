@@ -70,6 +70,7 @@ func NewDocument(uri, content string) *Document {
 	return doc
 }
 
+// URIToPath converts a URI to a file path.
 func URIToPath(uri string) string {
 	if parsedURI, err := url.Parse(uri); err == nil {
 		return filepath.FromSlash(parsedURI.Path)
@@ -122,6 +123,7 @@ func (d *Document) Content() string {
 	return d.content
 }
 
+// ApplyChanges applies the given changes to the document.
 func (d *Document) ApplyChanges(changes []ChangeEvent) error {
 	for _, change := range changes {
 		if change.Range == nil {
@@ -220,20 +222,6 @@ func (d *Document) replaceLines(startLine, startByteOffset, endByteOffset, newLi
 	}
 }
 
-func countLines(s string) int {
-	lines := 1
-	for _, r := range s {
-		if r == '\n' {
-			lines++
-		}
-	}
-	return lines
-}
-
-func nextNewline(s string) int {
-	return strings.IndexRune(s, '\n')
-}
-
 // LineCount returns the number of lines in the document.
 func (d *Document) LineCount() int {
 	return len(d.index.lines)
@@ -283,12 +271,7 @@ func (d *Document) OffsetToPosition(offset int) (Position, error) {
 	}
 
 	lineInfo := d.index.lines[line]
-	char := 0
-	for i := lineInfo.ByteOffset; i < offset; {
-		_, size := utf8.DecodeRuneInString(d.content[i:])
-		i += size
-		char++
-	}
+	char := utf8.RuneCountInString(d.content[lineInfo.ByteOffset:offset])
 
 	return Position{Line: line, Character: char}, nil
 }

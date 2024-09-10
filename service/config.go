@@ -15,7 +15,7 @@ import (
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/encoding"
 	"github.com/gopherd/core/op"
-	"github.com/gopherd/core/text/templateutil"
+	"github.com/gopherd/core/text/templates"
 )
 
 // Config represents a generic configuration structure for services.
@@ -135,7 +135,7 @@ func (c *Config[T]) processTemplate(enableTemplate bool, source string) error {
 		}
 		sourcePrefix := fmt.Sprintf("%s[%s].", source, identifier)
 		if op.IfFunc(com.TemplateUUID == nil, enableTemplate, com.TemplateUUID.Deref) && com.UUID != "" {
-			new, err := templateutil.Execute(sourcePrefix+"UUID", com.UUID, c.Context, option)
+			new, err := templates.Execute(sourcePrefix+"UUID", com.UUID, c.Context, option)
 			if err != nil {
 				return err
 			}
@@ -143,7 +143,7 @@ func (c *Config[T]) processTemplate(enableTemplate bool, source string) error {
 		}
 
 		if op.IfFunc(com.TemplateRefs == nil, enableTemplate, com.TemplateRefs.Deref) && com.Refs.Len() > 0 {
-			new, err := templateutil.Execute(sourcePrefix+"Refs", com.Refs.String(), c.Context, option)
+			new, err := templates.Execute(sourcePrefix+"Refs", com.Refs.String(), c.Context, option)
 			if err != nil {
 				return err
 			}
@@ -151,7 +151,7 @@ func (c *Config[T]) processTemplate(enableTemplate bool, source string) error {
 		}
 
 		if op.IfFunc(com.TemplateOptions == nil, enableTemplate, com.TemplateOptions.Deref) && com.Options.Len() > 0 {
-			new, err := templateutil.Execute(sourcePrefix+"Options", com.Options.String(), c.Context, option)
+			new, err := templates.Execute(sourcePrefix+"Options", com.Options.String(), c.Context, option)
 			if err != nil {
 				return err
 			}
