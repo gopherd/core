@@ -15,6 +15,9 @@ func BgRGB(r, g, b int) Color {
 // Reset is the ANSI escape code to reset all attributes.
 const Reset = "\033[0m"
 
+// None is a color that does not apply any color.
+const None = Color("")
+
 const (
 	// Special effects
 	Bold      = Color("\033[1m")

@@ -87,7 +87,7 @@ func (c Color) Colorize(s string) fmt.Stringer {
 
 // Background returns the background version of the color
 func (c Color) Background() Color {
-	if len(c) < 5 {
+	if len(c) < 6 {
 		return c
 	}
 	bg := string(c[:5]) + "4" + string(c[6:])
