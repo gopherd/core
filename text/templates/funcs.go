@@ -193,7 +193,7 @@ func stringFunc(name string, f func(string) (string, error)) Func {
 
 // Funcs is a map of utility functions for use in templates
 var Funcs = map[string]any{
-	// @api(Function/_) is a no-op function that returns an empty string.
+	// @api(_) is a no-op function that returns an empty string.
 	// It's useful to place a newline in the template.
 	//
 	// Example:
@@ -208,7 +208,7 @@ var Funcs = map[string]any{
 
 	// String functions
 
-	// @api(Function/Strings/quote) returns a double-quoted string.
+	// @api(Strings/quote) returns a double-quoted string.
 	//
 	// Example:
 	// ```
@@ -223,7 +223,7 @@ var Funcs = map[string]any{
 	// ```
 	"quote": Chain(stringFunc("quote", noError(strconv.Quote))),
 
-	// @api(Function/Strings/unquote) returns an unquoted string.
+	// @api(Strings/unquote) returns an unquoted string.
 	//
 	// Example:
 	// ```
@@ -236,7 +236,7 @@ var Funcs = map[string]any{
 	// ```
 	"unquote": Chain(stringFunc("unquote", strconv.Unquote)),
 
-	// @api(Function/Strings/capitalize) capitalizes the first character of a string.
+	// @api(Strings/capitalize) capitalizes the first character of a string.
 	//
 	// Example:
 	// ```
@@ -249,7 +249,7 @@ var Funcs = map[string]any{
 	// ```
 	"capitalize": Chain(stringFunc("capitalize", noError(capitalize))),
 
-	// @api(Function/Strings/lower) converts a string to lowercase.
+	// @api(Strings/lower) converts a string to lowercase.
 	//
 	// Example:
 	// ```
@@ -262,7 +262,7 @@ var Funcs = map[string]any{
 	// ```
 	"lower": Chain(stringFunc("lower", noError(strings.ToLower))),
 
-	// @api(Function/Strings/upper) converts a string to uppercase.
+	// @api(Strings/upper) converts a string to uppercase.
 	//
 	// Example:
 	// ```
@@ -275,7 +275,7 @@ var Funcs = map[string]any{
 	// ```
 	"upper": Chain(stringFunc("upper", noError(strings.ToUpper))),
 
-	// @api(Function/Strings/replace) replaces all occurrences of a substring with another substring.
+	// @api(Strings/replace) replaces all occurrences of a substring with another substring.
 	//
 	// - **Parameters**: (_old_: string, _new_: string, _target_: string)
 	//
@@ -290,7 +290,7 @@ var Funcs = map[string]any{
 	// ```
 	"replace": Chain3(replace),
 
-	// @api(Function/Strings/replaceN) replaces the first n occurrences of a substring with another substring.
+	// @api(Strings/replaceN) replaces the first n occurrences of a substring with another substring.
 	//
 	// - **Parameters**: (_old_: string, _new_: string, _n_: int, _target_: string)
 	//
@@ -305,7 +305,7 @@ var Funcs = map[string]any{
 	// ```
 	"replaceN": Chain4(replaceN),
 
-	// @api(Function/Strings/trim) removes leading and trailing whitespace from a string.
+	// @api(Strings/trim) removes leading and trailing whitespace from a string.
 	//
 	// Example:
 	// ```
@@ -318,7 +318,7 @@ var Funcs = map[string]any{
 	// ```
 	"trim": Chain(stringFunc("trim", noError(strings.TrimSpace))),
 
-	// @api(Function/Strings/trimPrefix) removes a prefix from a string if it exists.
+	// @api(Strings/trimPrefix) removes a prefix from a string if it exists.
 	//
 	// - **Parameters**: (_prefix_: string, _target_: string)
 	//
@@ -333,7 +333,7 @@ var Funcs = map[string]any{
 	// ```
 	"trimPrefix": Chain2(trimPrefix),
 
-	// @api(Function/Strings/hasPrefix) checks if a string starts with a given prefix.
+	// @api(Strings/hasPrefix) checks if a string starts with a given prefix.
 	//
 	// - **Parameters**: (_prefix_: string, _target_: string)
 	// - **Returns**: bool
@@ -349,7 +349,7 @@ var Funcs = map[string]any{
 	// ```
 	"hasPrefix": Chain2(hasPrefix),
 
-	// @api(Function/Strings/trimSuffix) removes a suffix from a string if it exists.
+	// @api(Strings/trimSuffix) removes a suffix from a string if it exists.
 	//
 	// - **Parameters**: (_suffix_: string, _target_: string)
 	//
@@ -364,7 +364,7 @@ var Funcs = map[string]any{
 	// ```
 	"trimSuffix": Chain2(trimSuffix),
 
-	// @api(Function/Strings/hasSuffix) checks if a string ends with a given suffix.
+	// @api(Strings/hasSuffix) checks if a string ends with a given suffix.
 	//
 	// - **Parameters**: (_suffix_: string, _target_: string)
 	// - **Returns**: bool
@@ -380,7 +380,7 @@ var Funcs = map[string]any{
 	// ```
 	"hasSuffix": Chain2(hasSuffix),
 
-	// @api(Function/Strings/split) splits a string by a separator.
+	// @api(Strings/split) splits a string by a separator.
 	//
 	// - **Parameters**: (_separator_: string, _target_: string)
 	// - **Returns**: slice of strings
@@ -396,7 +396,7 @@ var Funcs = map[string]any{
 	// ```
 	"split": Chain2(split),
 
-	// @api(Function/Strings/join) joins a slice of strings with a separator.
+	// @api(Strings/join) joins a slice of strings with a separator.
 	//
 	// - **Parameters**: (_separator_: string, _values_: slice of strings)
 	// - **Returns**: string
@@ -412,7 +412,7 @@ var Funcs = map[string]any{
 	// ```
 	"join": Chain2(join),
 
-	// @api(Function/Strings/striptags) removes HTML tags from a string.
+	// @api(Strings/striptags) removes HTML tags from a string.
 	//
 	// Example:
 	// ```
@@ -425,7 +425,7 @@ var Funcs = map[string]any{
 	// ```
 	"striptags": Chain(stringFunc("striptags", striptags)),
 
-	// @api(Function/Strings/substr) extracts a substring from a string.
+	// @api(Strings/substr) extracts a substring from a string.
 	//
 	// - **Parameters**: (_start_: int, _length_: int, _target_: string)
 	//
@@ -440,7 +440,7 @@ var Funcs = map[string]any{
 	// ```
 	"substr": Chain3(substr),
 
-	// @api(Function/Strings/repeat) repeats a string a specified number of times.
+	// @api(Strings/repeat) repeats a string a specified number of times.
 	//
 	// - **Parameters**: (_count_: int, _target_: string)
 	//
@@ -455,7 +455,7 @@ var Funcs = map[string]any{
 	// ```
 	"repeat": Chain2(repeat),
 
-	// @api(Function/Strings/camelCase) converts a string to camelCase.
+	// @api(Strings/camelCase) converts a string to camelCase.
 	//
 	// Example:
 	// ```
@@ -468,7 +468,7 @@ var Funcs = map[string]any{
 	// ```
 	"camelCase": Chain(stringFunc("camelCase", noError(camelCase))),
 
-	// @api(Function/Strings/pascalCase) converts a string to PascalCase.
+	// @api(Strings/pascalCase) converts a string to PascalCase.
 	//
 	// Example:
 	// ```
@@ -481,7 +481,7 @@ var Funcs = map[string]any{
 	// ```
 	"pascalCase": Chain(stringFunc("pascalCase", noError(pascalCase))),
 
-	// @api(Function/Strings/snakeCase) converts a string to snake_case.
+	// @api(Strings/snakeCase) converts a string to snake_case.
 	//
 	// Example:
 	// ```
@@ -494,7 +494,7 @@ var Funcs = map[string]any{
 	// ```
 	"snakeCase": Chain(stringFunc("snakeCase", noError(snakeCase))),
 
-	// @api(Function/Strings/kebabCase) converts a string to kebab-case.
+	// @api(Strings/kebabCase) converts a string to kebab-case.
 	//
 	// Example:
 	// ```
@@ -507,7 +507,7 @@ var Funcs = map[string]any{
 	// ```
 	"kebabCase": Chain(stringFunc("kebabCase", noError(kebabCase))),
 
-	// @api(Function/Strings/truncate) truncates a string to a specified length and adds a suffix if truncated.
+	// @api(Strings/truncate) truncates a string to a specified length and adds a suffix if truncated.
 	//
 	// - **Parameters**: (_length_: int, _suffix_: string, _target_: string)
 	//
@@ -522,7 +522,7 @@ var Funcs = map[string]any{
 	// ```
 	"truncate": Chain3(truncate),
 
-	// @api(Function/Strings/wordwrap) wraps words in a string to a specified width.
+	// @api(Strings/wordwrap) wraps words in a string to a specified width.
 	//
 	// - **Parameters**: (_width_: int, _target_: string)
 	//
@@ -541,7 +541,7 @@ var Funcs = map[string]any{
 	// ```
 	"wordwrap": Chain2(wordwrap),
 
-	// @api(Function/Strings/center) centers a string in a field of a given width.
+	// @api(Strings/center) centers a string in a field of a given width.
 	//
 	// - **Parameters**: (_width_: int, _target_: string)
 	//
@@ -556,7 +556,7 @@ var Funcs = map[string]any{
 	// ```
 	"center": Chain2(center),
 
-	// @api(Function/Strings/matchRegex) checks if a string matches a regular expression.
+	// @api(Strings/matchRegex) checks if a string matches a regular expression.
 	//
 	// - **Parameters**: (_pattern_: string, _target_: string)
 	// - **Returns**: bool
@@ -572,7 +572,7 @@ var Funcs = map[string]any{
 	// ```
 	"matchRegex": Chain2(matchRegex),
 
-	// @api(Function/Strings/html) escapes special characters in a string for use in HTML.
+	// @api(Strings/html) escapes special characters in a string for use in HTML.
 	//
 	// Example:
 	// ```
@@ -585,7 +585,7 @@ var Funcs = map[string]any{
 	// ```
 	"html": Chain(stringFunc("html", noError(html.EscapeString))),
 
-	// @api(Function/Strings/urlEscape) escapes a string for use in a URL query.
+	// @api(Strings/urlEscape) escapes a string for use in a URL query.
 	//
 	// Example:
 	// ```
@@ -598,7 +598,7 @@ var Funcs = map[string]any{
 	// ```
 	"urlEscape": Chain(stringFunc("urlEscape", noError(url.QueryEscape))),
 
-	// @api(Function/Strings/urlUnescape) unescapes a URL query string.
+	// @api(Strings/urlUnescape) unescapes a URL query string.
 	//
 	// Example:
 	// ```
@@ -613,7 +613,7 @@ var Funcs = map[string]any{
 
 	// Encoding functions
 
-	// @api(Function/Encoding/b64enc) encodes a string to base64.
+	// @api(Encoding/b64enc) encodes a string to base64.
 	//
 	// Example:
 	// ```
@@ -626,7 +626,7 @@ var Funcs = map[string]any{
 	// ```
 	"b64enc": Chain(stringFunc("b64enc", noError(b64enc))),
 
-	// @api(Function/Encoding/b64dec) decodes a base64 encoded string.
+	// @api(Encoding/b64dec) decodes a base64 encoded string.
 	//
 	// Example:
 	// ```
@@ -641,7 +641,7 @@ var Funcs = map[string]any{
 
 	// List functions
 
-	// @api(Function/List/map) maps a list of values using the given function and returns a list of results.
+	// @api(List/map) maps a list of values using the given function and returns a list of results.
 	//
 	// - **Parameters**: (_fn_: function, _list_: slice)
 	//
@@ -658,7 +658,7 @@ var Funcs = map[string]any{
 	// ```
 	"map": Chain2(Map),
 
-	// @api(Function/List/list) creates a list from the given arguments.
+	// @api(List/list) creates a list from the given arguments.
 	//
 	// Example:
 	// ```
@@ -671,7 +671,7 @@ var Funcs = map[string]any{
 	// ```
 	"list": list,
 
-	// @api(Function/List/first) returns the first element of a list or string.
+	// @api(List/first) returns the first element of a list or string.
 	//
 	// Example:
 	// ```
@@ -686,7 +686,7 @@ var Funcs = map[string]any{
 	// ```
 	"first": Chain(first),
 
-	// @api(Function/List/last) returns the last element of a list or string.
+	// @api(List/last) returns the last element of a list or string.
 	//
 	// Example:
 	// ```
@@ -701,7 +701,7 @@ var Funcs = map[string]any{
 	// ```
 	"last": Chain(last),
 
-	// @api(Function/List/reverse) reverses a list or string.
+	// @api(List/reverse) reverses a list or string.
 	//
 	// Example:
 	// ```
@@ -716,7 +716,7 @@ var Funcs = map[string]any{
 	// ```
 	"reverse": Chain(reverse),
 
-	// @api(Function/List/sort) sorts a list of numbers or strings.
+	// @api(List/sort) sorts a list of numbers or strings.
 	//
 	// Example:
 	// ```
@@ -731,7 +731,7 @@ var Funcs = map[string]any{
 	// ```
 	"sort": Chain(sortSlice),
 
-	// @api(Function/List/uniq) removes duplicate elements from a list.
+	// @api(List/uniq) removes duplicate elements from a list.
 	//
 	// Example:
 	// ```
@@ -744,7 +744,7 @@ var Funcs = map[string]any{
 	// ```
 	"uniq": Chain(uniq),
 
-	// @api(Function/List/includes) checks if an item is present in a list, map, or string.
+	// @api(List/includes) checks if an item is present in a list, map, or string.
 	//
 	// - **Parameters**: (_item_: any, _collection_: slice | map | string)
 	// - **Returns**: bool
@@ -764,7 +764,7 @@ var Funcs = map[string]any{
 
 	// Math functions
 
-	// @api(Function/Math/add) adds two numbers.
+	// @api(Math/add) adds two numbers.
 	//
 	// - **Parameters**: (_a_: number, _b_: number)
 	//
@@ -779,7 +779,7 @@ var Funcs = map[string]any{
 	// ```
 	"add": Chain2(add),
 
-	// @api(Function/Math/sub) subtracts the second number from the first.
+	// @api(Math/sub) subtracts the second number from the first.
 	//
 	// - **Parameters**: (_a_: number, _b_: number)
 	//
@@ -794,7 +794,7 @@ var Funcs = map[string]any{
 	// ```
 	"sub": Chain2(sub),
 
-	// @api(Function/Math/mul) multiplies two numbers.
+	// @api(Math/mul) multiplies two numbers.
 	//
 	// - **Parameters**: (_a_: number, _b_: number)
 	//
@@ -809,7 +809,7 @@ var Funcs = map[string]any{
 	// ```
 	"mul": Chain2(mul),
 
-	// @api(Function/Math/quo) divides the first number by the second.
+	// @api(Math/quo) divides the first number by the second.
 	//
 	// - **Parameters**: (_a_: number, _b_: number)
 	//
@@ -824,7 +824,7 @@ var Funcs = map[string]any{
 	// ```
 	"quo": Chain2(quo),
 
-	// @api(Function/Math/rem) returns the remainder of dividing the first number by the second.
+	// @api(Math/rem) returns the remainder of dividing the first number by the second.
 	//
 	// - **Parameters**: (_a_: number, _b_: number)
 	//
@@ -839,7 +839,7 @@ var Funcs = map[string]any{
 	// ```
 	"rem": Chain2(rem),
 
-	// @api(Function/Math/mod) returns the modulus of dividing the first number by the second.
+	// @api(Math/mod) returns the modulus of dividing the first number by the second.
 	//
 	// - **Parameters**: (_a_: number, _b_: number)
 	//
@@ -854,7 +854,7 @@ var Funcs = map[string]any{
 	// ```
 	"mod": Chain2(mod),
 
-	// @api(Function/Math/ceil) returns the least integer value greater than or equal to the input.
+	// @api(Math/ceil) returns the least integer value greater than or equal to the input.
 	//
 	// Example:
 	// ```
@@ -867,7 +867,7 @@ var Funcs = map[string]any{
 	// ```
 	"ceil": Chain(ceil),
 
-	// @api(Function/Math/floor) returns the greatest integer value less than or equal to the input.
+	// @api(Math/floor) returns the greatest integer value less than or equal to the input.
 	//
 	// Example:
 	// ```
@@ -880,7 +880,7 @@ var Funcs = map[string]any{
 	// ```
 	"floor": Chain(floor),
 
-	// @api(Function/Math/round) rounds a number to a specified number of decimal places.
+	// @api(Math/round) rounds a number to a specified number of decimal places.
 	//
 	// - **Parameters**: (_precision_: integer, _value_: number)
 	//
@@ -895,7 +895,7 @@ var Funcs = map[string]any{
 	// ```
 	"round": Chain2(round),
 
-	// @api(Function/Math/min) returns the minimum of a list of numbers.
+	// @api(Math/min) returns the minimum of a list of numbers.
 	//
 	// - **Parameters**: numbers (variadic)
 	//
@@ -910,7 +910,7 @@ var Funcs = map[string]any{
 	// ```
 	"min": minFunc,
 
-	// @api(Function/Math/max) returns the maximum of a list of numbers.
+	// @api(Math/max) returns the maximum of a list of numbers.
 	//
 	// - **Parameters**: numbers (variadic)
 	//
@@ -927,7 +927,7 @@ var Funcs = map[string]any{
 
 	// Type conversion functions
 
-	// @api(Function/Convert/int) converts a value to an integer.
+	// @api(Convert/int) converts a value to an integer.
 	//
 	// Example:
 	// ```
@@ -942,7 +942,7 @@ var Funcs = map[string]any{
 	// ```
 	"int": Chain(toInt64),
 
-	// @api(Function/Convert/float) converts a value to a float.
+	// @api(Convert/float) converts a value to a float.
 	//
 	// Example:
 	// ```
@@ -957,7 +957,7 @@ var Funcs = map[string]any{
 	// ```
 	"float": Chain(toFloat64),
 
-	// @api(Function/Convert/string) converts a value to a string.
+	// @api(Convert/string) converts a value to a string.
 	//
 	// Example:
 	// ```
@@ -972,7 +972,7 @@ var Funcs = map[string]any{
 	// ```
 	"string": Chain(toString),
 
-	// @api(Function/Convert/bool) converts a value to a boolean.
+	// @api(Convert/bool) converts a value to a boolean.
 	//
 	// Example:
 	// ```
@@ -989,7 +989,7 @@ var Funcs = map[string]any{
 
 	// Date functions
 
-	// @api(Function/Date/now) returns the current time.
+	// @api(Date/now) returns the current time.
 	//
 	// Example:
 	// ```
@@ -1002,7 +1002,7 @@ var Funcs = map[string]any{
 	// ```
 	"now": time.Now,
 
-	// @api(Function/Date/parseTime) parses a time string using the specified layout.
+	// @api(Date/parseTime) parses a time string using the specified layout.
 	//
 	// - **Parameters**: (_layout_: string, _value_: string)
 	//
