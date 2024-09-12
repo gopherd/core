@@ -193,83 +193,828 @@ func stringFunc(name string, f func(string) (string, error)) Func {
 
 // Funcs is a map of utility functions for use in templates
 var Funcs = map[string]any{
-	// _ is a no-op function that returns an empty string.
+	// @api(Function/_) is a no-op function that returns an empty string.
 	// It's useful to place a newline in the template.
+	//
+	// Example:
+	//
+	// ```
+	// {{- if .Ok}}
+	// {{printf "ok: %v" .Ok}}
+	// {{_}}
+	// {{- end}}
+	// ```
 	"_": func() string { return "" },
-
-	// map maps a list of values using the given function and returns a list of results.
-	"map": Chain2(Map),
 
 	// String functions
 
-	"quote":       Chain(stringFunc("quote", noError(strconv.Quote))),
-	"unquote":     Chain(stringFunc("unquote", strconv.Unquote)),
-	"capitalize":  Chain(stringFunc("capitalize", noError(capitalize))),
-	"lower":       Chain(stringFunc("lower", noError(strings.ToLower))),
-	"upper":       Chain(stringFunc("upper", noError(strings.ToUpper))),
-	"replace":     Chain3(replace),
-	"replaceN":    Chain4(replaceN),
-	"trim":        Chain(stringFunc("trim", noError(strings.TrimSpace))),
-	"trimPrefix":  Chain2(trimPrefix),
-	"hasPrefix":   Chain2(hasPrefix),
-	"trimSuffix":  Chain2(trimSuffix),
-	"hasSuffix":   Chain2(hasSuffix),
-	"split":       Chain2(split),
-	"join":        Chain2(join),
-	"striptags":   Chain(stringFunc("striptags", striptags)),
-	"substr":      Chain3(substr),
-	"repeat":      Chain2(repeat),
-	"camelCase":   Chain(stringFunc("camelCase", noError(camelCase))),
-	"pascalCase":  Chain(stringFunc("pascalCase", noError(pascalCase))),
-	"snakeCase":   Chain(stringFunc("snakeCase", noError(snakeCase))),
-	"kebabCase":   Chain(stringFunc("kebabCase", noError(kebabCase))),
-	"truncate":    Chain3(truncate),
-	"wordwrap":    Chain2(wordwrap),
-	"center":      Chain2(center),
-	"matchRegex":  Chain2(matchRegex),
-	"html":        Chain(stringFunc("html", noError(html.EscapeString))),
-	"urlquery":    Chain(stringFunc("urlquery", noError(url.QueryEscape))),
+	// @api(Function/Strings/quote) returns a double-quoted string.
+	//
+	// Example:
+	// ```
+	// {{print "hello"}}
+	// {{quote "hello"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// hello
+	// "hello"
+	// ```
+	"quote": Chain(stringFunc("quote", noError(strconv.Quote))),
+
+	// @api(Function/Strings/unquote) returns an unquoted string.
+	//
+	// Example:
+	// ```
+	// {{unquote "\"hello\""}}
+	// ```
+	//
+	// Output:
+	// ```
+	// hello
+	// ```
+	"unquote": Chain(stringFunc("unquote", strconv.Unquote)),
+
+	// @api(Function/Strings/capitalize) capitalizes the first character of a string.
+	//
+	// Example:
+	// ```
+	// {{capitalize "hello"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// Hello
+	// ```
+	"capitalize": Chain(stringFunc("capitalize", noError(capitalize))),
+
+	// @api(Function/Strings/lower) converts a string to lowercase.
+	//
+	// Example:
+	// ```
+	// {{lower "HELLO"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// hello
+	// ```
+	"lower": Chain(stringFunc("lower", noError(strings.ToLower))),
+
+	// @api(Function/Strings/upper) converts a string to uppercase.
+	//
+	// Example:
+	// ```
+	// {{upper "hello"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// HELLO
+	// ```
+	"upper": Chain(stringFunc("upper", noError(strings.ToUpper))),
+
+	// @api(Function/Strings/replace) replaces all occurrences of a substring with another substring.
+	//
+	// - **Parameters**: (_old_: string, _new_: string, _target_: string)
+	//
+	// Example:
+	// ```
+	// {{replace "o" "0" "hello world"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// hell0 w0rld
+	// ```
+	"replace": Chain3(replace),
+
+	// @api(Function/Strings/replaceN) replaces the first n occurrences of a substring with another substring.
+	//
+	// - **Parameters**: (_old_: string, _new_: string, _n_: int, _target_: string)
+	//
+	// Example:
+	// ```
+	// {{replaceN "o" "0" 1 "hello world"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// hell0 world
+	// ```
+	"replaceN": Chain4(replaceN),
+
+	// @api(Function/Strings/trim) removes leading and trailing whitespace from a string.
+	//
+	// Example:
+	// ```
+	// {{trim "  hello  "}}
+	// ```
+	//
+	// Output:
+	// ```
+	// hello
+	// ```
+	"trim": Chain(stringFunc("trim", noError(strings.TrimSpace))),
+
+	// @api(Function/Strings/trimPrefix) removes a prefix from a string if it exists.
+	//
+	// - **Parameters**: (_prefix_: string, _target_: string)
+	//
+	// Example:
+	// ```
+	// {{trimPrefix "Hello, " "Hello, World!"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// World!
+	// ```
+	"trimPrefix": Chain2(trimPrefix),
+
+	// @api(Function/Strings/hasPrefix) checks if a string starts with a given prefix.
+	//
+	// - **Parameters**: (_prefix_: string, _target_: string)
+	// - **Returns**: bool
+	//
+	// Example:
+	// ```
+	// {{hasPrefix "Hello" "Hello, World!"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// true
+	// ```
+	"hasPrefix": Chain2(hasPrefix),
+
+	// @api(Function/Strings/trimSuffix) removes a suffix from a string if it exists.
+	//
+	// - **Parameters**: (_suffix_: string, _target_: string)
+	//
+	// Example:
+	// ```
+	// {{trimSuffix ", World!" "Hello, World!"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// Hello
+	// ```
+	"trimSuffix": Chain2(trimSuffix),
+
+	// @api(Function/Strings/hasSuffix) checks if a string ends with a given suffix.
+	//
+	// - **Parameters**: (_suffix_: string, _target_: string)
+	// - **Returns**: bool
+	//
+	// Example:
+	// ```
+	// {{hasSuffix "World!" "Hello, World!"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// true
+	// ```
+	"hasSuffix": Chain2(hasSuffix),
+
+	// @api(Function/Strings/split) splits a string by a separator.
+	//
+	// - **Parameters**: (_separator_: string, _target_: string)
+	// - **Returns**: slice of strings
+	//
+	// Example:
+	// ```
+	// {{split "," "apple,banana,cherry"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// [apple banana cherry]
+	// ```
+	"split": Chain2(split),
+
+	// @api(Function/Strings/join) joins a slice of strings with a separator.
+	//
+	// - **Parameters**: (_separator_: string, _values_: slice of strings)
+	// - **Returns**: string
+	//
+	// Example:
+	// ```
+	// {{join "-" (list "apple" "banana" "cherry")}}
+	// ```
+	//
+	// Output:
+	// ```
+	// apple-banana-cherry
+	// ```
+	"join": Chain2(join),
+
+	// @api(Function/Strings/striptags) removes HTML tags from a string.
+	//
+	// Example:
+	// ```
+	// {{striptags "<p>Hello <b>World</b>!</p>"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// Hello World!
+	// ```
+	"striptags": Chain(stringFunc("striptags", striptags)),
+
+	// @api(Function/Strings/substr) extracts a substring from a string.
+	//
+	// - **Parameters**: (_start_: int, _length_: int, _target_: string)
+	//
+	// Example:
+	// ```
+	// {{substr 0 5 "Hello, World!"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// Hello
+	// ```
+	"substr": Chain3(substr),
+
+	// @api(Function/Strings/repeat) repeats a string a specified number of times.
+	//
+	// - **Parameters**: (_count_: int, _target_: string)
+	//
+	// Example:
+	// ```
+	// {{repeat 3 "abc"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// abcabcabc
+	// ```
+	"repeat": Chain2(repeat),
+
+	// @api(Function/Strings/camelCase) converts a string to camelCase.
+	//
+	// Example:
+	// ```
+	// {{camelCase "hello world"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// helloWorld
+	// ```
+	"camelCase": Chain(stringFunc("camelCase", noError(camelCase))),
+
+	// @api(Function/Strings/pascalCase) converts a string to PascalCase.
+	//
+	// Example:
+	// ```
+	// {{pascalCase "hello world"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// HelloWorld
+	// ```
+	"pascalCase": Chain(stringFunc("pascalCase", noError(pascalCase))),
+
+	// @api(Function/Strings/snakeCase) converts a string to snake_case.
+	//
+	// Example:
+	// ```
+	// {{snakeCase "helloWorld"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// hello_world
+	// ```
+	"snakeCase": Chain(stringFunc("snakeCase", noError(snakeCase))),
+
+	// @api(Function/Strings/kebabCase) converts a string to kebab-case.
+	//
+	// Example:
+	// ```
+	// {{kebabCase "helloWorld"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// hello-world
+	// ```
+	"kebabCase": Chain(stringFunc("kebabCase", noError(kebabCase))),
+
+	// @api(Function/Strings/truncate) truncates a string to a specified length and adds a suffix if truncated.
+	//
+	// - **Parameters**: (_length_: int, _suffix_: string, _target_: string)
+	//
+	// Example:
+	// ```
+	// {{truncate 10 "..." "This is a long sentence."}}
+	// ```
+	//
+	// Output:
+	// ```
+	// This is a...
+	// ```
+	"truncate": Chain3(truncate),
+
+	// @api(Function/Strings/wordwrap) wraps words in a string to a specified width.
+	//
+	// - **Parameters**: (_width_: int, _target_: string)
+	//
+	// Example:
+	// ```
+	// {{wordwrap 10 "This is a long sentence that needs wrapping."}}
+	// ```
+	//
+	// Output:
+	// ```
+	// This is a
+	// long
+	// sentence
+	// that needs
+	// wrapping.
+	// ```
+	"wordwrap": Chain2(wordwrap),
+
+	// @api(Function/Strings/center) centers a string in a field of a given width.
+	//
+	// - **Parameters**: (_width_: int, _target_: string)
+	//
+	// Example:
+	// ```
+	// {{center 20 "Hello"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// "       Hello        "
+	// ```
+	"center": Chain2(center),
+
+	// @api(Function/Strings/matchRegex) checks if a string matches a regular expression.
+	//
+	// - **Parameters**: (_pattern_: string, _target_: string)
+	// - **Returns**: bool
+	//
+	// Example:
+	// ```
+	// {{matchRegex "^[a-z]+$" "hello"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// true
+	// ```
+	"matchRegex": Chain2(matchRegex),
+
+	// @api(Function/Strings/html) escapes special characters in a string for use in HTML.
+	//
+	// Example:
+	// ```
+	// {{html "<script>alert('XSS')</script>"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// &lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;
+	// ```
+	"html": Chain(stringFunc("html", noError(html.EscapeString))),
+
+	// @api(Function/Strings/urlEscape) escapes a string for use in a URL query.
+	//
+	// Example:
+	// ```
+	// {{urlEscape "hello world"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// hello+world
+	// ```
+	"urlEscape": Chain(stringFunc("urlEscape", noError(url.QueryEscape))),
+
+	// @api(Function/Strings/urlUnescape) unescapes a URL query string.
+	//
+	// Example:
+	// ```
+	// {{urlUnescape "hello+world"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// hello world
+	// ```
 	"urlUnescape": Chain(stringFunc("urlUnescape", url.QueryUnescape)),
 
 	// Encoding functions
 
+	// @api(Function/Encoding/b64enc) encodes a string to base64.
+	//
+	// Example:
+	// ```
+	// {{b64enc "Hello, World!"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// SGVsbG8sIFdvcmxkIQ==
+	// ```
 	"b64enc": Chain(stringFunc("b64enc", noError(b64enc))),
+
+	// @api(Function/Encoding/b64dec) decodes a base64 encoded string.
+	//
+	// Example:
+	// ```
+	// {{b64dec "SGVsbG8sIFdvcmxkIQ=="}}
+	// ```
+	//
+	// Output:
+	// ```
+	// Hello, World!
+	// ```
 	"b64dec": Chain(stringFunc("b64dec", b64dec)),
 
 	// List functions
 
-	"list":     list,
-	"first":    Chain(first),
-	"last":     Chain(last),
-	"reverse":  Chain(reverse),
-	"sort":     Chain(sortSlice),
-	"uniq":     Chain(uniq),
+	// @api(Function/List/map) maps a list of values using the given function and returns a list of results.
+	//
+	// - **Parameters**: (_fn_: function, _list_: slice)
+	//
+	// Example:
+	// ```
+	// {{list 1 2 3 | map (add 1)}}
+	// {{list "a" "b" "c" | map (upper | replace "A" "X")}}
+	// ```
+	//
+	// Output:
+	// ```
+	// [2 3 4]
+	// [X B C]
+	// ```
+	"map": Chain2(Map),
+
+	// @api(Function/List/list) creates a list from the given arguments.
+	//
+	// Example:
+	// ```
+	// {{list 1 2 3}}
+	// ```
+	//
+	// Output:
+	// ```
+	// [1 2 3]
+	// ```
+	"list": list,
+
+	// @api(Function/List/first) returns the first element of a list or string.
+	//
+	// Example:
+	// ```
+	// {{first (list 1 2 3)}}
+	// {{first "hello"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 1
+	// h
+	// ```
+	"first": Chain(first),
+
+	// @api(Function/List/last) returns the last element of a list or string.
+	//
+	// Example:
+	// ```
+	// {{last (list 1 2 3)}}
+	// {{last "hello"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 3
+	// o
+	// ```
+	"last": Chain(last),
+
+	// @api(Function/List/reverse) reverses a list or string.
+	//
+	// Example:
+	// ```
+	// {{reverse (list 1 2 3)}}
+	// {{reverse "hello"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// [3 2 1]
+	// olleh
+	// ```
+	"reverse": Chain(reverse),
+
+	// @api(Function/List/sort) sorts a list of numbers or strings.
+	//
+	// Example:
+	// ```
+	// {{sort (list 3 1 4 1 5 9)}}
+	// {{sort (list "banana" "apple" "cherry")}}
+	// ```
+	//
+	// Output:
+	// ```
+	// [1 1 3 4 5 9]
+	// [apple banana cherry]
+	// ```
+	"sort": Chain(sortSlice),
+
+	// @api(Function/List/uniq) removes duplicate elements from a list.
+	//
+	// Example:
+	// ```
+	// {{uniq (list 1 2 2 3 3 3)}}
+	// ```
+	//
+	// Output:
+	// ```
+	// [1 2 3]
+	// ```
+	"uniq": Chain(uniq),
+
+	// @api(Function/List/includes) checks if an item is present in a list, map, or string.
+	//
+	// - **Parameters**: (_item_: any, _collection_: slice | map | string)
+	// - **Returns**: bool
+	//
+	// Example:
+	// ```
+	// {{includes 2 (list 1 2 3)}}
+	// {{includes "world" "hello world"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// true
+	// true
+	// ```
 	"includes": Chain2(includes),
 
 	// Math functions
 
-	"add":   Chain2(add),
-	"sub":   Chain2(sub),
-	"mul":   Chain2(mul),
-	"quo":   Chain2(quo),
-	"rem":   Chain2(rem),
-	"mod":   Chain2(mod),
-	"ceil":  Chain(ceil),
+	// @api(Function/Math/add) adds two numbers.
+	//
+	// - **Parameters**: (_a_: number, _b_: number)
+	//
+	// Example:
+	// ```
+	// {{add 2 3}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 5
+	// ```
+	"add": Chain2(add),
+
+	// @api(Function/Math/sub) subtracts the second number from the first.
+	//
+	// - **Parameters**: (_a_: number, _b_: number)
+	//
+	// Example:
+	// ```
+	// {{sub 5 3}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 2
+	// ```
+	"sub": Chain2(sub),
+
+	// @api(Function/Math/mul) multiplies two numbers.
+	//
+	// - **Parameters**: (_a_: number, _b_: number)
+	//
+	// Example:
+	// ```
+	// {{mul 2 3}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 6
+	// ```
+	"mul": Chain2(mul),
+
+	// @api(Function/Math/quo) divides the first number by the second.
+	//
+	// - **Parameters**: (_a_: number, _b_: number)
+	//
+	// Example:
+	// ```
+	// {{quo 6 3}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 2
+	// ```
+	"quo": Chain2(quo),
+
+	// @api(Function/Math/rem) returns the remainder of dividing the first number by the second.
+	//
+	// - **Parameters**: (_a_: number, _b_: number)
+	//
+	// Example:
+	// ```
+	// {{rem 7 3}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 1
+	// ```
+	"rem": Chain2(rem),
+
+	// @api(Function/Math/mod) returns the modulus of dividing the first number by the second.
+	//
+	// - **Parameters**: (_a_: number, _b_: number)
+	//
+	// Example:
+	// ```
+	// {{mod -7 3}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 2
+	// ```
+	"mod": Chain2(mod),
+
+	// @api(Function/Math/ceil) returns the least integer value greater than or equal to the input.
+	//
+	// Example:
+	// ```
+	// {{ceil 3.14}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 4
+	// ```
+	"ceil": Chain(ceil),
+
+	// @api(Function/Math/floor) returns the greatest integer value less than or equal to the input.
+	//
+	// Example:
+	// ```
+	// {{floor 3.14}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 3
+	// ```
 	"floor": Chain(floor),
+
+	// @api(Function/Math/round) rounds a number to a specified number of decimal places.
+	//
+	// - **Parameters**: (_precision_: integer, _value_: number)
+	//
+	// Example:
+	// ```
+	// {{round 2 3.14159}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 3.14
+	// ```
 	"round": Chain2(round),
-	"min":   minFunc,
-	"max":   maxFunc,
+
+	// @api(Function/Math/min) returns the minimum of a list of numbers.
+	//
+	// - **Parameters**: numbers (variadic)
+	//
+	// Example:
+	// ```
+	// {{min 3 1 4 1 5 9}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 1
+	// ```
+	"min": minFunc,
+
+	// @api(Function/Math/max) returns the maximum of a list of numbers.
+	//
+	// - **Parameters**: numbers (variadic)
+	//
+	// Example:
+	// ```
+	// {{max 3 1 4 1 5 9}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 9
+	// ```
+	"max": maxFunc,
 
 	// Type conversion functions
 
-	"int":    Chain(toInt64),
-	"float":  Chain(toFloat64),
+	// @api(Function/Convert/int) converts a value to an integer.
+	//
+	// Example:
+	// ```
+	// {{int "42"}}
+	// {{int 3.14}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 42
+	// 3
+	// ```
+	"int": Chain(toInt64),
+
+	// @api(Function/Convert/float) converts a value to a float.
+	//
+	// Example:
+	// ```
+	// {{float "3.14"}}
+	// {{float 42}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 3.14
+	// 42
+	// ```
+	"float": Chain(toFloat64),
+
+	// @api(Function/Convert/string) converts a value to a string.
+	//
+	// Example:
+	// ```
+	// {{string 42}}
+	// {{string true}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 42
+	// true
+	// ```
 	"string": Chain(toString),
-	"bool":   Chain(toBool),
+
+	// @api(Function/Convert/bool) converts a value to a boolean.
+	//
+	// Example:
+	// ```
+	// {{bool 1}}
+	// {{bool "false"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// true
+	// false
+	// ```
+	"bool": Chain(toBool),
 
 	// Date functions
 
-	"now":       time.Now,
+	// @api(Function/Date/now) returns the current time.
+	//
+	// Example:
+	// ```
+	// {{now}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 2024-09-12 15:04:05.999999999 +0000 UTC
+	// ```
+	"now": time.Now,
+
+	// @api(Function/Date/parseTime) parses a time string using the specified layout.
+	//
+	// - **Parameters**: (_layout_: string, _value_: string)
+	//
+	// Example:
+	// ```
+	// {{parseTime "2006-01-02" "2024-09-12"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 2024-09-12 00:00:00 +0000 UTC
+	// ```
 	"parseTime": parseTime,
 }
 
@@ -899,6 +1644,18 @@ func isFloat(v Any) bool {
 	default:
 		return false
 	}
+}
+
+func isNumber(v Any) bool {
+	return isInt(v) || isUint(v) || isFloat(v)
+}
+
+func isBool(v Any) bool {
+	return v.Kind() == reflect.Bool
+}
+
+func isString(v Any) bool {
+	return v.Kind() == reflect.String
 }
 
 // Type conversion functions
