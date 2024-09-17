@@ -8,11 +8,13 @@ import (
 	"math"
 	"math/big"
 	"net/url"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 	"unicode"
 
@@ -150,6 +152,10 @@ func (f FuncChain) then(next Func) FuncChain {
 	})
 }
 
+func (f FuncChain) self() reflect.Value {
+	return reflect.ValueOf(f)
+}
+
 // Map maps the given value to a slice of values using the given function chain.
 func Map(f FuncChain, v Slice) (Slice, error) {
 	if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
@@ -179,21 +185,40 @@ func noError[T, U any](f func(T) U) func(T) (U, error) {
 	}
 }
 
-// stringFunc converts a function that takes a string and returns a string to a funtion
-// that takes a reflect.Value and returns a reflect.Value.
-func stringFunc(name string, f func(string) (string, error)) Func {
+// stringFunc converts a function that takes a string to a funtion
+// that takes a reflect.Value.
+func stringFunc[R any](name string, f func(string) (R, error)) Func {
 	return func(v reflect.Value) (reflect.Value, error) {
+		s, ok := asString(v)
+		if !ok {
+			return null, fmt.Errorf("%s: expected string, got %s", name, v.Type())
+		}
+		r, err := f(s)
+		if r, ok := any(r).(reflect.Value); ok {
+			return r, err
+		}
+		return reflect.ValueOf(r), err
+	}
+}
+
+// stringFunc2 converts a function that takes a T and a string to a funtion
+// that takes a T and a reflect.Value.
+func stringFunc2[T, R any](name string, f func(T, string) (R, error)) Func2[T] {
+	return func(t T, v reflect.Value) (reflect.Value, error) {
 		s, ok := asString(v)
 		if !ok {
 			return reflect.Value{}, fmt.Errorf("%s: expected string, got %s", name, v.Type())
 		}
-		r, err := f(s)
+		r, err := f(t, s)
+		if r, ok := any(r).(reflect.Value); ok {
+			return r, err
+		}
 		return reflect.ValueOf(r), err
 	}
 }
 
 // Funcs is a map of utility functions for use in templates
-var Funcs = map[string]any{
+var Funcs = template.FuncMap{
 	// @api(_) is a no-op function that returns an empty string.
 	// It's useful to place a newline in the template.
 	//
@@ -1017,6 +1042,146 @@ var Funcs = map[string]any{
 	// 2024-09-12 00:00:00 +0000 UTC
 	// ```
 	"parseTime": parseTime,
+
+	// Os functions
+
+	// @api(Os/joinPath) joins path elements into a single path.
+	//
+	// - **Parameters**: elements (variadic)
+	//
+	// Example:
+	// ```
+	// {{joinPath "path" "to" "file.txt"}}
+	// ```
+	// Output:
+	// ```
+	// path/to/file.txt
+	// ```
+	"joinPath": joinPath,
+
+	// @api(Os/splitPath) splits a path into its elements.
+	//
+	// Example:
+	// ```
+	// {{splitPath "path/to/file.txt"}}
+	// ```
+	// Output:
+	// ```
+	// [path to file.txt]
+	// ```
+	"splitPath": Chain(splitPath),
+
+	// @api(Os/absPath) returns the absolute path of a file or directory.
+	//
+	// Example:
+	// ```
+	// {{absPath "file.txt"}}
+	// ```
+	// Output:
+	// ```
+	// /path/to/file.txt
+	// ```
+	"absPath": Chain(stringFunc("absPath", absPath)),
+
+	// @api(Os/relPath) returns the relative path between two paths.
+	//
+	// - **Parameters**: (_base_: string, _target_: string)
+	//
+	// Example:
+	// ```
+	// {{relPath "/path/to" "/path/to/file.txt"}}
+	// ```
+	// Output:
+	// ```
+	// file.txt
+	// ```
+	"relPath": Chain2(stringFunc2("relPath", relPath)),
+
+	// @api(Os/cleanPath) returns the cleaned path.
+	//
+	// Example:
+	// ```
+	// {{cleanPath "path/to/../file.txt"}}
+	// ```
+	// Output:
+	// ```
+	// path/file.txt
+	// ```
+	"cleanPath": Chain(stringFunc("cleanPath", noError(cleanPath))),
+
+	// @api(Os/basename) returns the last element of a path.
+	//
+	// Example:
+	// ```
+	// {{basename "path/to/file.txt"}}
+	// ```
+	// Output:
+	// ```
+	// file.txt
+	// ```
+	"basename": Chain(stringFunc("basename", noError(basename))),
+
+	// @api(Os/dirname) returns the directory of a path.
+	//
+	// Example:
+	// ```
+	// {{dirname "path/to/file.txt"}}
+	// ```
+	// Output:
+	// ```
+	// path/to
+	// ```
+	"dirname": Chain(stringFunc("dirname", noError(dirname))),
+
+	// @api(Os/extname) returns the extension of a path.
+	//
+	// Example:
+	// ```
+	// {{extname "path/to/file.txt"}}
+	// ```
+	// Output:
+	// ```
+	// .txt
+	// ```
+	"extname": Chain(stringFunc("extname", noError(extname))),
+
+	// @api(Os/isAbs) reports whether a path is absolute.
+	//
+	// Example:
+	// ```
+	// {{isAbs "/path/to/file.txt"}}
+	// ```
+	// Output:
+	// ```
+	// true
+	// ```
+	"isAbs": Chain(stringFunc("isAbs", noError(isAbs))),
+
+	// @api(Os/glob) returns the names of all files matching a pattern.
+	//
+	// Example:
+	// ```
+	// {{glob "/path/to/*.txt"}}
+	// ```
+	// Output:
+	// ```
+	// [/path/to/file1.txt /path/to/file2.txt]
+	// ```
+	"glob": Chain(stringFunc("glob", glob)),
+
+	// @api(Os/matchPath) reports whether a path matches a pattern.
+	//
+	// - **Parameters**: (_pattern_: string, _path_: string)
+	//
+	// Example:
+	// ```
+	// {{matchPath "/path/to/*.txt" "/path/to/file.txt"}}
+	// ```
+	// Output:
+	// ```
+	// true
+	// ```
+	"matchPath": Chain2(stringFunc2("matchPath", matchPath)),
 }
 
 // String functions
@@ -1765,4 +1930,58 @@ func asString(v Any) (string, bool) {
 
 func parseTime(layout, value string) (time.Time, error) {
 	return time.Parse(layout, value)
+}
+
+// Os functions
+
+func joinPath(parts ...string) string {
+	return filepath.Join(parts...)
+}
+
+func splitPath(path String) (Slice, error) {
+	p, ok := asString(path)
+	if !ok {
+		return null, fmt.Errorf("splitPath: expected string as the argument, got %s", path.Type())
+	}
+	return reflect.ValueOf(strings.Split(p, string(filepath.Separator))), nil
+}
+
+func absPath(path string) (string, error) {
+	return filepath.Abs(path)
+}
+
+func relPath(basepath, targpath string) (string, error) {
+	return filepath.Rel(basepath, targpath)
+}
+
+func cleanPath(path string) string {
+	return filepath.Clean(path)
+}
+
+func basename(path string) string {
+	return filepath.Base(path)
+}
+
+func dirname(path string) string {
+	return filepath.Dir(path)
+}
+
+func extname(path string) string {
+	return filepath.Ext(path)
+}
+
+func isAbs(path string) bool {
+	return filepath.IsAbs(path)
+}
+
+func isLocal(path string) bool {
+	return filepath.IsLocal(path)
+}
+
+func glob(pattern string) ([]string, error) {
+	return filepath.Glob(pattern)
+}
+
+func matchPath(pattern, path string) (bool, error) {
+	return filepath.Match(pattern, path)
 }

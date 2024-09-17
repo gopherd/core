@@ -4,9 +4,9 @@ package templates
 import (
 	"bytes"
 	"errors"
-	"html/template"
 	"regexp"
 	"strings"
+	"text/template"
 )
 
 // New creates a new template with the default functions.
