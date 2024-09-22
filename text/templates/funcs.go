@@ -224,7 +224,7 @@ var Funcs = template.FuncMap{
 	//
 	// Example:
 	//
-	// ```
+	// ```tmpl
 	// {{- if .Ok}}
 	// {{printf "ok: %v" .Ok}}
 	// {{_}}
@@ -237,7 +237,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/quote) returns a double-quoted string.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{print "hello"}}
 	// {{quote "hello"}}
 	// ```
@@ -252,7 +252,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/unquote) returns an unquoted string.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{unquote "\"hello\""}}
 	// ```
 	//
@@ -265,7 +265,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/capitalize) capitalizes the first character of a string.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{capitalize "hello"}}
 	// ```
 	//
@@ -278,7 +278,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/lower) converts a string to lowercase.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{lower "HELLO"}}
 	// ```
 	//
@@ -291,7 +291,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/upper) converts a string to uppercase.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{upper "hello"}}
 	// ```
 	//
@@ -306,7 +306,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_old_: string, _new_: string, _target_: string)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{replace "o" "0" "hello world"}}
 	// ```
 	//
@@ -321,7 +321,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_old_: string, _new_: string, _n_: int, _target_: string)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{replaceN "o" "0" 1 "hello world"}}
 	// ```
 	//
@@ -334,7 +334,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/trim) removes leading and trailing whitespace from a string.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{trim "  hello  "}}
 	// ```
 	//
@@ -349,7 +349,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_prefix_: string, _target_: string)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{trimPrefix "Hello, " "Hello, World!"}}
 	// ```
 	//
@@ -365,7 +365,7 @@ var Funcs = template.FuncMap{
 	// - **Returns**: bool
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{hasPrefix "Hello" "Hello, World!"}}
 	// ```
 	//
@@ -380,7 +380,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_suffix_: string, _target_: string)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{trimSuffix ", World!" "Hello, World!"}}
 	// ```
 	//
@@ -396,7 +396,7 @@ var Funcs = template.FuncMap{
 	// - **Returns**: bool
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{hasSuffix "World!" "Hello, World!"}}
 	// ```
 	//
@@ -412,7 +412,7 @@ var Funcs = template.FuncMap{
 	// - **Returns**: slice of strings
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{split "," "apple,banana,cherry"}}
 	// ```
 	//
@@ -428,7 +428,7 @@ var Funcs = template.FuncMap{
 	// - **Returns**: string
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{join "-" (list "apple" "banana" "cherry")}}
 	// ```
 	//
@@ -441,7 +441,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/striptags) removes HTML tags from a string.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{striptags "<p>Hello <b>World</b>!</p>"}}
 	// ```
 	//
@@ -456,7 +456,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_start_: int, _length_: int, _target_: string)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{substr 0 5 "Hello, World!"}}
 	// ```
 	//
@@ -471,7 +471,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_count_: int, _target_: string)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{repeat 3 "abc"}}
 	// ```
 	//
@@ -484,7 +484,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/camelCase) converts a string to camelCase.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{camelCase "hello world"}}
 	// ```
 	//
@@ -497,7 +497,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/pascalCase) converts a string to PascalCase.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{pascalCase "hello world"}}
 	// ```
 	//
@@ -510,7 +510,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/snakeCase) converts a string to snake_case.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{snakeCase "helloWorld"}}
 	// ```
 	//
@@ -523,7 +523,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/kebabCase) converts a string to kebab-case.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{kebabCase "helloWorld"}}
 	// ```
 	//
@@ -538,7 +538,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_length_: int, _suffix_: string, _target_: string)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{truncate 10 "..." "This is a long sentence."}}
 	// ```
 	//
@@ -553,7 +553,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_width_: int, _target_: string)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{wordwrap 10 "This is a long sentence that needs wrapping."}}
 	// ```
 	//
@@ -572,7 +572,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_width_: int, _target_: string)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{center 20 "Hello"}}
 	// ```
 	//
@@ -588,7 +588,7 @@ var Funcs = template.FuncMap{
 	// - **Returns**: bool
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{matchRegex "^[a-z]+$" "hello"}}
 	// ```
 	//
@@ -601,7 +601,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/html) escapes special characters in a string for use in HTML.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{html "<script>alert('XSS')</script>"}}
 	// ```
 	//
@@ -614,7 +614,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/urlEscape) escapes a string for use in a URL query.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{urlEscape "hello world"}}
 	// ```
 	//
@@ -627,7 +627,7 @@ var Funcs = template.FuncMap{
 	// @api(Strings/urlUnescape) unescapes a URL query string.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{urlUnescape "hello+world"}}
 	// ```
 	//
@@ -642,7 +642,7 @@ var Funcs = template.FuncMap{
 	// @api(Encoding/b64enc) encodes a string to base64.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{b64enc "Hello, World!"}}
 	// ```
 	//
@@ -655,7 +655,7 @@ var Funcs = template.FuncMap{
 	// @api(Encoding/b64dec) decodes a base64 encoded string.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{b64dec "SGVsbG8sIFdvcmxkIQ=="}}
 	// ```
 	//
@@ -665,14 +665,38 @@ var Funcs = template.FuncMap{
 	// ```
 	"b64dec": Chain(stringFunc("b64dec", b64dec)),
 
-	// List functions
+	// Container functions
 
-	// @api(List/map) maps a list of values using the given function and returns a list of results.
+	// It supports keys of any comparable type and values of any type.
+	// If an odd number of arguments is provided, it returns an error.
+	// If the first argument is already a map, it extends that map with the following key/value pairs.
+
+	// @api(Container/dict) creates a map from the given key/value pairs.
+	//
+	// - **Parameters**: (_dict_or_pairs_: ...any)
+	//
+	// dict supports keys of any comparable type and values of any type.
+	// If an odd number of arguments is provided, it returns an error.
+	// If the first argument is already a map, it extends that map with the following key/value pairs.
+	//
+	// Example:
+	// ```tmpl
+	// {{$user := dict "name" "Alice" "age" 30}}
+	// {{dict "user" ($user) "active" true}}
+	// ```
+	//
+	// Output:
+	// ```
+	// map[user:map[name:Alice age:30] active:true]
+	// ```
+	"dict": dict,
+
+	// @api(Container/map) maps a list of values using the given function and returns a list of results.
 	//
 	// - **Parameters**: (_fn_: function, _list_: slice)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{list 1 2 3 | map (add 1)}}
 	// {{list "a" "b" "c" | map (upper | replace "A" "X")}}
 	// ```
@@ -684,10 +708,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"map": Chain2(Map),
 
-	// @api(List/list) creates a list from the given arguments.
+	// @api(Container/list) creates a list from the given arguments.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{list 1 2 3}}
 	// ```
 	//
@@ -697,10 +721,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"list": list,
 
-	// @api(List/first) returns the first element of a list or string.
+	// @api(Container/first) returns the first element of a list or string.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{first (list 1 2 3)}}
 	// {{first "hello"}}
 	// ```
@@ -712,10 +736,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"first": Chain(first),
 
-	// @api(List/last) returns the last element of a list or string.
+	// @api(Container/last) returns the last element of a list or string.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{last (list 1 2 3)}}
 	// {{last "hello"}}
 	// ```
@@ -727,10 +751,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"last": Chain(last),
 
-	// @api(List/reverse) reverses a list or string.
+	// @api(Container/reverse) reverses a list or string.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{reverse (list 1 2 3)}}
 	// {{reverse "hello"}}
 	// ```
@@ -742,10 +766,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"reverse": Chain(reverse),
 
-	// @api(List/sort) sorts a list of numbers or strings.
+	// @api(Container/sort) sorts a list of numbers or strings.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{sort (list 3 1 4 1 5 9)}}
 	// {{sort (list "banana" "apple" "cherry")}}
 	// ```
@@ -757,10 +781,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"sort": Chain(sortSlice),
 
-	// @api(List/uniq) removes duplicate elements from a list.
+	// @api(Container/uniq) removes duplicate elements from a list.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{uniq (list 1 2 2 3 3 3)}}
 	// ```
 	//
@@ -770,13 +794,13 @@ var Funcs = template.FuncMap{
 	// ```
 	"uniq": Chain(uniq),
 
-	// @api(List/includes) checks if an item is present in a list, map, or string.
+	// @api(Container/includes) checks if an item is present in a list, map, or string.
 	//
 	// - **Parameters**: (_item_: any, _collection_: slice | map | string)
 	// - **Returns**: bool
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{includes 2 (list 1 2 3)}}
 	// {{includes "world" "hello world"}}
 	// ```
@@ -795,7 +819,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_a_: number, _b_: number)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{add 2 3}}
 	// ```
 	//
@@ -810,7 +834,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_a_: number, _b_: number)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{sub 5 3}}
 	// ```
 	//
@@ -825,7 +849,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_a_: number, _b_: number)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{mul 2 3}}
 	// ```
 	//
@@ -840,7 +864,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_a_: number, _b_: number)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{quo 6 3}}
 	// ```
 	//
@@ -855,7 +879,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_a_: number, _b_: number)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{rem 7 3}}
 	// ```
 	//
@@ -870,7 +894,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_a_: number, _b_: number)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{mod -7 3}}
 	// ```
 	//
@@ -883,7 +907,7 @@ var Funcs = template.FuncMap{
 	// @api(Math/ceil) returns the least integer value greater than or equal to the input.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{ceil 3.14}}
 	// ```
 	//
@@ -896,7 +920,7 @@ var Funcs = template.FuncMap{
 	// @api(Math/floor) returns the greatest integer value less than or equal to the input.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{floor 3.14}}
 	// ```
 	//
@@ -911,7 +935,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_precision_: integer, _value_: number)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{round 2 3.14159}}
 	// ```
 	//
@@ -926,7 +950,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: numbers (variadic)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{min 3 1 4 1 5 9}}
 	// ```
 	//
@@ -941,7 +965,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: numbers (variadic)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{max 3 1 4 1 5 9}}
 	// ```
 	//
@@ -956,7 +980,7 @@ var Funcs = template.FuncMap{
 	// @api(Convert/int) converts a value to an integer.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{int "42"}}
 	// {{int 3.14}}
 	// ```
@@ -971,7 +995,7 @@ var Funcs = template.FuncMap{
 	// @api(Convert/float) converts a value to a float.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{float "3.14"}}
 	// {{float 42}}
 	// ```
@@ -986,7 +1010,7 @@ var Funcs = template.FuncMap{
 	// @api(Convert/string) converts a value to a string.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{string 42}}
 	// {{string true}}
 	// ```
@@ -1001,7 +1025,7 @@ var Funcs = template.FuncMap{
 	// @api(Convert/bool) converts a value to a boolean.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{bool 1}}
 	// {{bool "false"}}
 	// ```
@@ -1018,7 +1042,7 @@ var Funcs = template.FuncMap{
 	// @api(Date/now) returns the current time.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{now}}
 	// ```
 	//
@@ -1033,7 +1057,7 @@ var Funcs = template.FuncMap{
 	// - **Parameters**: (_layout_: string, _value_: string)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{parseTime "2006-01-02" "2024-09-12"}}
 	// ```
 	//
@@ -1043,14 +1067,14 @@ var Funcs = template.FuncMap{
 	// ```
 	"parseTime": parseTime,
 
-	// Os functions
+	// OS functions
 
-	// @api(Os/joinPath) joins path elements into a single path.
+	// @api(OS/joinPath) joins path elements into a single path.
 	//
 	// - **Parameters**: elements (variadic)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{joinPath "path" "to" "file.txt"}}
 	// ```
 	// Output:
@@ -1059,10 +1083,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"joinPath": joinPath,
 
-	// @api(Os/splitPath) splits a path into its elements.
+	// @api(OS/splitPath) splits a path into its elements.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{splitPath "path/to/file.txt"}}
 	// ```
 	// Output:
@@ -1071,10 +1095,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"splitPath": Chain(splitPath),
 
-	// @api(Os/absPath) returns the absolute path of a file or directory.
+	// @api(OS/absPath) returns the absolute path of a file or directory.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{absPath "file.txt"}}
 	// ```
 	// Output:
@@ -1083,12 +1107,12 @@ var Funcs = template.FuncMap{
 	// ```
 	"absPath": Chain(stringFunc("absPath", absPath)),
 
-	// @api(Os/relPath) returns the relative path between two paths.
+	// @api(OS/relPath) returns the relative path between two paths.
 	//
 	// - **Parameters**: (_base_: string, _target_: string)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{relPath "/path/to" "/path/to/file.txt"}}
 	// ```
 	// Output:
@@ -1097,10 +1121,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"relPath": Chain2(stringFunc2("relPath", relPath)),
 
-	// @api(Os/cleanPath) returns the cleaned path.
+	// @api(OS/cleanPath) returns the cleaned path.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{cleanPath "path/to/../file.txt"}}
 	// ```
 	// Output:
@@ -1109,10 +1133,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"cleanPath": Chain(stringFunc("cleanPath", noError(cleanPath))),
 
-	// @api(Os/basename) returns the last element of a path.
+	// @api(OS/basename) returns the last element of a path.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{basename "path/to/file.txt"}}
 	// ```
 	// Output:
@@ -1121,10 +1145,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"basename": Chain(stringFunc("basename", noError(basename))),
 
-	// @api(Os/dirname) returns the directory of a path.
+	// @api(OS/dirname) returns the directory of a path.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{dirname "path/to/file.txt"}}
 	// ```
 	// Output:
@@ -1133,10 +1157,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"dirname": Chain(stringFunc("dirname", noError(dirname))),
 
-	// @api(Os/extname) returns the extension of a path.
+	// @api(OS/extname) returns the extension of a path.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{extname "path/to/file.txt"}}
 	// ```
 	// Output:
@@ -1145,10 +1169,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"extname": Chain(stringFunc("extname", noError(extname))),
 
-	// @api(Os/isAbs) reports whether a path is absolute.
+	// @api(OS/isAbs) reports whether a path is absolute.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{isAbs "/path/to/file.txt"}}
 	// ```
 	// Output:
@@ -1157,10 +1181,10 @@ var Funcs = template.FuncMap{
 	// ```
 	"isAbs": Chain(stringFunc("isAbs", noError(isAbs))),
 
-	// @api(Os/glob) returns the names of all files matching a pattern.
+	// @api(OS/glob) returns the names of all files matching a pattern.
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{glob "/path/to/*.txt"}}
 	// ```
 	// Output:
@@ -1169,12 +1193,12 @@ var Funcs = template.FuncMap{
 	// ```
 	"glob": Chain(stringFunc("glob", glob)),
 
-	// @api(Os/matchPath) reports whether a path matches a pattern.
+	// @api(OS/matchPath) reports whether a path matches a pattern.
 	//
 	// - **Parameters**: (_pattern_: string, _path_: string)
 	//
 	// Example:
-	// ```
+	// ```tmpl
 	// {{matchPath "/path/to/*.txt" "/path/to/file.txt"}}
 	// ```
 	// Output:
@@ -1453,7 +1477,33 @@ func b64dec(s string) (string, error) {
 	return string(b), nil
 }
 
-// List functions
+// Container functions
+
+func dict(args ...any) (any, error) {
+	if len(args) == 0 {
+		return make(map[string]any), nil
+	}
+
+	if len(args)%2 != 0 {
+		return nil, fmt.Errorf("Dict: odd number of arguments: %d", len(args))
+	}
+
+	// Check if the first argument is a map
+	if m, ok := args[0].(map[any]any); ok {
+		for i := 1; i < len(args); i += 2 {
+			m[args[i]] = args[i+1]
+		}
+		return m, nil
+	}
+
+	// Create a new map
+	m := make(map[any]any, len(args)/2)
+	for i := 0; i < len(args); i += 2 {
+		m[args[i]] = args[i+1]
+	}
+
+	return m, nil
+}
 
 func list(values ...Any) (Slice, error) {
 	if len(values) == 0 {
