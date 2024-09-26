@@ -4,6 +4,7 @@ package document
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"path/filepath"
 	"sort"
@@ -26,6 +27,33 @@ var (
 type Position struct {
 	Line      int // Line number (0-based)
 	Character int // Character offset in line (0-based)
+}
+
+// IsValid returns true if the position is valid.
+func (p Position) IsValid() bool {
+	return p.Line >= 0 && p.Character >= 0
+}
+
+// IsBefore returns true if the position is before the other position.
+func (p Position) IsBefore(other Position) bool {
+	if p.Line < other.Line {
+		return true
+	}
+	if p.Line > other.Line {
+		return false
+	}
+	return p.Character < other.Character
+}
+
+// FormatPosition formats a position as a string.
+func FormatPosition(filename string, p Position) string {
+	if !p.IsValid() {
+		return filename
+	}
+	if filename != "" {
+		return fmt.Sprintf("%s:%d:%d", filename, p.Line+1, p.Character+1)
+	}
+	return fmt.Sprintf("%d:%d", p.Line+1, p.Character+1)
 }
 
 // Range represents a range in a text document.
