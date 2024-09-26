@@ -275,3 +275,20 @@ func (d *Document) OffsetToPosition(offset int) (Position, error) {
 
 	return Position{Line: line, Character: char}, nil
 }
+
+// PositionFor returns a Position for the given byte offset in the content.
+func PositionFor(content string, offset int) Position {
+	if offset < 0 || offset >= len(content) {
+		return Position{}
+	}
+	text := content[:offset]
+	col := strings.LastIndex(text, "\n")
+	if col == -1 {
+		col = utf8.RuneCountInString(text)
+	} else {
+		col++ // After the newline.
+		col = utf8.RuneCountInString(text[col:])
+	}
+	line := strings.Count(text, "\n")
+	return Position{Line: line, Character: col}
+}
