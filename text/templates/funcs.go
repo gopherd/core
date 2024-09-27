@@ -223,12 +223,15 @@ var Funcs = template.FuncMap{
 	// It's useful to place a newline in the template.
 	//
 	// Example:
-	//
 	// ```tmpl
-	// {{- if .Ok}}
-	// {{printf "ok: %v" .Ok}}
-	// {{_}}
+	// {{- if true -}}
+	// {{_}} ok
 	// {{- end}}
+	// ```
+	//
+	// Output:
+	// ```
+	// 	ok
 	// ```
 	"_": func() string { return "" },
 
@@ -699,12 +702,14 @@ var Funcs = template.FuncMap{
 	// ```tmpl
 	// {{list 1 2 3 | map (add 1)}}
 	// {{list "a" "b" "c" | map (upper | replace "A" "X")}}
+	// {{"math/rand.Int63, *io.Reader, *io.Writer" | split "," | map (trim | split "." | first | trimPrefix "*") | sort | uniq}}
 	// ```
 	//
 	// Output:
 	// ```
 	// [2 3 4]
 	// [X B C]
+	// [io math/rand]
 	// ```
 	"map": Chain2(Map),
 
@@ -1201,6 +1206,7 @@ var Funcs = template.FuncMap{
 	// ```tmpl
 	// {{matchPath "/path/to/*.txt" "/path/to/file.txt"}}
 	// ```
+	//
 	// Output:
 	// ```
 	// true
