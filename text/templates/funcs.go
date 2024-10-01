@@ -1174,6 +1174,18 @@ var Funcs = template.FuncMap{
 	// ```
 	"extname": Chain(stringFunc("extname", noError(extname))),
 
+	// @api(OS/removeExt) removes the extension from a path.
+	//
+	// Example:
+	// ```tmpl
+	// {{removeExt "path/to/file.txt"}}
+	// ```
+	// Output:
+	// ```
+	// path/to/file
+	// ```
+	"removeExt": Chain(stringFunc("removeExt", noError(removeExt))),
+
 	// @api(OS/isAbs) reports whether a path is absolute.
 	//
 	// Example:
@@ -2026,12 +2038,15 @@ func extname(path string) string {
 	return filepath.Ext(path)
 }
 
-func isAbs(path string) bool {
-	return filepath.IsAbs(path)
+func removeExt(path string) string {
+	if ext := filepath.Ext(path); ext != "" {
+		return strings.TrimSuffix(path, ext)
+	}
+	return path
 }
 
-func isLocal(path string) bool {
-	return filepath.IsLocal(path)
+func isAbs(path string) bool {
+	return filepath.IsAbs(path)
 }
 
 func glob(pattern string) ([]string, error) {
