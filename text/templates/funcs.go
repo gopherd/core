@@ -252,12 +252,12 @@ var Funcs = template.FuncMap{
 	// ```
 	"preline": Chain(stringFunc("preline", noError(preline))),
 
-	// @api(Strings/blockspace) adds a newline after a string if it is not empty.
+	// @api(Strings/postline) adds a newline after a string if it is not empty and does not end with a newline.
 	//
 	// Example:
 	// ```tmpl
-	// {{blockspace "hello"}}
-	// {{blockspace ""}}
+	// {{postline "hello"}}
+	// {{postline ""}}
 	// ```
 	//
 	// Output:
@@ -265,7 +265,7 @@ var Funcs = template.FuncMap{
 	// hello
 	//
 	// ```
-	"blockspace": Chain(stringFunc("blockspace", noError(blockspace))),
+	"postline": Chain(stringFunc("postline", noError(postline))),
 
 	// @api(Strings/quote) returns a double-quoted string.
 	//
@@ -1278,8 +1278,8 @@ func preline(s string) string {
 	return "\n" + s
 }
 
-func blockspace(s string) string {
-	if s == "" {
+func postline(s string) string {
+	if s == "" || s[len(s)-1] == '\n' {
 		return s
 	}
 	return s + "\n"
