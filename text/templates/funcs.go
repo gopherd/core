@@ -237,6 +237,37 @@ var Funcs = template.FuncMap{
 
 	// String functions
 
+	// @api(Strings/linespace) adds a newline before a string if it is not empty.
+	//
+	// Example:
+	// ```tmpl
+	// {{linespace "hello"}}
+	// {{linespace ""}}
+	// ```
+	//
+	// Output:
+	// ```
+	//
+	// hello
+	// ```
+	"linespace": Chain(stringFunc("preline", linespace)),
+
+	// @api(Strings/blockspace) adds a newline before and after a string if it is not empty.
+	//
+	// Example:
+	// ```tmpl
+	// {{blockspace "hello"}}
+	// {{blockspace ""}}
+	// ```
+	//
+	// Output:
+	// ```
+	//
+	// hello
+	//
+	// ```
+	"blockspace": Chain(stringFunc("blockspace", blockspace)),
+
 	// @api(Strings/quote) returns a double-quoted string.
 	//
 	// Example:
@@ -1240,6 +1271,20 @@ var Funcs = template.FuncMap{
 }
 
 // String functions
+
+func linespace(s string) string {
+	if s == "" {
+		return s
+	}
+	return "\n" + s
+}
+
+func blockspace(s string) string {
+	if s == "" {
+		return s
+	}
+	return "\n" + s + "\n"
+}
 
 func capitalize(s string) string {
 	if s == "" {
