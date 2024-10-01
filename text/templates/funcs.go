@@ -237,7 +237,7 @@ var Funcs = template.FuncMap{
 
 	// String functions
 
-	// @api(Strings/preline) adds a newline before a string if it is not empty.
+	// @api(Strings/preline) adds a newline before a string if it is not empty and does not start with a newline.
 	//
 	// Example:
 	// ```tmpl
@@ -1272,7 +1272,7 @@ var Funcs = template.FuncMap{
 // String functions
 
 func preline(s string) string {
-	if s == "" {
+	if s == "" || s[0] == '\n' || s[0] == '\r' {
 		return s
 	}
 	return "\n" + s
