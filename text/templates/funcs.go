@@ -237,27 +237,12 @@ var Funcs = template.FuncMap{
 
 	// String functions
 
-	// @api(Strings/preline) adds a newline before a string if it is not empty and does not start with a newline.
+	// @api(Strings/linespace) adds a newline after a string if it is not empty and does not end with a newline.
 	//
 	// Example:
 	// ```tmpl
-	// {{preline "hello"}}
-	// {{preline ""}}
-	// ```
-	//
-	// Output:
-	// ```
-	//
-	// hello
-	// ```
-	"preline": Chain(stringFunc("preline", noError(preline))),
-
-	// @api(Strings/postline) adds a newline after a string if it is not empty and does not end with a newline.
-	//
-	// Example:
-	// ```tmpl
-	// {{postline "hello"}}
-	// {{postline ""}}
+	// {{linespace "hello"}}
+	// {{linespace ""}}
 	// ```
 	//
 	// Output:
@@ -265,7 +250,7 @@ var Funcs = template.FuncMap{
 	// hello
 	//
 	// ```
-	"postline": Chain(stringFunc("postline", noError(postline))),
+	"linespace": Chain(stringFunc("linespace", noError(linespace))),
 
 	// @api(Strings/quote) returns a double-quoted string.
 	//
@@ -1271,14 +1256,7 @@ var Funcs = template.FuncMap{
 
 // String functions
 
-func preline(s string) string {
-	if s == "" || s[0] == '\n' || s[0] == '\r' {
-		return s
-	}
-	return "\n" + s
-}
-
-func postline(s string) string {
+func linespace(s string) string {
 	if s == "" || s[len(s)-1] == '\n' {
 		return s
 	}
