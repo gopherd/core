@@ -1,4 +1,3 @@
-//go:generate go run github.com/gopherd/tools/cmd/docgen@v0.0.1 ./ ./README.md
 package templates
 
 import (
@@ -152,10 +151,6 @@ func (f FuncChain) then(next Func) FuncChain {
 	})
 }
 
-func (f FuncChain) self() reflect.Value {
-	return reflect.ValueOf(f)
-}
-
 // Map maps the given value to a slice of values using the given function chain.
 func Map(f FuncChain, v Slice) (Slice, error) {
 	if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
@@ -233,7 +228,7 @@ var Funcs = template.FuncMap{
 	// ```
 	// 	ok
 	// ```
-	"_": func() string { return "" },
+	"_": func(...any) string { return "" },
 
 	// String functions
 
@@ -698,11 +693,9 @@ var Funcs = template.FuncMap{
 
 	// Container functions
 
-	// It supports keys of any comparable type and values of any type.
-	// If an odd number of arguments is provided, it returns an error.
-	// If the first argument is already a map, it extends that map with the following key/value pairs.
+	"list": list,
 
-	// @api(Container/dict) creates a map from the given key/value pairs.
+	// @api(Container/dict) creates a [Dictionary](#Container/Dictionary) from the given key/value pairs.
 	//
 	// - **Parameters**: (_dict_or_pairs_: ...any)
 	//
@@ -740,19 +733,6 @@ var Funcs = template.FuncMap{
 	// [io math/rand]
 	// ```
 	"map": Chain2(Map),
-
-	// @api(Container/list) creates a list from the given arguments.
-	//
-	// Example:
-	// ```tmpl
-	// {{list 1 2 3}}
-	// ```
-	//
-	// Output:
-	// ```
-	// [1 2 3]
-	// ```
-	"list": list,
 
 	// @api(Container/first) returns the first element of a list or string.
 	//
@@ -1540,41 +1520,22 @@ func b64dec(s string) (string, error) {
 
 // Container functions
 
-func dict(args ...any) (any, error) {
+func dict(args ...any) (Dictionary, error) {
 	if len(args) == 0 {
-		return make(map[string]any), nil
+		return make(Dictionary), nil
 	}
-
 	if len(args)%2 != 0 {
-		return nil, fmt.Errorf("Dict: odd number of arguments: %d", len(args))
+		return nil, fmt.Errorf("dict: odd number of arguments: %d", len(args))
 	}
-
-	// Check if the first argument is a map
-	if m, ok := args[0].(map[any]any); ok {
-		for i := 1; i < len(args); i += 2 {
-			m[args[i]] = args[i+1]
-		}
-		return m, nil
-	}
-
-	// Create a new map
-	m := make(map[any]any, len(args)/2)
+	m := make(Dictionary, len(args)/2)
 	for i := 0; i < len(args); i += 2 {
 		m[args[i]] = args[i+1]
 	}
-
 	return m, nil
 }
 
-func list(values ...Any) (Slice, error) {
-	if len(values) == 0 {
-		return reflect.ValueOf([]string{}), nil
-	}
-	result := reflect.MakeSlice(reflect.SliceOf(values[0].Type()), len(values), len(values))
-	for i, v := range values {
-		result.Index(i).Set(v)
-	}
-	return result, nil
+func list(values ...any) (Vector, error) {
+	return values, nil
 }
 
 func first(v Slice) (Any, error) {
