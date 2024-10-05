@@ -422,15 +422,15 @@ func TestConfig_Output(t *testing.T) {
 			},
 			encoder: nil,
 			want: `{
-    "Context": {
-        "Name": "TestName"
-    },
-    "Components": [
-        {
-            "Name": "Component1",
-            "UUID": "TestUUID"
-        }
-    ]
+	"Context": {
+	    "Name": "TestName"
+	},
+	"Components": [
+	    {
+	        "Name": "Component1",
+	        "UUID": "TestUUID"
+	    }
+	]
 }`,
 		},
 		{
@@ -489,8 +489,8 @@ func TestJsonIdentEncoder(t *testing.T) {
 				Age:  30,
 			},
 			want: `{
-    "Name": "John",
-    "Age": 30
+	"Name": "John",
+	"Age": 30
 }`,
 			wantErr: false,
 		},
@@ -519,11 +519,11 @@ func TestJsonIdentEncoder(t *testing.T) {
 				Address: "123 Main St",
 			},
 			want: `{
-    "Person": {
-        "Name": "Alice",
-        "Age": 25
-    },
-    "Address": "123 Main St"
+	"Person": {
+	    "Name": "Alice",
+	    "Age": 25
+	},
+	"Address": "123 Main St"
 }`,
 			wantErr: false,
 		},
@@ -564,34 +564,34 @@ func TestStripJSONComments(t *testing.T) {
 		{
 			name: "Basic comment removal",
 			input: `{
-    // This is a comment
-    "name": "John",
-    "age": 30 // This is an invalid inline comment
+	// This is a comment
+	"name": "John",
+	"age": 30 // This is an invalid inline comment
 }`,
 			expected: `{
 
-    "name": "John",
-    "age": 30 // This is an invalid inline comment
+	"name": "John",
+	"age": 30 // This is an invalid inline comment
 }`,
 			wantErr: false,
 		},
 		{
 			name: "Multiple comments",
 			input: `{
-    // Comment 1
-    "a": 1,
-    // Comment 2
-    "b": 2,
-    // Comment 3
-    "c": 3
+	// Comment 1
+	"a": 1,
+	// Comment 2
+	"b": 2,
+	// Comment 3
+	"c": 3
 }`,
 			expected: `{
 
-    "a": 1,
+	"a": 1,
 
-    "b": 2,
+	"b": 2,
 
-    "c": 3
+	"c": 3
 }`,
 			wantErr: false,
 		},
@@ -614,39 +614,39 @@ func TestStripJSONComments(t *testing.T) {
 		{
 			name: "Comments with varying indentation",
 			input: `{
-    "a": 1,
+	"a": 1,
   // Indented comment
-        // More indented comment
-    "b": 2
+	    // More indented comment
+	"b": 2
 }`,
 			expected: `{
-    "a": 1,
+	"a": 1,
 
 
-    "b": 2
+	"b": 2
 }`,
 			wantErr: false,
 		},
 		{
 			name: "Preserve strings with //",
 			input: `{
-    "url": "https://example.com",
-    "comment": "This string contains // which is not a comment"
+	"url": "https://example.com",
+	"comment": "This string contains // which is not a comment"
 }`,
 			expected: `{
-    "url": "https://example.com",
-    "comment": "This string contains // which is not a comment"
+	"url": "https://example.com",
+	"comment": "This string contains // which is not a comment"
 }`,
 			wantErr: false,
 		},
 		{
 			name: "Comment at the end of file",
 			input: `{
-    "name": "John"
+	"name": "John"
 }
 // Comment at the end`,
 			expected: `{
-    "name": "John"
+	"name": "John"
 }
 `,
 			wantErr: false,
@@ -654,12 +654,12 @@ func TestStripJSONComments(t *testing.T) {
 		{
 			name: "Comment with special characters",
 			input: `{
-    // Comment with special chars: !@#$%^&*()_+
-    "data": "value"
+	// Comment with special chars: !@#$%^&*()_+
+	"data": "value"
 }`,
 			expected: `{
 
-    "data": "value"
+	"data": "value"
 }`,
 			wantErr: false,
 		},

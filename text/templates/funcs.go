@@ -1973,6 +1973,8 @@ func toBool(v Any) (Bool, error) {
 		return v, nil
 	}
 	switch v.Kind() {
+	case reflect.Invalid:
+		return reflect.ValueOf(false), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return reflect.ValueOf(v.Int() != 0), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -1986,6 +1988,8 @@ func toBool(v Any) (Bool, error) {
 			return null, err
 		}
 		return reflect.ValueOf(x), nil
+	case reflect.Map, reflect.Pointer:
+		return reflect.ValueOf(v.IsNil()), nil
 	default:
 		return null, fmt.Errorf("cannot convert %s to bool", v.Type())
 	}
