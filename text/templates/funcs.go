@@ -1283,7 +1283,7 @@ func trimPrefix(prefix string, v String) (String, error) {
 	return reflect.ValueOf(strings.TrimPrefix(s, prefix)), nil
 }
 
-func hasPrefix(prefix string, v String) (String, error) {
+func hasPrefix(prefix string, v String) (Bool, error) {
 	s, ok := asString(v)
 	if !ok {
 		return null, fmt.Errorf("hasPrefix: expected string as second argument, got %s", v.Type())
@@ -1299,7 +1299,7 @@ func trimSuffix(suffix string, v String) (String, error) {
 	return reflect.ValueOf(strings.TrimSuffix(s, suffix)), nil
 }
 
-func hasSuffix(suffix string, v String) (String, error) {
+func hasSuffix(suffix string, v String) (Bool, error) {
 	s, ok := asString(v)
 	if !ok {
 		return null, fmt.Errorf("hasSuffix: expected string as second argument, got %s", v.Type())
@@ -1882,6 +1882,10 @@ func isFloat(v Any) bool {
 	default:
 		return false
 	}
+}
+
+func isInteger(v Any) bool {
+	return isInt(v) || isUint(v)
 }
 
 func isNumber(v Any) bool {
