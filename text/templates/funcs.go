@@ -15,8 +15,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
-	"unicode"
 
+	"github.com/gopherd/core/stringutil"
 	"github.com/gopherd/core/text"
 )
 
@@ -286,7 +286,7 @@ var Funcs = template.FuncMap{
 	// ```
 	// Hello
 	// ```
-	"capitalize": Chain(stringFunc("capitalize", noError(capitalize))),
+	"capitalize": Chain(stringFunc("capitalize", noError(stringutil.Capitalize))),
 
 	// @api(Strings/uncapitalize) uncapitalizes the first character of a string.
 	//
@@ -299,7 +299,7 @@ var Funcs = template.FuncMap{
 	// ```
 	// hello
 	// ```
-	"uncapitalize": Chain(stringFunc("uncapitalize", noError(uncapitalize))),
+	"uncapitalize": Chain(stringFunc("uncapitalize", noError(stringutil.Uncapitalize))),
 
 	// @api(Strings/lower) converts a string to lowercase.
 	//
@@ -518,7 +518,7 @@ var Funcs = template.FuncMap{
 	// ```
 	// helloWorld
 	// ```
-	"camelCase": Chain(stringFunc("camelCase", noError(camelCase))),
+	"camelCase": Chain(stringFunc("camelCase", noError(stringutil.CamelCase))),
 
 	// @api(Strings/pascalCase) converts a string to PascalCase.
 	//
@@ -531,7 +531,7 @@ var Funcs = template.FuncMap{
 	// ```
 	// HelloWorld
 	// ```
-	"pascalCase": Chain(stringFunc("pascalCase", noError(pascalCase))),
+	"pascalCase": Chain(stringFunc("pascalCase", noError(stringutil.PascalCase))),
 
 	// @api(Strings/snakeCase) converts a string to snake_case.
 	//
@@ -544,7 +544,7 @@ var Funcs = template.FuncMap{
 	// ```
 	// hello_world
 	// ```
-	"snakeCase": Chain(stringFunc("snakeCase", noError(snakeCase))),
+	"snakeCase": Chain(stringFunc("snakeCase", noError(stringutil.SnakeCase))),
 
 	// @api(Strings/kebabCase) converts a string to kebab-case.
 	//
@@ -557,7 +557,7 @@ var Funcs = template.FuncMap{
 	// ```
 	// hello-world
 	// ```
-	"kebabCase": Chain(stringFunc("kebabCase", noError(kebabCase))),
+	"kebabCase": Chain(stringFunc("kebabCase", noError(stringutil.KebabCase))),
 
 	// @api(Strings/truncate) truncates a string to a specified length and adds a suffix if truncated.
 	//
@@ -1243,22 +1243,6 @@ func linespace(s string) string {
 	return s + "\n"
 }
 
-func capitalize(s string) string {
-	if s == "" {
-		return s
-	}
-	r := []rune(s)
-	return string(unicode.ToUpper(r[0])) + string(r[1:])
-}
-
-func uncapitalize(s string) string {
-	if s == "" {
-		return s
-	}
-	r := []rune(s)
-	return string(unicode.ToLower(r[0])) + string(r[1:])
-}
-
 func replace(old, new string, v String) (String, error) {
 	s, ok := asString(v)
 	if !ok {
@@ -1365,70 +1349,6 @@ func repeat(count int, v String) (String, error) {
 		return reflect.ValueOf(""), nil
 	}
 	return reflect.ValueOf(strings.Repeat(s, count)), nil
-}
-
-func camelCase(s string) string {
-	var result strings.Builder
-	capNext := false
-	for i, r := range s {
-		if unicode.IsLetter(r) || unicode.IsNumber(r) {
-			if i == 0 {
-				result.WriteRune(unicode.ToLower(r))
-			} else if capNext {
-				result.WriteRune(unicode.ToUpper(r))
-				capNext = false
-			} else {
-				result.WriteRune(r)
-			}
-		} else {
-			capNext = true
-		}
-	}
-	return result.String()
-}
-
-func pascalCase(s string) string {
-	if s == "" {
-		return ""
-	}
-
-	var result strings.Builder
-	capNext := true
-	for _, r := range s {
-		if unicode.IsLetter(r) || unicode.IsNumber(r) {
-			if capNext {
-				result.WriteRune(unicode.ToUpper(r))
-				capNext = false
-			} else {
-				result.WriteRune(r)
-			}
-		} else {
-			capNext = true
-		}
-	}
-	return result.String()
-}
-
-func snakeCase(s string) string {
-	var result strings.Builder
-	for i, r := range s {
-		if i > 0 && (unicode.IsUpper(r) || unicode.IsNumber(r) && !unicode.IsNumber(rune(s[i-1]))) {
-			result.WriteRune('_')
-		}
-		result.WriteRune(unicode.ToLower(r))
-	}
-	return result.String()
-}
-
-func kebabCase(s string) string {
-	var result strings.Builder
-	for i, r := range s {
-		if i > 0 && (unicode.IsUpper(r) || unicode.IsNumber(r) && !unicode.IsNumber(rune(s[i-1]))) {
-			result.WriteRune('-')
-		}
-		result.WriteRune(unicode.ToLower(r))
-	}
-	return result.String()
 }
 
 func truncate(length int, suffix, v String) (String, error) {
