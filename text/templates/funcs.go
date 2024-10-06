@@ -288,19 +288,6 @@ var Funcs = template.FuncMap{
 	// ```
 	"capitalize": Chain(stringFunc("capitalize", noError(stringutil.Capitalize))),
 
-	// @api(Strings/uncapitalize) uncapitalizes the first character of a string.
-	//
-	// Example:
-	// ```tmpl
-	// {{uncapitalize "Hello"}}
-	// ```
-	//
-	// Output:
-	// ```
-	// hello
-	// ```
-	"uncapitalize": Chain(stringFunc("uncapitalize", noError(stringutil.Uncapitalize))),
-
 	// @api(Strings/lower) converts a string to lowercase.
 	//
 	// Example:

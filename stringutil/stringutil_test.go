@@ -28,30 +28,6 @@ func TestCapitalize(t *testing.T) {
 	}
 }
 
-func TestUncapitalize(t *testing.T) {
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"", ""},
-		{"A", "a"},
-		{"a", "a"},
-		{"Hello", "hello"},
-		{"hello", "hello"},
-		{"1Hello", "1Hello"},
-		{" Hello", " Hello"},
-		{"HELLO", "hELLO"},
-		{"H", "h"},
-	}
-
-	for _, tt := range tests {
-		got := Uncapitalize(tt.input)
-		if got != tt.want {
-			t.Errorf("Uncapitalize(%q) = %q; want %q", tt.input, got, tt.want)
-		}
-	}
-}
-
 func TestSnakeCase(t *testing.T) {
 	tests := []struct {
 		input string

@@ -422,15 +422,15 @@ func TestConfig_Output(t *testing.T) {
 			},
 			encoder: nil,
 			want: `{
-	"Context": {
-	    "Name": "TestName"
-	},
-	"Components": [
-	    {
-	        "Name": "Component1",
-	        "UUID": "TestUUID"
-	    }
-	]
+    "Context": {
+        "Name": "TestName"
+    },
+    "Components": [
+        {
+            "Name": "Component1",
+            "UUID": "TestUUID"
+        }
+    ]
 }`,
 		},
 		{
@@ -489,8 +489,8 @@ func TestJsonIdentEncoder(t *testing.T) {
 				Age:  30,
 			},
 			want: `{
-	"Name": "John",
-	"Age": 30
+    "Name": "John",
+    "Age": 30
 }`,
 			wantErr: false,
 		},
@@ -519,11 +519,11 @@ func TestJsonIdentEncoder(t *testing.T) {
 				Address: "123 Main St",
 			},
 			want: `{
-	"Person": {
-	    "Name": "Alice",
-	    "Age": 25
-	},
-	"Address": "123 Main St"
+    "Person": {
+        "Name": "Alice",
+        "Age": 25
+    },
+    "Address": "123 Main St"
 }`,
 			wantErr: false,
 		},

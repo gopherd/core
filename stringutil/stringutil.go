@@ -14,15 +14,6 @@ func Capitalize(s string) string {
 	return string(unicode.ToUpper(r[0])) + string(r[1:])
 }
 
-// Uncapitalize returns the string with the first letter uncapitalized.
-func Uncapitalize(s string) string {
-	if s == "" {
-		return s
-	}
-	r := []rune(s)
-	return string(unicode.ToLower(r[0])) + string(r[1:])
-}
-
 // Rename renames the string with the given convert function and separator.
 func Rename(s string, convert func(int, string) string, sep string) string {
 	if s == "" {
