@@ -100,7 +100,7 @@ type failingBaseComponent struct {
 	component.BaseComponent[struct{}]
 }
 
-func (f *failingBaseComponent) Setup(container component.Container, config component.Config) error {
+func (f *failingBaseComponent) Setup(container component.Container, config *component.Config, rewrite bool) error {
 	return errors.New("setup failed")
 }
 
@@ -134,10 +134,6 @@ type complexRefs struct {
 	NestedPointer *struct {
 		PointerNestedRef component.Reference[*mockComponent]
 	}
-}
-
-type componentWithComplexRefs struct {
-	component.BaseComponentWithRefs[struct{}, complexRefs]
 }
 
 type failingResolver struct {
@@ -265,7 +261,7 @@ func TestBaseComponentSetup(t *testing.T) {
 			mc := &mockComponent{}
 			container := newMockContainer()
 
-			err := mc.Setup(container, tt.config)
+			err := mc.Setup(container, &tt.config, false)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Setup() error = %v, wantErr %v", err, tt.wantErr)
@@ -384,7 +380,7 @@ func TestGroup(t *testing.T) {
 		mc := &mockComponent{}
 		uuid := fmt.Sprintf("test-uuid-%d", i)
 		container := newMockContainer() // Create a new container for each component
-		err := mc.Setup(container, component.Config{Name: fmt.Sprintf("TestComponent-%d", i), UUID: uuid})
+		err := mc.Setup(container, &component.Config{Name: fmt.Sprintf("TestComponent-%d", i), UUID: uuid}, false)
 		if err != nil {
 			t.Fatalf("Failed to setup mockComponent: %v", err)
 		}
@@ -415,7 +411,7 @@ func TestGroup(t *testing.T) {
 	t.Run("Init failure", func(t *testing.T) {
 		group := component.NewGroup()
 		failingComponent := &mockComponent{initError: true}
-		failingComponent.Setup(newMockContainer(), component.Config{Name: "FailingComponent", UUID: "failing-uuid"})
+		failingComponent.Setup(newMockContainer(), &component.Config{Name: "FailingComponent", UUID: "failing-uuid"}, false)
 		group.AddComponent("failing-component", failingComponent)
 
 		err := group.Init(context.Background())
@@ -427,7 +423,7 @@ func TestGroup(t *testing.T) {
 	t.Run("Start failure", func(t *testing.T) {
 		group := component.NewGroup()
 		failingComponent := &mockComponent{startError: true}
-		failingComponent.Setup(newMockContainer(), component.Config{Name: "FailingComponent", UUID: "failing-uuid"})
+		failingComponent.Setup(newMockContainer(), &component.Config{Name: "FailingComponent", UUID: "failing-uuid"}, false)
 		group.AddComponent("failing-component", failingComponent)
 
 		if err := group.Init(context.Background()); err != nil {
@@ -441,7 +437,7 @@ func TestGroup(t *testing.T) {
 	t.Run("Shutdown failure", func(t *testing.T) {
 		group := component.NewGroup()
 		failingComponent := &mockComponent{shutdownError: true}
-		failingComponent.Setup(newMockContainer(), component.Config{Name: "FailingComponent", UUID: "failing-uuid"})
+		failingComponent.Setup(newMockContainer(), &component.Config{Name: "FailingComponent", UUID: "failing-uuid"}, false)
 		group.AddComponent("failing-component", failingComponent)
 
 		if err := group.Init(context.Background()); err != nil {
@@ -458,7 +454,7 @@ func TestGroup(t *testing.T) {
 	t.Run("Uninit failure", func(t *testing.T) {
 		group := component.NewGroup()
 		failingComponent := &mockComponent{uninitError: true}
-		failingComponent.Setup(newMockContainer(), component.Config{Name: "FailingComponent", UUID: "failing-uuid"})
+		failingComponent.Setup(newMockContainer(), &component.Config{Name: "FailingComponent", UUID: "failing-uuid"}, false)
 		group.AddComponent("failing-component", failingComponent)
 
 		if err := group.Init(context.Background()); err != nil {
@@ -619,7 +615,7 @@ func ExampleBaseComponent() {
 		Options: types.NewRawObject(`{"Value":"example"}`),
 	}
 
-	err := mc.Setup(container, config)
+	err := mc.Setup(container, &config, false)
 	if err != nil {
 		fmt.Printf("Failed to setup component: %v\n", err)
 		return
@@ -643,7 +639,7 @@ func ExampleGroup() {
 		mc := &mockComponent{}
 		uuid := fmt.Sprintf("example-uuid-%d", i)
 		container := newMockContainer()
-		_ = mc.Setup(container, component.Config{Name: fmt.Sprintf("ExampleComponent-%d", i), UUID: uuid})
+		_ = mc.Setup(container, &component.Config{Name: fmt.Sprintf("ExampleComponent-%d", i), UUID: uuid}, false)
 		group.AddComponent(uuid, mc)
 	}
 
@@ -690,7 +686,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 		Refs: types.NewRawObject(`{"Ref1":"ref1","Ref2":"ref2"}`),
 	}
 
-	err := tc.Setup(container, config)
+	err := tc.Setup(container, &config, false)
 	if err != nil {
 		t.Fatalf("Failed to setup component: %v", err)
 	}
@@ -710,7 +706,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 			UUID: "test-uuid",
 			Refs: types.NewRawObject(`{invalid json`),
 		}
-		err := tc.Setup(container, config)
+		err := tc.Setup(container, &config, false)
 		if err == nil || !strings.Contains(err.Error(), "failed to unmarshal refs") {
 			t.Errorf("Expected error for invalid refs JSON, got: %v", err)
 		}
@@ -726,7 +722,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 			UUID: "test-uuid",
 			Refs: types.NewRawObject(`{"Ref1":"non-existent-uuid"}`),
 		}
-		err := tc.Setup(mockContainer, config)
+		err := tc.Setup(mockContainer, &config, false)
 		if err == nil || !strings.Contains(err.Error(), "failed to resolve reference") {
 			t.Errorf("Expected error for failed reference resolution, got: %v", err)
 		}
@@ -757,7 +753,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 			Refs: types.NewRawObject(`{"Ref1":"ref1","NestedStruct":{"Ref2":"ref2"}}`),
 		}
 
-		err := nc.Setup(container, config)
+		err := nc.Setup(container, &config, false)
 		if err != nil {
 			t.Fatalf("Failed to setup nested component: %v", err)
 		}
@@ -794,7 +790,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 			Refs: types.NewRawObject(`{"Ref1":"ref1","Ref2":null,"Ref3":{},"Ref4":"not-a-ref"}`),
 		}
 
-		err := mixedComp.Setup(container, config)
+		err := mixedComp.Setup(container, &config, false)
 		if err != nil {
 			t.Fatalf("Failed to setup mixed component: %v", err)
 		}
@@ -816,7 +812,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 			Name: "FailingComponent",
 			UUID: "failing-uuid",
 		}
-		err := fc.Setup(newMockContainer(), config)
+		err := fc.Setup(newMockContainer(), &config, false)
 		if err == nil || err.Error() != "setup failed" {
 			t.Errorf("Expected setup failed error, got: %v", err)
 		}
@@ -829,7 +825,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 			UUID: "test-uuid",
 			Refs: types.NewRawObject(`{invalid json`),
 		}
-		err := tc.Setup(newMockContainer(), config)
+		err := tc.Setup(newMockContainer(), &config, false)
 		if err == nil || !strings.Contains(err.Error(), "failed to unmarshal refs") {
 			t.Errorf("Expected error for invalid refs JSON, got: %v", err)
 		}
@@ -842,7 +838,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 			UUID: "non-struct-uuid",
 			Refs: types.NewRawObject(`"string ref"`),
 		}
-		err := cnsr.Setup(newMockContainer(), config)
+		err := cnsr.Setup(newMockContainer(), &config, false)
 		if err != nil {
 			t.Errorf("Expected no error for non-struct refs, got: %v", err)
 		}
@@ -872,7 +868,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 			}`),
 		}
 
-		err := cdr.Setup(container, config)
+		err := cdr.Setup(container, &config, false)
 		if err != nil {
 			t.Fatalf("Failed to setup component with deep refs: %v", err)
 		}
@@ -904,7 +900,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 			Refs: types.NewRawObject(`{"FailingRef": "some-uuid"}`),
 		}
 
-		err := cfr.Setup(newMockContainer(), config)
+		err := cfr.Setup(newMockContainer(), &config, false)
 		if err == nil || !strings.Contains(err.Error(), "failed to resolve reference") {
 			t.Errorf("Expected error for failing resolver, got: %v", err)
 		}
@@ -921,7 +917,7 @@ func TestComponentLifecycle(t *testing.T) {
 		UUID: "lifecycle-uuid",
 	}
 
-	err := mc.Setup(container, config)
+	err := mc.Setup(container, &config, false)
 	if err != nil {
 		t.Fatalf("Failed to setup component: %v", err)
 	}
@@ -988,7 +984,7 @@ func TestComponentErrorHandling(t *testing.T) {
 		UUID: "error-uuid",
 	}
 
-	err := errorComponent.Setup(container, config)
+	err := errorComponent.Setup(container, &config, false)
 	if err != nil {
 		t.Fatalf("Failed to setup component: %v", err)
 	}
@@ -1022,7 +1018,7 @@ func BenchmarkComponentLifecycle(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		mc := &mockComponent{}
-		_ = mc.Setup(container, config)
+		_ = mc.Setup(container, &config, false)
 		_ = mc.Init(ctx)
 		_ = mc.Start(ctx)
 		_ = mc.Shutdown(ctx)

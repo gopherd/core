@@ -176,7 +176,7 @@ func (s *BaseService[T]) setupComponents() ([]pair.Pair[component.Component, com
 		components = append(components, pair.New(com, c))
 	}
 	for i := range components {
-		if err := components[i].First.Setup(s, components[i].Second); err != nil {
+		if err := components[i].First.Setup(s, &components[i].Second, s.flags.printConfig); err != nil {
 			return nil, fmt.Errorf("component %q setup error: %w", components[i].First.String(), err)
 		}
 	}
@@ -209,12 +209,7 @@ func (s *BaseService[T]) Init(ctx context.Context) error {
 		// generate output config after setting up components
 		configs := make([]component.Config, 0, len(components))
 		for _, c := range components {
-			config, err := c.First.Config()
-			if err != nil {
-				fmt.Fprintf(s.stderr, "Failed to get component config: %v", err)
-				return errkit.NewExitError(2, err.Error())
-			}
-			configs = append(configs, config)
+			configs = append(configs, c.Second)
 		}
 		s.config.output(configs, s.stdout, s.stderr, s.encoder)
 		return errkit.NewExitError(0)

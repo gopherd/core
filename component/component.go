@@ -52,14 +52,12 @@ type Component interface {
 	fmt.Stringer
 
 	// Setup sets up the component with the given container and configuration.
-	Setup(Container, Config) error
+	// If rewrite is true, the component should rewrite the configuration.
+	Setup(c Container, cfg *Config, rewrite bool) error
 
 	// Logger returns the logger instance for the component.
 	// Logger must be guranteed to return a non-nil logger instance after Setup is called.
 	Logger() *slog.Logger
-
-	// Config returns the configuration of the component.
-	Config() (Config, error)
 }
 
 // Container represents a generic container that can hold components.
@@ -104,16 +102,8 @@ func (c *simpleComponent) Logger() *slog.Logger {
 	return currentLogger
 }
 
-// Config implements the Component Config method.
-func (c *simpleComponent) Config() (Config, error) {
-	return Config{
-		Name: c.name,
-		UUID: c.uuid,
-	}, nil
-}
-
 // Setup implements the Component Setup method.
-func (c *simpleComponent) Setup(container Container, config Config) error {
+func (c *simpleComponent) Setup(container Container, config *Config, rewrite bool) error {
 	c.container = container
 	c.name = config.Name
 	c.uuid = config.UUID
@@ -167,27 +157,14 @@ type BaseComponent[T any] struct {
 	options T
 }
 
-// Config implements the Component Config method.
-func (c *BaseComponent[T]) Config() (Config, error) {
-	options, err := json.Marshal(c.options)
-	if err != nil {
-		return Config{}, err
-	}
-	return Config{
-		Name:    c.name,
-		UUID:    c.uuid,
-		Options: types.NewRawObject(options),
-	}, nil
-}
-
 // Options returns a pointer to the component's options.
 func (c *BaseComponent[T]) Options() *T {
 	return &c.options
 }
 
 // Setup implements the Component Setup method.
-func (c *BaseComponent[T]) Setup(container Container, config Config) error {
-	if err := c.simpleComponent.Setup(container, config); err != nil {
+func (c *BaseComponent[T]) Setup(container Container, config *Config, rewrite bool) error {
+	if err := c.simpleComponent.Setup(container, config, rewrite); err != nil {
 		return err
 	}
 	if err := config.Options.Decode(json.Unmarshal, &c.options); err != nil {
@@ -198,6 +175,13 @@ func (c *BaseComponent[T]) Setup(container Container, config Config) error {
 	}); ok {
 		if err := loaded.OnLoaded(); err != nil {
 			return fmt.Errorf("failed to load options: %w", err)
+		}
+		if rewrite {
+			var err error
+			config.Options, err = json.Marshal(c.options)
+			if err != nil {
+				return fmt.Errorf("failed to marshal options: %w", err)
+			}
 		}
 	}
 	return nil
@@ -284,32 +268,14 @@ type BaseComponentWithRefs[T, R any] struct {
 	refs R
 }
 
-// Config implements the Component Config method.
-func (c *BaseComponentWithRefs[T, R]) Config() (Config, error) {
-	options, err := json.Marshal(c.options)
-	if err != nil {
-		return Config{}, err
-	}
-	refs, err := json.Marshal(c.refs)
-	if err != nil {
-		return Config{}, err
-	}
-	return Config{
-		Name:    c.name,
-		UUID:    c.uuid,
-		Refs:    types.NewRawObject(refs),
-		Options: types.NewRawObject(options),
-	}, nil
-}
-
 // Refs returns a pointer to the component's references.
 func (c *BaseComponentWithRefs[T, R]) Refs() *R {
 	return &c.refs
 }
 
 // Setup implements the Component Setup method.
-func (c *BaseComponentWithRefs[T, R]) Setup(container Container, config Config) error {
-	if err := c.BaseComponent.Setup(container, config); err != nil {
+func (c *BaseComponentWithRefs[T, R]) Setup(container Container, config *Config, rewrite bool) error {
+	if err := c.BaseComponent.Setup(container, config, rewrite); err != nil {
 		return err
 	}
 	if err := config.Refs.Decode(json.Unmarshal, &c.refs); err != nil {

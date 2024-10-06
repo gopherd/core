@@ -627,12 +627,12 @@ func (m *mockComponent) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func (m *mockComponent) Setup(container component.Container, config component.Config) error {
+func (m *mockComponent) Setup(container component.Container, config *component.Config, rewrite bool) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.setupCalled = true
 	m.setupContainer = container
-	m.setupConfig = config
+	m.setupConfig = *config
 	m.logger = slog.Default().With("component", m.String())
 	return nil
 }
