@@ -8,10 +8,10 @@ import (
 
 func TestRegistry(t *testing.T) {
 	var r enums.Registry
-	if r.LookupDescriptor("Color") != nil {
+	if r.Lookup("Color") != nil {
 		t.Errorf("LookupDescriptor failed: Color found")
 	}
-	if err := r.RegisterDescriptor(&enums.Descriptor{
+	if err := r.Register(&enums.Descriptor{
 		Name:        "Color",
 		Description: "Color enum",
 		Members: []enums.MemberDescriptor{
@@ -22,7 +22,7 @@ func TestRegistry(t *testing.T) {
 	}); err != nil {
 		t.Errorf("RegisterDescriptor failed: %v", err)
 	}
-	if err := r.RegisterDescriptor(&enums.Descriptor{
+	if err := r.Register(&enums.Descriptor{
 		Name:        "Shape",
 		Description: "Shape enum",
 		Members: []enums.MemberDescriptor{
@@ -33,7 +33,7 @@ func TestRegistry(t *testing.T) {
 	}); err != nil {
 		t.Errorf("RegisterDescriptor failed: %v", err)
 	}
-	if err := r.RegisterDescriptor(&enums.Descriptor{
+	if err := r.Register(&enums.Descriptor{
 		Name:        "Color",
 		Description: "Color enum",
 		Members: []enums.MemberDescriptor{
@@ -45,7 +45,7 @@ func TestRegistry(t *testing.T) {
 		t.Errorf("RegisterDescriptor failed: expected error, got nil")
 	}
 
-	if d := r.LookupDescriptor("Color"); d == nil {
+	if d := r.Lookup("Color"); d == nil {
 		t.Errorf("LookupDescriptor failed: Color not found")
 	} else {
 		if d.Name != "Color" {
@@ -59,7 +59,7 @@ func TestRegistry(t *testing.T) {
 		}
 	}
 
-	if d := r.LookupDescriptor("Shape"); d == nil {
+	if d := r.Lookup("Shape"); d == nil {
 		t.Errorf("LookupDescriptor failed: Shape not found")
 	} else {
 		if d.Name != "Shape" {
@@ -73,7 +73,7 @@ func TestRegistry(t *testing.T) {
 		}
 	}
 
-	if d := r.LookupDescriptor("Size"); d != nil {
+	if d := r.Lookup("Size"); d != nil {
 		t.Errorf("LookupDescriptor failed: Size found")
 	}
 }

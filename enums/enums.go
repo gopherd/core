@@ -26,22 +26,22 @@ type Registry struct {
 	descriptors   map[string]*Descriptor
 }
 
-// RegisterDescriptor registers an enum descriptor.
-func (r *Registry) RegisterDescriptor(descriptor *Descriptor) error {
+// Register registers an enum descriptor.
+func (r *Registry) Register(descriptor *Descriptor) error {
 	r.descriptorsMu.Lock()
 	defer r.descriptorsMu.Unlock()
 	if r.descriptors == nil {
 		r.descriptors = make(map[string]*Descriptor)
 	}
 	if _, dup := r.descriptors[descriptor.Name]; dup {
-		return errors.New("enums: RegisterDescriptor called twice for descriptor " + descriptor.Name)
+		return errors.New("enums: Register called twice for descriptor " + descriptor.Name)
 	}
 	r.descriptors[descriptor.Name] = descriptor
 	return nil
 }
 
-// LookupDescriptor looks up an enum descriptor by name.
-func (r *Registry) LookupDescriptor(name string) *Descriptor {
+// Lookup looks up an enum descriptor by name.
+func (r *Registry) Lookup(name string) *Descriptor {
 	r.descriptorsMu.RLock()
 	defer r.descriptorsMu.RUnlock()
 	if r.descriptors == nil {
