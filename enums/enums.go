@@ -16,7 +16,7 @@ type Descriptor struct {
 // MemberDescriptor is a struct that describes an enum member.
 type MemberDescriptor struct {
 	Name        string `json:"name"`
-	Value       int    `json:"value"`
+	Value       any    `json:"value"`
 	Description string `json:"description"`
 }
 
@@ -49,3 +49,6 @@ func (r *Registry) LookupDescriptor(name string) *Descriptor {
 	}
 	return r.descriptors[name]
 }
+
+// DefaultRegistry is the default [Registry].
+var DefaultRegistry = &Registry{}
