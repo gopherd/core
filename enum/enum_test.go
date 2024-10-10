@@ -1,20 +1,20 @@
-package enums_test
+package enum_test
 
 import (
 	"testing"
 
-	"github.com/gopherd/core/enums"
+	"github.com/gopherd/core/enum"
 )
 
 func TestRegistry(t *testing.T) {
-	var r enums.Registry
+	var r enum.Registry
 	if r.Lookup("Color") != nil {
 		t.Errorf("LookupDescriptor failed: Color found")
 	}
-	if err := r.Register(&enums.Descriptor{
+	if err := r.Register(&enum.Descriptor{
 		Name:        "Color",
 		Description: "Color enum",
-		Members: []enums.MemberDescriptor{
+		Members: []enum.MemberDescriptor{
 			{Name: "Red", Value: 0, Description: "Red color"},
 			{Name: "Green", Value: 1, Description: "Green color"},
 			{Name: "Blue", Value: 2, Description: "Blue color"},
@@ -22,10 +22,10 @@ func TestRegistry(t *testing.T) {
 	}); err != nil {
 		t.Errorf("RegisterDescriptor failed: %v", err)
 	}
-	if err := r.Register(&enums.Descriptor{
+	if err := r.Register(&enum.Descriptor{
 		Name:        "Shape",
 		Description: "Shape enum",
-		Members: []enums.MemberDescriptor{
+		Members: []enum.MemberDescriptor{
 			{Name: "Circle", Value: 0, Description: "Circle shape"},
 			{Name: "Square", Value: 1, Description: "Square shape"},
 			{Name: "Triangle", Value: 2, Description: "Triangle shape"},
@@ -33,10 +33,10 @@ func TestRegistry(t *testing.T) {
 	}); err != nil {
 		t.Errorf("RegisterDescriptor failed: %v", err)
 	}
-	if err := r.Register(&enums.Descriptor{
+	if err := r.Register(&enum.Descriptor{
 		Name:        "Color",
 		Description: "Color enum",
-		Members: []enums.MemberDescriptor{
+		Members: []enum.MemberDescriptor{
 			{Name: "Red", Value: 0, Description: "Red color"},
 			{Name: "Green", Value: 1, Description: "Green color"},
 			{Name: "Blue", Value: 2, Description: "Blue color"},

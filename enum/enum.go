@@ -1,5 +1,5 @@
-// Package enums provides a way to register enum descriptors and lookup them by name.
-package enums
+// Package enum provides a way to register enum descriptors and lookup them by name.
+package enum
 
 import (
 	"errors"
