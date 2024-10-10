@@ -49,6 +49,3 @@ func (r *Registry) Lookup(name string) *Descriptor {
 	}
 	return r.descriptors[name]
 }
-
-// DefaultRegistry is the default [Registry].
-var DefaultRegistry = &Registry{}
