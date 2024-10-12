@@ -1470,7 +1470,9 @@ func first(v Slice) (Any, error) {
 			if len(s) == 0 {
 				return null, nil
 			}
-			return reflect.ValueOf(s[0:1]), nil
+			for _, r := range s {
+				return reflect.ValueOf(string(r)), nil
+			}
 		}
 		return null, fmt.Errorf("first: expected slice, array or string, got %s", v.Type())
 	}
