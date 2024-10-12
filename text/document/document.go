@@ -116,13 +116,7 @@ func URIToPath(uri string) string {
 		}
 	}
 
-	path = filepath.FromSlash(path)
-	if filepath.IsAbs(path) {
-		if p, err := filepath.Abs(path); err == nil {
-			path = p
-		}
-	}
-	return path
+	return filepath.FromSlash(path)
 }
 
 func buildIndex(content string) *index {
