@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -100,10 +101,28 @@ func NewDocument(uri, content string) *Document {
 
 // URIToPath converts a URI to a file path.
 func URIToPath(uri string) string {
-	if parsedURI, err := url.Parse(uri); err == nil {
-		return filepath.FromSlash(parsedURI.Path)
+	parsedURI, err := url.Parse(uri)
+	if err != nil {
+		return uri
 	}
-	return uri
+
+	path := parsedURI.Path
+
+	// Handle Windows paths
+	if runtime.GOOS == "windows" {
+		// If the path starts with a slash followed by a drive letter
+		if strings.HasPrefix(path, "/") && len(path) > 2 && path[2] == ':' {
+			path = path[1:] // Remove the leading slash
+		}
+	}
+
+	path = filepath.FromSlash(path)
+	if filepath.IsAbs(path) {
+		if p, err := filepath.Abs(path); err == nil {
+			path = p
+		}
+	}
+	return path
 }
 
 func buildIndex(content string) *index {
