@@ -14,7 +14,7 @@ func TestInfo_String(t *testing.T) {
 		{
 			name: "empty",
 			info: buildInfo{},
-			want: " (: ) built at  by go.test",
+			want: " () built at  by go.test",
 		},
 		{
 			name: "full",
