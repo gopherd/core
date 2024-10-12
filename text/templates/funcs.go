@@ -247,6 +247,19 @@ var Funcs = template.FuncMap{
 	// ```
 	"linespace": Chain(stringFunc("linespace", noError(linespace))),
 
+	// @api(Strings/fields) splits a string into fields separated by whitespace.
+	//
+	// Example:
+	// ```tmpl
+	// {{fields "hello world  !"}}
+	// ```
+	//
+	// Output:
+	// ```
+	// [hello world !]
+	// ```
+	"fields": Chain(stringFunc("fields", noError(strings.Fields))),
+
 	// @api(Strings/quote) returns a double-quoted string.
 	//
 	// Example:
