@@ -88,8 +88,12 @@ var runtimeVersion = runtime.Version
 
 // String returns a formatted string containing all build information.
 func (info buildInfo) String() string {
-	return fmt.Sprintf("%s %s(%s: %s) built at %s by %s",
-		info.Name, info.Version, info.Branch, info.Commit, info.DateTime, runtimeVersion())
+	br := info.Branch
+	if br != "" {
+		br += ": "
+	}
+	return fmt.Sprintf("%s %s(%s%s) built at %s by %s",
+		info.Name, info.Version, br, info.Commit, info.DateTime, runtimeVersion())
 }
 
 // Info returns a struct containing the build information.
