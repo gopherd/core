@@ -157,7 +157,7 @@ func removeColors(isTerminal bool, a []any) []any {
 		}
 		args := make([]any, len(a))
 		for i := range a {
-			s := getColorizedString(arg)
+			s := getColorizedString(a[i])
 			if s != nil && (!isTerminal || !isSupportsAnsi || s.color.Is256()) {
 				args[i] = s.value
 			} else {
