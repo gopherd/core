@@ -70,7 +70,7 @@ func TestOrFunc(t *testing.T) {
 	}
 }
 
-func TestSetOr(t *testing.T) {
+func TestSetDefault(t *testing.T) {
 	tests := []struct {
 		name       string
 		a, b, want int
@@ -82,14 +82,14 @@ func TestSetOr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			a := tt.a
-			if got := op.SetOr(&a, tt.b); got != tt.want || a != tt.want {
-				t.Errorf("SetOr(&%v, %v) = %v, want %v, a = %v, want %v", tt.a, tt.b, got, tt.want, a, tt.want)
+			if got := op.SetDefault(&a, tt.b); got != tt.want || a != tt.want {
+				t.Errorf("SetDefault(&%v, %v) = %v, want %v, a = %v, want %v", tt.a, tt.b, got, tt.want, a, tt.want)
 			}
 		})
 	}
 }
 
-func TestSetOrFunc(t *testing.T) {
+func TestSetDefaultFunc(t *testing.T) {
 	tests := []struct {
 		name string
 		a    int
@@ -103,8 +103,8 @@ func TestSetOrFunc(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			a := tt.a
-			if got := op.SetOrFunc(&a, tt.b); got != tt.want || a != tt.want {
-				t.Errorf("SetOrFunc(&%v, func()) = %v, want %v, a = %v, want %v", tt.a, got, tt.want, a, tt.want)
+			if got := op.SetDefaultFunc(&a, tt.b); got != tt.want || a != tt.want {
+				t.Errorf("SetDefaultFunc(&%v, func()) = %v, want %v, a = %v, want %v", tt.a, got, tt.want, a, tt.want)
 			}
 		})
 	}

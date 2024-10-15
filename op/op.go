@@ -24,9 +24,9 @@ func OrFunc[T comparable](a T, b func() T) T {
 	return a
 }
 
-// SetOr sets the value of a to b if a is the zero value for T.
+// SetDefault sets the value of a to b if a is the zero value for T.
 // It returns the final value of a.
-func SetOr[T comparable](a *T, b T) T {
+func SetDefault[T comparable](a *T, b T) T {
 	var zero T
 	if *a == zero {
 		*a = b
@@ -34,9 +34,9 @@ func SetOr[T comparable](a *T, b T) T {
 	return *a
 }
 
-// SetOrFunc sets the value of a to the result of calling b() if a is
+// SetDefaultFunc sets the value of a to the result of calling b() if a is
 // the zero value for T. It returns the final value of a.
-func SetOrFunc[T comparable](a *T, b func() T) T {
+func SetDefaultFunc[T comparable](a *T, b func() T) T {
 	var zero T
 	if *a == zero {
 		*a = b()
