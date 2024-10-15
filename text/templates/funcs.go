@@ -1773,7 +1773,7 @@ func toBigFloat(v Number) (*big.Float, error) {
 	case reflect.Float32, reflect.Float64:
 		return new(big.Float).SetFloat64(v.Float()), nil
 	default:
-		return nil, fmt.Errorf("unsupported type for numeric operation: %s", v.Type())
+		return nil, fmt.Errorf("unsupported type for numeric operation: %s (%s)", v, v.Kind())
 	}
 }
 
