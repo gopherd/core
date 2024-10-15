@@ -1772,9 +1772,43 @@ func toBigFloat(v Number) (*big.Float, error) {
 		return new(big.Float).SetUint64(v.Uint()), nil
 	case reflect.Float32, reflect.Float64:
 		return new(big.Float).SetFloat64(v.Float()), nil
-	default:
-		return nil, fmt.Errorf("unsupported type for numeric operation: %s (%s)", v, v.Kind())
+	case reflect.Interface:
+		if v.CanInterface() {
+			switch x := v.Interface().(type) {
+			case *big.Float:
+				return x, nil
+			case *big.Int:
+				return new(big.Float).SetInt(x), nil
+			case *big.Rat:
+				return new(big.Float).SetRat(x), nil
+			case int:
+				return new(big.Float).SetInt64(int64(x)), nil
+			case int8:
+				return new(big.Float).SetInt64(int64(x)), nil
+			case int16:
+				return new(big.Float).SetInt64(int64(x)), nil
+			case int32:
+				return new(big.Float).SetInt64(int64(x)), nil
+			case int64:
+				return new(big.Float).SetInt64(x), nil
+			case uint:
+				return new(big.Float).SetUint64(uint64(x)), nil
+			case uint8:
+				return new(big.Float).SetUint64(uint64(x)), nil
+			case uint16:
+				return new(big.Float).SetUint64(uint64(x)), nil
+			case uint32:
+				return new(big.Float).SetUint64(uint64(x)), nil
+			case uint64:
+				return new(big.Float).SetUint64(x), nil
+			case float32:
+				return new(big.Float).SetFloat64(float64(x)), nil
+			case float64:
+				return new(big.Float).SetFloat64(x), nil
+			}
+		}
 	}
+	return nil, fmt.Errorf("unsupported type for numeric operation: %v (%s)", v, v.Kind())
 }
 
 // Type checking functions
