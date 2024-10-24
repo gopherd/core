@@ -296,27 +296,49 @@ func (c *BaseComponentWithRefs[T, R]) resolveRefs(container Container) error {
 
 // recursiveResolveRefs recursively resolves references in nested structs
 func (c *BaseComponentWithRefs[T, R]) recursiveResolveRefs(container Container, t reflect.Type, v reflect.Value) error {
-	for i := 0; i < v.NumField(); i++ {
-		ft := t.Field(i)
-		fv := v.Field(i)
-
-		resolver := getResolver(fv)
-		if resolver == nil && fv.CanAddr() {
-			resolver = getResolver(fv.Addr())
-		}
-		if resolver == nil {
-			if fv.Kind() == reflect.Struct {
-				if err := c.recursiveResolveRefs(container, fv.Type(), fv); err != nil {
-					return err
-				}
-			}
-			continue
-		}
-
+	resolver := getResolver(v)
+	if resolver == nil && v.CanAddr() {
+		resolver = getResolver(v.Addr())
+	}
+	if resolver != nil {
 		if err := resolver.Resolve(container); err != nil {
-			return fmt.Errorf("failed to resolve reference %s to %s: %w", ft.Name, resolver.UUID(), err)
+			return fmt.Errorf("failed to resolve reference %s to %s: %w", t.Name(), resolver.UUID(), err)
 		}
 		c.Logger().Info("resolve referenced component", "current", c.identifier, "ref", resolver.UUID())
+		return nil
+	}
+	switch v.Kind() {
+	case reflect.Ptr:
+		if v.IsNil() {
+			return nil
+		}
+		if err := c.recursiveResolveRefs(container, v.Elem().Type(), v.Elem()); err != nil {
+			return err
+		}
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			ft := t.Field(i)
+			fv := v.Field(i)
+			if err := c.recursiveResolveRefs(container, ft.Type, fv); err != nil {
+				return err
+			}
+		}
+	case reflect.Array, reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			if err := c.recursiveResolveRefs(container, v.Index(i).Type(), v.Index(i)); err != nil {
+				return err
+			}
+		}
+	case reflect.Map:
+		for _, key := range v.MapKeys() {
+			value := v.MapIndex(key)
+			if value.Kind() != reflect.Ptr {
+				return fmt.Errorf("failed to resolve refs: unexpected map value type: want pointer, got %s", value.Kind())
+			}
+			if err := c.recursiveResolveRefs(container, value.Type(), value); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

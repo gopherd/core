@@ -104,36 +104,20 @@ func (f *failingBaseComponent) Setup(container component.Container, config *comp
 	return errors.New("setup failed")
 }
 
-type nonStructRefs string
-
 type componentWithNonStructRefs struct {
-	component.BaseComponentWithRefs[struct{}, nonStructRefs]
-}
-
-type deeplyNestedRefs struct {
-	Ref1   component.Reference[*mockComponent]
-	Nested struct {
-		Ref2       component.Reference[*mockComponent]
-		DeepNested struct {
-			Ref3 component.Reference[*mockComponent]
-		}
-	}
+	component.BaseComponentWithRefs[struct{}, string]
 }
 
 type componentWithDeepRefs struct {
-	component.BaseComponentWithRefs[struct{}, deeplyNestedRefs]
-}
-
-type complexRefs struct {
-	DirectRef    component.Reference[*mockComponent]
-	PointerRef   *component.Reference[*mockComponent]
-	NonRefField  string
-	NestedStruct struct {
-		NestedRef component.Reference[*mockComponent]
-	}
-	NestedPointer *struct {
-		PointerNestedRef component.Reference[*mockComponent]
-	}
+	component.BaseComponentWithRefs[struct{}, struct {
+		Ref1   component.Reference[*mockComponent]
+		Nested struct {
+			Ref2       component.Reference[*mockComponent]
+			DeepNested struct {
+				Ref3 component.Reference[*mockComponent]
+			}
+		}
+	}]
 }
 
 type failingResolver struct {
@@ -664,13 +648,11 @@ func ExampleGroup() {
 
 // TestBaseComponentWithRefs tests the BaseComponentWithRefs functionality
 func TestBaseComponentWithRefs(t *testing.T) {
-	type testRefs struct {
-		Ref1 component.Reference[*mockComponent]
-		Ref2 component.OptionalReference[*mockComponent]
-	}
-
 	type testComponent struct {
-		component.BaseComponentWithRefs[mockOptions, testRefs]
+		component.BaseComponentWithRefs[mockOptions, struct {
+			Ref1 component.Reference[*mockComponent]
+			Ref2 component.OptionalReference[*mockComponent]
+		}]
 	}
 
 	container := newMockContainer()
@@ -729,15 +711,13 @@ func TestBaseComponentWithRefs(t *testing.T) {
 	})
 
 	t.Run("Nested refs", func(t *testing.T) {
-		type nestedRefs struct {
-			Ref1         component.Reference[*mockComponent]
-			NestedStruct struct {
-				Ref2 component.Reference[*mockComponent]
-			}
-		}
-
 		type nestedComponent struct {
-			component.BaseComponentWithRefs[mockOptions, nestedRefs]
+			component.BaseComponentWithRefs[mockOptions, struct {
+				Ref1         component.Reference[*mockComponent]
+				NestedStruct struct {
+					Ref2 component.Reference[*mockComponent]
+				}
+			}]
 		}
 
 		container := newMockContainer()
@@ -768,15 +748,23 @@ func TestBaseComponentWithRefs(t *testing.T) {
 	})
 
 	t.Run("Different field types", func(t *testing.T) {
-		type mixedRefs struct {
-			Ref1 component.Reference[*mockComponent]
-			Ref2 *component.Reference[*mockComponent]
-			Ref3 interface{}
-			Ref4 string
-		}
-
 		type mixedComponent struct {
-			component.BaseComponentWithRefs[mockOptions, mixedRefs]
+			component.BaseComponentWithRefs[mockOptions, struct {
+				Ref1 component.Reference[*mockComponent]
+				Ref2 *component.Reference[*mockComponent]
+				Ref3 interface{}
+				Ref4 string
+
+				X struct {
+					Ref5 component.Reference[*mockComponent]
+				}
+				Y *struct {
+					Ref6 component.Reference[*mockComponent]
+				}
+				Ref7 [2]component.Reference[*mockComponent]
+				Ref8 []component.Reference[*mockComponent]
+				Ref9 map[string]*component.Reference[*mockComponent]
+			}]
 		}
 
 		container := newMockContainer()
@@ -787,7 +775,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 		config := component.Config{
 			Name: "MixedComponent",
 			UUID: "mixed-uuid",
-			Refs: types.NewRawObject(`{"Ref1":"ref1","Ref2":null,"Ref3":{},"Ref4":"not-a-ref"}`),
+			Refs: types.NewRawObject(`{"Ref1":"ref1","Ref2":null,"Ref3":{},"Ref4":"not-a-ref","X":{"Ref5":"ref1"},"Y":{"Ref6":"ref1"},"Ref7":["ref1","ref1"],"Ref8":["ref1"],"Ref9":{"key":"ref1"}}`),
 		}
 
 		err := mixedComp.Setup(container, &config, false)
@@ -801,6 +789,28 @@ func TestBaseComponentWithRefs(t *testing.T) {
 
 		if mixedComp.Refs().Ref2 != nil {
 			t.Error("Ref2 should be nil")
+		}
+
+		if mixedComp.Refs().X.Ref5.Component() != mc {
+			t.Error("Nested Ref5 did not resolve to the correct component")
+		}
+
+		if mixedComp.Refs().Y.Ref6.Component() != mc {
+			t.Error("Nested Ref6 did not resolve to the correct component")
+		}
+
+		if mixedComp.Refs().Ref7[0].Component() != mc || mixedComp.Refs().Ref7[1].Component() != mc {
+			t.Error("Array refs did not resolve to the correct component")
+		}
+
+		if mixedComp.Refs().Ref8[0].Component() != mc {
+			t.Error("Slice ref did not resolve to the correct component")
+		}
+
+		if len(mixedComp.Refs().Ref9) != 1 {
+			t.Error("Map ref should have one entry")
+		} else if mixedComp.Refs().Ref9["key"].Component() != mc {
+			t.Error("Map ref did not resolve to the correct component: got", mixedComp.Refs().Ref9["key"])
 		}
 
 		// Ref3 and Ref4 should not cause errors, but won't be resolved
@@ -885,12 +895,10 @@ func TestBaseComponentWithRefs(t *testing.T) {
 	})
 
 	t.Run("Failing resolver", func(t *testing.T) {
-		type refsWithFailingResolver struct {
-			FailingRef failingResolver
-		}
-
 		type componentWithFailingResolver struct {
-			component.BaseComponentWithRefs[struct{}, refsWithFailingResolver]
+			component.BaseComponentWithRefs[struct{}, struct {
+				FailingRef failingResolver
+			}]
 		}
 
 		cfr := &componentWithFailingResolver{}
@@ -905,6 +913,23 @@ func TestBaseComponentWithRefs(t *testing.T) {
 			t.Errorf("Expected error for failing resolver, got: %v", err)
 		}
 	})
+}
+
+func TestComplexRefs(t *testing.T) {
+	type complexRefs struct {
+		DirectRef    component.Reference[*mockComponent]
+		PointerRef   *component.Reference[*mockComponent]
+		NonRefField  string
+		NestedStruct struct {
+			NestedRef component.Reference[*mockComponent]
+		}
+		NestedPointer *struct {
+			PointerNestedRef component.Reference[*mockComponent]
+		}
+		ArrayRef [2]component.Reference[*mockComponent]
+		SliceRef []component.Reference[*mockComponent]
+		MapRef   map[string]component.Reference[*mockComponent]
+	}
 }
 
 // TestComponentLifecycle tests the full lifecycle of a component
