@@ -1,4 +1,4 @@
-package types
+package typing
 
 import (
 	"encoding/base64"

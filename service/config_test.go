@@ -17,7 +17,7 @@ import (
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/encoding"
 	"github.com/gopherd/core/op"
-	"github.com/gopherd/core/types"
+	"github.com/gopherd/core/typing"
 )
 
 type TestContext struct {
@@ -268,14 +268,14 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 					{
 						Name:            "Component1",
 						UUID:            "{{.Name}}-UUID",
-						TemplateUUID:    op.Addr(types.Bool(true)),
-						TemplateRefs:    op.Addr(types.Bool(true)),
-						TemplateOptions: op.Addr(types.Bool(true)),
-						Refs: types.NewRawObject(op.MustResult(json.Marshal(refs{
+						TemplateUUID:    op.Addr(typing.Bool(true)),
+						TemplateRefs:    op.Addr(typing.Bool(true)),
+						TemplateOptions: op.Addr(typing.Bool(true)),
+						Refs: typing.NewRawObject(op.MustResult(json.Marshal(refs{
 							A: "{{.Name}}-A",
 							B: "B",
 						}))),
-						Options: types.NewRawObject(op.MustResult(json.Marshal(options{
+						Options: typing.NewRawObject(op.MustResult(json.Marshal(options{
 							C: "C",
 							D: "{{.Name}}-D",
 						}))),
@@ -291,14 +291,14 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 					{
 						Name:            "Component1",
 						UUID:            "TestName-UUID",
-						TemplateUUID:    op.Addr(types.Bool(true)),
-						TemplateRefs:    op.Addr(types.Bool(true)),
-						TemplateOptions: op.Addr(types.Bool(true)),
-						Refs: types.NewRawObject(op.MustResult(json.Marshal(refs{
+						TemplateUUID:    op.Addr(typing.Bool(true)),
+						TemplateRefs:    op.Addr(typing.Bool(true)),
+						TemplateOptions: op.Addr(typing.Bool(true)),
+						Refs: typing.NewRawObject(op.MustResult(json.Marshal(refs{
 							A: "TestName-A",
 							B: "B",
 						}))),
-						Options: types.NewRawObject(op.MustResult(json.Marshal(options{
+						Options: typing.NewRawObject(op.MustResult(json.Marshal(options{
 							C: "C",
 							D: "TestName-D",
 						}))),
@@ -338,7 +338,7 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 					{
 						Name:         "Component1",
 						UUID:         "{{.NameXXX}}-UUID",
-						TemplateUUID: op.Addr(types.Bool(true)),
+						TemplateUUID: op.Addr(typing.Bool(true)),
 					},
 				},
 			},
@@ -353,8 +353,8 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 				Components: []component.Config{
 					{
 						Name:         "Component1",
-						TemplateRefs: op.Addr(types.Bool(true)),
-						Refs: types.NewRawObject(op.MustResult(json.Marshal(map[string]string{
+						TemplateRefs: op.Addr(typing.Bool(true)),
+						Refs: typing.NewRawObject(op.MustResult(json.Marshal(map[string]string{
 							"A": "{{.NameXXX}}-A",
 							"B": "B",
 						}))),
@@ -372,8 +372,8 @@ func TestConfig_ProcessTemplate(t *testing.T) {
 				Components: []component.Config{
 					{
 						Name:            "Component1",
-						TemplateOptions: op.Addr(types.Bool(true)),
-						Options: types.NewRawObject(op.MustResult(json.Marshal(map[string]string{
+						TemplateOptions: op.Addr(typing.Bool(true)),
+						Options: typing.NewRawObject(op.MustResult(json.Marshal(map[string]string{
 							"A": "{{.NameXXX}}-A",
 							"B": "B",
 						}))),

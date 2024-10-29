@@ -1,8 +1,8 @@
-// Package types provides utilities for handling raw data objects and
+// Package typing provides utilities for handling raw data objects and
 // wraps basic Go types with additional functionality. It offers tools
 // for flexible data processing and enhanced type manipulation, useful
 // in various data handling and parsing scenarios.
-package types
+package typing
 
 import (
 	"encoding/base64"

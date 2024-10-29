@@ -13,7 +13,7 @@ import (
 
 	"github.com/gopherd/core/component"
 	"github.com/gopherd/core/op"
-	"github.com/gopherd/core/types"
+	"github.com/gopherd/core/typing"
 )
 
 func TestMain(m *testing.M) {
@@ -139,11 +139,11 @@ func TestConfigMarshalUnmarshal(t *testing.T) {
 			config: component.Config{
 				Name:            "TestComponent",
 				UUID:            "test-uuid",
-				Refs:            types.NewRawObject(`{"ref1":"uuid1"}`),
-				Options:         types.NewRawObject(`{"option1":"value1"}`),
-				TemplateUUID:    op.Addr(types.Bool(true)),
-				TemplateRefs:    op.Addr(types.Bool(false)),
-				TemplateOptions: op.Addr(types.Bool(true)),
+				Refs:            typing.NewRawObject(`{"ref1":"uuid1"}`),
+				Options:         typing.NewRawObject(`{"option1":"value1"}`),
+				TemplateUUID:    op.Addr(typing.Bool(true)),
+				TemplateRefs:    op.Addr(typing.Bool(false)),
+				TemplateOptions: op.Addr(typing.Bool(true)),
 			},
 			want: `{"Name":"TestComponent","UUID":"test-uuid","Refs":{"ref1":"uuid1"},"Options":{"option1":"value1"},"TemplateUUID":true,"TemplateRefs":false,"TemplateOptions":true}`,
 		},
@@ -192,7 +192,7 @@ func TestBaseComponentSetup(t *testing.T) {
 			config: component.Config{
 				Name:    "TestComponent",
 				UUID:    "test-uuid",
-				Options: types.NewRawObject(`{"Value":"test"}`),
+				Options: typing.NewRawObject(`{"Value":"test"}`),
 			},
 			wantErr: false,
 		},
@@ -201,7 +201,7 @@ func TestBaseComponentSetup(t *testing.T) {
 			config: component.Config{
 				Name:    "TestComponent",
 				UUID:    "test-uuid",
-				Options: types.NewRawObject(`{"InvalidKey":"test"}`),
+				Options: typing.NewRawObject(`{"InvalidKey":"test"}`),
 			},
 			wantErr: false,
 		},
@@ -210,7 +210,7 @@ func TestBaseComponentSetup(t *testing.T) {
 			config: component.Config{
 				Name:    "TestComponent",
 				UUID:    "test-uuid",
-				Options: types.NewRawObject(`{invalid json`),
+				Options: typing.NewRawObject(`{invalid json`),
 			},
 			wantErr: true,
 		},
@@ -534,17 +534,17 @@ func TestRegisterAndCreate(t *testing.T) {
 func TestBoolPointerBehavior(t *testing.T) {
 	tests := []struct {
 		name     string
-		boolPtr  *types.Bool
+		boolPtr  *typing.Bool
 		wantJSON string
 	}{
 		{
 			name:     "True value",
-			boolPtr:  op.Addr(types.Bool(true)),
+			boolPtr:  op.Addr(typing.Bool(true)),
 			wantJSON: "true",
 		},
 		{
 			name:     "False value",
-			boolPtr:  op.Addr(types.Bool(false)),
+			boolPtr:  op.Addr(typing.Bool(false)),
 			wantJSON: "false",
 		},
 		{
@@ -565,7 +565,7 @@ func TestBoolPointerBehavior(t *testing.T) {
 				t.Errorf("Marshaled JSON does not match expected.\nGot:  %s\nWant: %s", string(data), tt.wantJSON)
 			}
 
-			var unmarshaled *types.Bool
+			var unmarshaled *typing.Bool
 			err = json.Unmarshal(data, &unmarshaled)
 			if err != nil {
 				t.Fatalf("Failed to unmarshal bool pointer: %v", err)
@@ -596,7 +596,7 @@ func ExampleBaseComponent() {
 	config := component.Config{
 		Name:    "ExampleComponent",
 		UUID:    "example-uuid",
-		Options: types.NewRawObject(`{"Value":"example"}`),
+		Options: typing.NewRawObject(`{"Value":"example"}`),
 	}
 
 	err := mc.Setup(container, &config, false)
@@ -665,7 +665,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 	config := component.Config{
 		Name: "TestComponentWithRefs",
 		UUID: "test-uuid",
-		Refs: types.NewRawObject(`{"Ref1":"ref1","Ref2":"ref2"}`),
+		Refs: typing.NewRawObject(`{"Ref1":"ref1","Ref2":"ref2"}`),
 	}
 
 	err := tc.Setup(container, &config, false)
@@ -686,7 +686,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 		config := component.Config{
 			Name: "TestComponentWithRefs",
 			UUID: "test-uuid",
-			Refs: types.NewRawObject(`{invalid json`),
+			Refs: typing.NewRawObject(`{invalid json`),
 		}
 		err := tc.Setup(container, &config, false)
 		if err == nil || !strings.Contains(err.Error(), "failed to unmarshal refs") {
@@ -702,7 +702,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 		config := component.Config{
 			Name: "TestComponentWithRefs",
 			UUID: "test-uuid",
-			Refs: types.NewRawObject(`{"Ref1":"non-existent-uuid"}`),
+			Refs: typing.NewRawObject(`{"Ref1":"non-existent-uuid"}`),
 		}
 		err := tc.Setup(mockContainer, &config, false)
 		if err == nil || !strings.Contains(err.Error(), "failed to resolve reference") {
@@ -730,7 +730,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 		config := component.Config{
 			Name: "NestedComponent",
 			UUID: "nested-uuid",
-			Refs: types.NewRawObject(`{"Ref1":"ref1","NestedStruct":{"Ref2":"ref2"}}`),
+			Refs: typing.NewRawObject(`{"Ref1":"ref1","NestedStruct":{"Ref2":"ref2"}}`),
 		}
 
 		err := nc.Setup(container, &config, false)
@@ -775,7 +775,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 		config := component.Config{
 			Name: "MixedComponent",
 			UUID: "mixed-uuid",
-			Refs: types.NewRawObject(`{"Ref1":"ref1","Ref2":null,"Ref3":{},"Ref4":"not-a-ref","X":{"Ref5":"ref1"},"Y":{"Ref6":"ref1"},"Ref7":["ref1","ref1"],"Ref8":["ref1"],"Ref9":{"key":"ref1"}}`),
+			Refs: typing.NewRawObject(`{"Ref1":"ref1","Ref2":null,"Ref3":{},"Ref4":"not-a-ref","X":{"Ref5":"ref1"},"Y":{"Ref6":"ref1"},"Ref7":["ref1","ref1"],"Ref8":["ref1"],"Ref9":{"key":"ref1"}}`),
 		}
 
 		err := mixedComp.Setup(container, &config, false)
@@ -833,7 +833,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 		config := component.Config{
 			Name: "TestComponentWithRefs",
 			UUID: "test-uuid",
-			Refs: types.NewRawObject(`{invalid json`),
+			Refs: typing.NewRawObject(`{invalid json`),
 		}
 		err := tc.Setup(newMockContainer(), &config, false)
 		if err == nil || !strings.Contains(err.Error(), "failed to unmarshal refs") {
@@ -846,7 +846,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 		config := component.Config{
 			Name: "NonStructRefs",
 			UUID: "non-struct-uuid",
-			Refs: types.NewRawObject(`"string ref"`),
+			Refs: typing.NewRawObject(`"string ref"`),
 		}
 		err := cnsr.Setup(newMockContainer(), &config, false)
 		if err != nil {
@@ -867,7 +867,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 		config := component.Config{
 			Name: "DeepRefs",
 			UUID: "deep-refs-uuid",
-			Refs: types.NewRawObject(`{
+			Refs: typing.NewRawObject(`{
 				"Ref1": "ref1",
 				"Nested": {
 					"Ref2": "ref2",
@@ -905,7 +905,7 @@ func TestBaseComponentWithRefs(t *testing.T) {
 		config := component.Config{
 			Name: "FailingResolver",
 			UUID: "failing-resolver-uuid",
-			Refs: types.NewRawObject(`{"FailingRef": "some-uuid"}`),
+			Refs: typing.NewRawObject(`{"FailingRef": "some-uuid"}`),
 		}
 
 		err := cfr.Setup(newMockContainer(), &config, false)
